@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.hieu.controllers.AuthController"
+           prefHeight="680.0" prefWidth="960.0">
+
+    <VBox alignment="CENTER" spacing="24.0" maxWidth="440.0">
+        <!-- Logo / Tiêu đề chính -->
+        <VBox alignment="CENTER" spacing="4.0">
+            <Label text="Đấu giá trực tuyến" styleClass="brand-title"/>
+            <Label text="Hệ thống đấu giá phòng trực tiếp" styleClass="brand-subtitle"/>
+        </VBox>
+
+        <!-- Thẻ form -->
+        <VBox spacing="16.0" styleClass="card-panel">
+            <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="section-header"/>
+
+            <!-- Khung thông báo lỗi / thành công -->
+            <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0" styleClass="alert-box, alert-error" visible="false" managed="false">
+                <Label fx:id="lblAlertMessage" text="Thông báo" wrapText="true"/>
+            </HBox>
+
+            <!-- Tên đăng nhập -->
+            <VBox spacing="6.0">
+                <Label text="Tên đăng nhập" styleClass="form-label"/>
+                <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập"/>
+            </VBox>
+
+            <!-- Mật khẩu: trống hoàn toàn, không có giá trị mặc định -->
+            <VBox spacing="6.0">
+                <Label text="Mật khẩu" styleClass="form-label"/>
+                <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu"/>
+            </VBox>
+
+            <!-- Các trường chỉ xuất hiện khi Đăng ký -->
+            <VBox fx:id="registerFieldsBox" spacing="14.0" visible="false" managed="false">
+                <VBox spacing="6.0">
+                    <Label text="Họ và tên" styleClass="form-label"/>
+                    <TextField fx:id="txtFullName" promptText="Nhập họ và tên đầy đủ"/>
+                </VBox>
+
+                <VBox spacing="6.0">
+                    <Label text="Địa chỉ email" styleClass="form-label"/>
+                    <TextField fx:id="txtEmail" promptText="Nhập địa chỉ thư điện tử"/>
+                </VBox>
+
+                <!-- Lựa chọn vai trò: chỉ có trong chế độ Đăng ký (Người đấu giá / Người bán) -->
+                <VBox spacing="8.0">
+                    <Label text="Vai trò tài khoản" styleClass="form-label"/>
+                    <HBox spacing="20.0">
+                        <fx:define>
+                            <ToggleGroup fx:id="roleToggleGroup"/>
+                        </fx:define>
+                        <RadioButton fx:id="rbBidder" text="Người đấu giá" toggleGroup="$roleToggleGroup" selected="true"/>
+                        <RadioButton fx:id="rbSeller" text="Người bán" toggleGroup="$roleToggleGroup"/>
+                    </HBox>
+                </VBox>
+            </VBox>
+
+            <!-- Nút gửi form -->
+            <Button fx:id="btnSubmit" text="Đăng nhập" onAction="#handleSubmit" styleClass="btn-primary" maxWidth="Infinity"/>
+
+            <!-- Nút chuyển đổi Đăng nhập / Đăng ký -->
+            <Button fx:id="btnSwitchMode" text="Chưa có tài khoản? Đăng ký ngay" onAction="#handleSwitchMode" styleClass="btn-link" maxWidth="Infinity"/>
+        </VBox>
+    </VBox>
+
+</StackPane>
