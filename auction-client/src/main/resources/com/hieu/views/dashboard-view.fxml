@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.hieu.util.ThemeToggle?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.hieu.controllers.DashboardController"
+            prefHeight="780.0" prefWidth="1200.0">
+
+    <!-- ===== HEADER / TOP BAR ===== -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
+            <!-- Logo -->
+            <Label text="🏆" styleClass="top-logo-icon"/>
+            <Label text="VaultAuction" styleClass="top-logo-text"/>
+
+            <!-- Separator -->
+            <Region prefWidth="12.0"/>
+
+            <!-- Search bar -->
+            <TextField fx:id="txtSearch" promptText="🔍  Tìm kiếm phiên đấu giá..." styleClass="search-bar" prefWidth="280.0"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <!-- Theme toggle -->
+            <ThemeToggle/>
+
+            <!-- User info -->
+            <VBox alignment="CENTER_RIGHT" spacing="2.0">
+                <Label fx:id="lblWelcomeUser" text="Xin chào" styleClass="top-username"/>
+                <Label fx:id="lblUserRole" text="Người đấu giá" styleClass="badge-status, badge-open"/>
+            </VBox>
+            <Label fx:id="lblUserAvatar" text="V" styleClass="seller-avatar"/>
+
+            <!-- Quản lý bán hàng (chỉ SELLER) -->
+            <Button fx:id="btnProductManagement" text="📦  Quản lý bán hàng"
+                    onAction="#handleOpenProductManagement" styleClass="btn-secondary"
+                    visible="false" managed="false"/>
+
+            <!-- Đăng xuất -->
+            <Button fx:id="btnLogout" text="Đăng xuất" onAction="#handleLogout" styleClass="btn-outline"/>
+        </HBox>
+    </top>
+
+    <!-- ===== NỘI DUNG CHÍNH ===== -->
+    <center>
+        <HBox spacing="0.0">
+
+            <!-- ============ MAIN CONTENT ============ -->
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                        styleClass="main-scroll" HBox.hgrow="ALWAYS">
+                <VBox spacing="0.0">
+                    <padding>
+                        <Insets top="20.0" right="20.0" bottom="20.0" left="20.0"/>
+                    </padding>
+
+                    <!-- Category chips -->
+                    <HBox fx:id="categoryChipsBox" spacing="8.0" alignment="CENTER_LEFT">
+                        <padding>
+                            <Insets bottom="16.0"/>
+                        </padding>
+                        <Button fx:id="chipAll" text="Tất cả" styleClass="category-chip, category-chip-active"
+                                onAction="#handleCategoryFilter" userData="all"/>
+                        <Button text="⌚  Đồng hồ &amp; Trang sức" styleClass="category-chip"
+                                onAction="#handleCategoryFilter" userData="Đồng hồ cao cấp"/>
+                        <Button text="🎨  Tranh nghệ thuật" styleClass="category-chip"
+                                onAction="#handleCategoryFilter" userData="Nghệ thuật"/>
+                        <Button text="🏠  Bất động sản" styleClass="category-chip"
+                                onAction="#handleCategoryFilter" userData="Bất động sản"/>
+                        <Button text="🚗  Xe cộ" styleClass="category-chip"
+                                onAction="#handleCategoryFilter" userData="Xe cộ"/>
+                        <Button text="💻  Công nghệ" styleClass="category-chip"
+                                onAction="#handleCategoryFilter" userData="Thiết bị công nghệ"/>
+                    </HBox>
+
+                    <!-- ===== FEATURED HERO SECTION ===== -->
+                    <VBox fx:id="featuredPane" spacing="12.0" styleClass="featured-card">
+                        <padding>
+                            <Insets top="20.0" right="24.0" bottom="20.0" left="24.0"/>
+                        </padding>
+
+                        <Label text="⭐  Phiên đấu giá nổi bật" styleClass="section-header"/>
+
+                        <HBox spacing="20.0" alignment="CENTER_LEFT">
+                            <!-- Image placeholder -->
+                            <StackPane styleClass="auction-card-image, featured-image" prefWidth="280.0" prefHeight="200.0">
+                                <Label fx:id="lblFeaturedImagePlaceholder" text="🏆" styleClass="featured-image-icon"/>
+                            </StackPane>
+
+                            <!-- Info -->
+                            <VBox spacing="12.0" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8.0" alignment="CENTER_LEFT">
+                                    <Label fx:id="lblFeaturedStatus" text="● ĐANG DIỄN RA" styleClass="badge-status, badge-running"/>
+                                    <Label fx:id="lblFeaturedCode" text="#AUC-000" styleClass="text-secondary"/>
+                                </HBox>
+
+                                <Label fx:id="lblFeaturedName" text="Đang tải..." styleClass="featured-title" wrapText="true"/>
+                                <Label fx:id="lblFeaturedCategory" text="Danh mục" styleClass="text-secondary"/>
+                                <Label text="Tình trạng: Đã kiểm định" styleClass="text-secondary"/>
+
+                                <VBox spacing="4.0">
+                                    <Label text="Giá hiện tại" styleClass="hero-label"/>
+                                    <Label fx:id="lblFeaturedPrice" text="0 ₫" styleClass="price-hero"/>
+                                </VBox>
+
+                                <HBox spacing="8.0" alignment="CENTER_LEFT">
+                                    <Label text="⏱" styleClass="countdown-label"/>
+                                    <Label fx:id="lblFeaturedCountdown" text="--:--:--" styleClass="countdown-label"/>
+                                </HBox>
+
+                                <HBox spacing="8.0">
+                                    <Button fx:id="btnFeaturedJoin" text="THAM GIA NGAY →"
+                                            onAction="#handleJoinFeatured"
+                                            styleClass="btn-primary, btn-pill"/>
+                                    <Label fx:id="lblFeaturedBidCount" text="0 lượt đặt giá" styleClass="text-secondary"/>
+                                </HBox>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <!-- ===== SECTION: Đang diễn ra ===== -->
+                    <VBox spacing="12.0">
+                        <padding>
+                            <Insets top="24.0"/>
+                        </padding>
+
+                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                            <Label text="🔴  Đang diễn ra" styleClass="section-header"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Làm mới" onAction="#loadAuctions" styleClass="btn-secondary"/>
+                        </HBox>
+
+                        <!-- Auction card grid - populated by controller -->
+                        <FlowPane fx:id="auctionGrid" hgap="16.0" vgap="16.0" prefWrapLength="720.0">
+                        </FlowPane>
+
+                        <Label fx:id="lblNoResults" text="Không có phiên đấu giá nào phù hợp."
+                               styleClass="empty-placeholder" visible="false" managed="false"/>
+                    </VBox>
+
+                    <!-- ===== SECTION: Cách hoạt động ===== -->
+                    <VBox spacing="16.0">
+                        <padding>
+                            <Insets top="32.0" bottom="8.0"/>
+                        </padding>
+                        <Label text="📖  Cách hoạt động" styleClass="section-header"/>
+                        <HBox spacing="16.0" alignment="CENTER">
+                            <!-- Step 1 -->
+                            <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" prefWidth="200.0">
+                                <Label text="1️⃣" styleClass="step-icon"/>
+                                <Label text="Đăng ký" styleClass="step-title"/>
+                                <Label text="Tạo tài khoản miễn phí và xác minh danh tính trong vài phút"
+                                       styleClass="step-desc" wrapText="true"/>
+                            </VBox>
+                            <!-- Arrow -->
+                            <Label text="→" styleClass="step-arrow"/>
+                            <!-- Step 2 -->
+                            <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" prefWidth="200.0">
+                                <Label text="2️⃣" styleClass="step-icon"/>
+                                <Label text="Đấu giá" styleClass="step-title"/>
+                                <Label text="Tìm phiên yêu thích, đặt giá và theo dõi kết quả thời gian thực"
+                                       styleClass="step-desc" wrapText="true"/>
+                            </VBox>
+                            <!-- Arrow -->
+                            <Label text="→" styleClass="step-arrow"/>
+                            <!-- Step 3 -->
+                            <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" prefWidth="200.0">
+                                <Label text="3️⃣" styleClass="step-icon"/>
+                                <Label text="Nhận hàng" styleClass="step-title"/>
+                                <Label text="Thanh toán an toàn và nhận sản phẩm tận nơi sau khi thắng đấu giá"
+                                       styleClass="step-desc" wrapText="true"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                </VBox>
+            </ScrollPane>
+
+            <!-- ============ SIDEBAR BÊN PHẢI ============ -->
+            <VBox styleClass="sidebar-panel" prefWidth="260.0" minWidth="220.0" spacing="0.0">
+                <padding>
+                    <Insets top="20.0" right="16.0" bottom="20.0" left="16.0"/>
+                </padding>
+
+                <!-- Section: Sắp diễn ra -->
+                <VBox styleClass="sidebar-card" spacing="12.0">
+                    <Label text="📅  Sắp diễn ra" styleClass="section-header"/>
+
+                    <!-- Danh sách upcoming - populated by controller -->
+                    <VBox fx:id="upcomingList" spacing="8.0">
+                        <Label text="Đang tải..." styleClass="text-secondary"/>
+                    </VBox>
+
+                    <Button text="Xem lịch đầy đủ" onAction="#handleShowFullSchedule"
+                            styleClass="btn-outline" maxWidth="Infinity"/>
+                </VBox>
+
+                <!-- Spacer -->
+                <Region VBox.vgrow="ALWAYS" minHeight="20.0"/>
+
+                <!-- CTA: Đăng bán -->
+                <VBox styleClass="sidebar-card, sidebar-cta" spacing="12.0">
+                    <Label text="💼  Bạn có sản phẩm để bán?" styleClass="sidebar-cta-title" wrapText="true"/>
+                    <Label text="Đăng ký làm người bán và bắt đầu kiếm tiền từ sàn đấu giá của chúng tôi."
+                           styleClass="text-secondary" wrapText="true"/>
+                    <Button fx:id="btnListItem" text="Đăng bán ngay" onAction="#handleListItem"
+                            styleClass="btn-primary, btn-pill" maxWidth="Infinity"/>
+                </VBox>
+
+            </VBox>
+
+        </HBox>
+    </center>
+
+</BorderPane>
