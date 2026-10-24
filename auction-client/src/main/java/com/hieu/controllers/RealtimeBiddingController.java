@@ -9,6 +9,8 @@ import com.hieu.services.MockAuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.FormatUtil;
 import com.hieu.util.ViewNavigator;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.chart.CategoryAxis;
@@ -20,8 +22,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.control.Alert;
+import javafx.util.Duration;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -43,6 +49,7 @@ public class RealtimeBiddingController {
     @FXML private Label lblStatus;
     @FXML private Label lblEndTime;
     @FXML private Label lblStatusExplanation;
+    @FXML private Label lblCountdown;
 
     @FXML private TextField txtBidAmount;
     @FXML private Button btnPlaceBid;
@@ -64,6 +71,7 @@ public class RealtimeBiddingController {
     private Auction currentAuction;
     private XYChart.Series<String, Number> priceSeries;
     private Consumer<Bid> realtimeBidConsumer;
+    private Timeline countdownTimer;
 
     @FXML
     public void initialize() {
@@ -116,10 +124,15 @@ public class RealtimeBiddingController {
      * Nạp dữ liệu phiên đấu giá vào màn hình
      */
     public void setAuction(Auction auction) {
+        if (currentAuction != null && realtimeBidConsumer != null) {
+            auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
+        }
         this.currentAuction = auction;
         renderAuctionDetails();
         loadBidHistory();
         registerRealtimeObserver();
+        startCountdown();
+        updateCountdown();
     }
 
     private void renderAuctionDetails() {
@@ -175,27 +188,75 @@ public class RealtimeBiddingController {
         } else {
             for (Bid bid : bids) {
                 updatePriceChart(bid.getFormattedTime(), bid.getAmount());
-                lvRecentBids.getItems().add(0, bid.toString());
+                lvRecentBids.getItems().add(0, formatBid(bid));
             }
         }
+    }
+
+    private String formatBid(Bid bid) {
+        String username = bid.getBidderUsername();
+        String maskedName = username == null || username.isEmpty()
+                ? "Người dùng"
+                : username.charAt(0) + "***" + (username.length() > 2
+                        ? username.substring(username.length() - 1)
+                        : "");
+        return maskedName + "  •  " + bid.getFormattedTime() + "  •  "
+                + FormatUtil.formatCurrency(bid.getAmount());
     }
 
     private void registerRealtimeObserver() {
         if (currentAuction == null) return;
 
-        realtimeBidConsumer = bid -> Platform.runLater(() -> {
-            updatePriceChart(bid.getFormattedTime(), bid.getAmount());
-
-            lblCurrentPrice.setText(FormatUtil.formatCurrency(bid.getAmount()));
-            lblHighestBidder.setText(bid.getBidderUsername());
-            lblMinNextBid.setText("Mức đặt tối thiểu: " + FormatUtil.formatCurrency(bid.getAmount() + currentAuction.getMinBidStep()));
-            txtBidAmount.setText(String.format("%.0f", bid.getAmount() + currentAuction.getMinBidStep()));
-
-            lvRecentBids.getItems().add(0, bid.toString());
-            showAlert("Lượt trả giá mới: " + bid.getBidderUsername() + " vừa đặt " + FormatUtil.formatCurrency(bid.getAmount()), false);
-        });
+        realtimeBidConsumer = this::onBidReceived;
 
         auctionService.registerBidListener(currentAuction.getId(), realtimeBidConsumer);
+    }
+
+    // ======= Countdown Timer =======
+
+    /**
+     * Khởi động countdown timer đếm ngược theo giây đến thời điểm kết thúc phiên.
+     */
+    private void startCountdown() {
+        if (countdownTimer != null) countdownTimer.stop();
+        countdownTimer = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateCountdown()));
+        countdownTimer.setCycleCount(Timeline.INDEFINITE);
+        countdownTimer.play();
+    }
+
+    /**
+     * Cập nhật label đếm ngược mỗi giây. Chuyển sang màu đỏ khi còn dưới 5 phút.
+     */
+    private void updateCountdown() {
+        if (currentAuction == null || currentAuction.getEndTime() == null) return;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime end = currentAuction.getEndTime();
+        if (!now.isBefore(end)) {
+            lblCountdown.setText("Đã kết thúc");
+            currentAuction.setStatus(AuctionStatus.FINISHED);
+            countdownTimer.stop();
+            renderAuctionDetails();
+            return;
+        }
+        if (currentAuction.getStatus() == AuctionStatus.OPEN
+                && currentAuction.getStartTime() != null
+                && !now.isBefore(currentAuction.getStartTime())) {
+            currentAuction.setStatus(AuctionStatus.RUNNING);
+            renderAuctionDetails();
+        }
+        long seconds = ChronoUnit.SECONDS.between(now, end);
+        long hours = seconds / 3600;
+        long mins = (seconds % 3600) / 60;
+        long secs = seconds % 60;
+        String text = String.format("%02d:%02d:%02d", hours, mins, secs);
+        lblCountdown.setText(text);
+        // Màu đỏ khi còn < 5 phút
+        if (seconds < 300) {
+            lblCountdown.getStyleClass().removeAll("countdown-label");
+            if (!lblCountdown.getStyleClass().contains("countdown-label-urgent")) {
+                lblCountdown.getStyleClass().add("countdown-label-urgent");
+            }
+        }
     }
 
     /**
@@ -208,6 +269,28 @@ public class RealtimeBiddingController {
         } else {
             Platform.runLater(() -> priceSeries.getData().add(dataPoint));
         }
+    }
+
+    /**
+     * API entry point for realtime bid events from socket/server.
+     * Member 1 (Server Integration) should call this method when a new bid arrives.
+     * Must be safe to call from non-JavaFX threads.
+     */
+    public void onBidReceived(Bid bid) {
+        if (bid == null || currentAuction == null || !currentAuction.getId().equals(bid.getAuctionId())) {
+            return;
+        }
+        Platform.runLater(() -> {
+            updatePriceChart(bid.getFormattedTime(), bid.getAmount());
+            currentAuction.setCurrentPrice(bid.getAmount());
+            currentAuction.setHighestBidderUsername(bid.getBidderUsername());
+            lblCurrentPrice.setText(FormatUtil.formatCurrency(bid.getAmount()));
+            lblHighestBidder.setText(bid.getBidderUsername());
+            lblMinNextBid.setText("Mức đặt tối thiểu: " + FormatUtil.formatCurrency(bid.getAmount() + currentAuction.getMinBidStep()));
+            txtBidAmount.setText(String.format("%.0f", bid.getAmount() + currentAuction.getMinBidStep()));
+            lvRecentBids.getItems().add(0, formatBid(bid));
+            showAlert("Lượt trả giá mới: " + bid.getBidderUsername() + " vừa đặt " + FormatUtil.formatCurrency(bid.getAmount()), false);
+        });
     }
 
     @FXML
@@ -230,17 +313,33 @@ public class RealtimeBiddingController {
             return;
         }
 
-        double bidAmount;
+        long bidAmount;
         try {
-            bidAmount = Double.parseDouble(input.trim().replaceAll("[,.]", ""));
+            String normalized = input.trim().replaceAll("[,.]", "");
+            if (!normalized.matches("[0-9]+")) {
+                throw new NumberFormatException();
+            }
+            bidAmount = Long.parseLong(normalized);
         } catch (NumberFormatException e) {
-            showAlert("Định dạng số tiền không hợp lệ.", true);
+            showAlert("Giá đặt phải là số nguyên dương.", true);
+            return;
+        }
+        if (bidAmount <= 0) {
+            showAlert("Giá đặt phải là số nguyên dương.", true);
+            return;
+        }
+        if (bidAmount <= currentAuction.getCurrentPrice()) {
+            showAlert("Giá đặt phải cao hơn giá hiện tại.", true);
+            return;
+        }
+        if (bidAmount < currentAuction.getMinimumNextBid()) {
+            showAlert("Mức đặt tối thiểu là " + FormatUtil.formatCurrency(currentAuction.getMinimumNextBid()) + ".", true);
             return;
         }
 
         BidResult result = auctionService.placeBid(currentAuction.getId(), bidAmount);
         if (result.isSuccess()) {
-            showAlert("Đặt giá thành công: " + FormatUtil.formatCurrency(bidAmount), false);
+            showAlert("Đặt giá thành công: " + FormatUtil.formatCurrency((double) bidAmount), false);
         } else {
             showAlert(result.getMessage(), true);
         }
@@ -254,9 +353,9 @@ public class RealtimeBiddingController {
 
     private void addQuickBid(double delta) {
         try {
-            double current = Double.parseDouble(txtBidAmount.getText().trim().replaceAll("[,.]", ""));
+            long current = Long.parseLong(txtBidAmount.getText().trim().replaceAll("[,.]", ""));
             txtBidAmount.setText(String.format("%.0f", current + delta));
-        } catch (Exception ex) {
+        } catch (NumberFormatException ex) {
             txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid() + delta));
         }
     }
@@ -271,14 +370,20 @@ public class RealtimeBiddingController {
     @FXML
     private void handleBackToDashboard() {
         try {
+            if (countdownTimer != null) countdownTimer.stop();
             if (currentAuction != null && realtimeBidConsumer != null) {
                 auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
             }
             ViewNavigator.loadView("/com/hieu/views/dashboard-view.fxml", "Danh sách phiên đấu giá");
         } catch (IOException e) {
-            e.printStackTrace();
-            showAlert("Không thể quay lại danh sách: " + e.getMessage(), true);
+            showDialog("Không thể mở danh sách phiên đấu giá.");
         }
+    }
+
+    private void showDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, message);
+        alert.setHeaderText("Không thể chuyển màn hình");
+        alert.showAndWait();
     }
 
     private void showAlert(String message, boolean isError) {

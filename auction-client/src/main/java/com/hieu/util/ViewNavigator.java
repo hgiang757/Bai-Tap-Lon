@@ -9,7 +9,7 @@ import java.io.IOException;
 
 /**
  * Tiện ích chuyển đổi màn hình (Scene Navigation) trong ứng dụng JavaFX.
- * Tự động gắn stylesheet và quản lý kích thước màn hình.
+ * Mọi Scene mới đều được ThemeManager.apply để nhận theme Sáng/Tối.
  */
 public class ViewNavigator {
 
@@ -38,11 +38,7 @@ public class ViewNavigator {
             scene.setRoot(root);
         }
 
-        // Đảm bảo gắn style.css
-        String css = ViewNavigator.class.getResource("/com/hieu/css/style.css").toExternalForm();
-        if (!scene.getStylesheets().contains(css)) {
-            scene.getStylesheets().add(css);
-        }
+        ThemeManager.apply(scene);
 
         primaryStage.setTitle("Online Auction System - " + windowTitle);
         primaryStage.show();

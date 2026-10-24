@@ -5,6 +5,7 @@ import com.hieu.controllers.RealtimeBiddingController;
 import com.hieu.models.Auction;
 import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
+import com.hieu.util.ThemeManager;
 import com.hieu.util.ViewNavigator;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -23,7 +24,6 @@ import java.lang.reflect.Method;
 
 public class SnapshotApp extends Application {
 
-    private static final String CSS_PATH = "/com/hieu/css/style.css";
     private static final File OUTPUT_DIR = new File("docs/ui/screenshots");
 
     @Override
@@ -92,14 +92,11 @@ public class SnapshotApp extends Application {
         Scene scene = stage.getScene();
         if (scene == null) {
             scene = new Scene(root, 1080, 720);
-            scene.getStylesheets().add(getClass().getResource(CSS_PATH).toExternalForm());
             stage.setScene(scene);
         } else {
             scene.setRoot(root);
-            if (!scene.getStylesheets().contains(getClass().getResource(CSS_PATH).toExternalForm())) {
-                scene.getStylesheets().add(getClass().getResource(CSS_PATH).toExternalForm());
-            }
         }
+        ThemeManager.apply(scene);
         stage.show();
         root.applyCss();
         root.layout();

@@ -23,9 +23,14 @@ import java.util.stream.Collectors;
  */
 public class MockAuctionClientService implements AuctionClientService {
 
+    private static final String DEMO_PASSWORD = "123456";
+    private static final String BIDDER_USERNAME = "bidder_hieu";
+    private static final String SELLER_USERNAME = "seller_hieu";
     private User currentUser;
     private final List<Auction> auctions = new ArrayList<>();
     private final List<Item> items = new ArrayList<>();
+    private final Map<String, String> registeredPasswords = new ConcurrentHashMap<>();
+    private final Map<String, User> registeredUsers = new ConcurrentHashMap<>();
     private final Map<String, List<Bid>> bidHistories = new ConcurrentHashMap<>();
     private final Map<String, List<Consumer<Bid>>> listeners = new ConcurrentHashMap<>();
 
@@ -42,11 +47,17 @@ public class MockAuctionClientService implements AuctionClientService {
         Item item2 = new Item("IT02", "Tranh sơn mài Cổ Đồ", "Tác phẩm thủ công độc bản từ nghệ nhân Hà Nội thế kỷ 20.", "Nghệ thuật & Cổ vật", 45_000_000.0, "seller_art");
         Item item3 = new Item("IT03", "MacBook Pro M4 Max 64GB 1TB", "Máy mới nguyên seal, bảo hành Apple Care+ 3 năm.", "Thiết bị công nghệ", 75_000_000.0, "seller_tech");
         Item item4 = new Item("IT04", "Tượng Phật đồng thời Lý", "Hiện vật cổ có giấy chứng nhận thẩm định bảo tàng.", "Cổ vật quý", 120_000_000.0, "seller_art");
+        Item item5 = new Item("IT05", "Vòng cổ ngọc trai thiên nhiên", "Ngọc trai tuyển chọn, kèm giấy kiểm định chất lượng.", "Trang sức & Đá quý", 35_000_000.0, SELLER_USERNAME);
+        Item item6 = new Item("IT06", "Căn hộ ven sông Thảo Điền", "Căn hộ đã hoàn thiện nội thất, pháp lý đầy đủ.", "Bất động sản & Khác", 4_500_000_000.0, "seller_home");
+        Item item7 = new Item("IT07", "Sedan hạng sang đời 2023", "Xe đã kiểm định, lịch sử bảo dưỡng đầy đủ.", "Xe cộ & Phụ tùng", 1_200_000_000.0, "seller_auto");
 
         items.add(item1);
         items.add(item2);
         items.add(item3);
         items.add(item4);
+        items.add(item5);
+        items.add(item6);
+        items.add(item7);
 
         // Tạo các phiên đấu giá mẫu với các trạng thái khác nhau
         Auction auction1 = new Auction("AUC-101", item1, "seller_vip", 270_000_000.0, "bidder_vip99",
@@ -63,11 +74,17 @@ public class MockAuctionClientService implements AuctionClientService {
         Auction auction4 = new Auction("AUC-104", item4, "seller_art", 185_000_000.0, "collector_sg",
                 AuctionStatus.FINISHED, LocalDateTime.now().minusDays(1), LocalDateTime.now().minusHours(3), 2_000_000.0);
         auction4.setTotalBids(8);
+        Auction auction5 = new Auction("AUC-105", item6, "seller_home", 4_500_000_000.0, null,
+                AuctionStatus.OPEN, LocalDateTime.now().plusHours(3), LocalDateTime.now().plusDays(2), 50_000_000.0);
+        Auction auction6 = new Auction("AUC-106", item7, "seller_auto", 1_200_000_000.0, null,
+                AuctionStatus.OPEN, LocalDateTime.now().plusHours(6), LocalDateTime.now().plusDays(1), 20_000_000.0);
 
         auctions.add(auction1);
         auctions.add(auction2);
         auctions.add(auction3);
         auctions.add(auction4);
+        auctions.add(auction5);
+        auctions.add(auction6);
 
         // Tạo lịch sử bid mẫu cho phiên 101 và 103 (để vẽ LineChart)
         List<Bid> bids101 = new ArrayList<>();
@@ -91,18 +108,65 @@ public class MockAuctionClientService implements AuctionClientService {
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             return false;
         }
-        UserRole actualRole = role != null ? role :
-                (username.trim().toLowerCase().startsWith("seller") ? UserRole.SELLER : UserRole.BIDDER);
-        this.currentUser = new User("U-" + System.currentTimeMillis() % 1000, username.trim(),
-                username.trim(), username.trim() + "@auction.vn", actualRole, 100_000_000.0);
+        String account = username.trim().toLowerCase();
+        User registeredUser = registeredUsers.values().stream()
+                .filter(user -> user.getUsername().equalsIgnoreCase(account)
+                        || user.getEmail().equalsIgnoreCase(account))
+                .findFirst()
+                .orElse(null);
+        if (registeredUser != null) {
+            String registeredPassword = registeredPasswords.get(registeredUser.getUsername().toLowerCase());
+            if (registeredPassword == null || !registeredPassword.equals(password)) {
+                return false;
+            }
+            currentUser = registeredUser;
+            return true;
+        }
+        UserRole actualRole;
+        String canonicalUsername;
+        String fullName;
+        String email;
+        if ((BIDDER_USERNAME.equals(account) || "hieu@auction.vn".equals(account))
+                && DEMO_PASSWORD.equals(password)) {
+            actualRole = UserRole.BIDDER;
+            canonicalUsername = BIDDER_USERNAME;
+            fullName = "Mai Đức Hiệu";
+            email = "hieu@auction.vn";
+        } else if ((SELLER_USERNAME.equals(account) || "seller@auction.vn".equals(account))
+                && DEMO_PASSWORD.equals(password)) {
+            actualRole = UserRole.SELLER;
+            canonicalUsername = SELLER_USERNAME;
+            fullName = "Nguyễn Minh Anh";
+            email = "seller@auction.vn";
+        } else {
+            return false;
+        }
+        this.currentUser = new User("U-" + canonicalUsername, canonicalUsername,
+                fullName, email, actualRole, 100_000_000.0);
         return true;
     }
 
     @Override
     public boolean register(String username, String password, String fullName, String email, UserRole role) {
-        if (username == null || username.trim().isEmpty()) return false;
-        this.currentUser = new User("U-" + System.currentTimeMillis() % 1000, username.trim(),
-                fullName, email, role, 50_000_000.0);
+        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()
+                || fullName == null || fullName.trim().isEmpty() || email == null || email.trim().isEmpty()
+                || role == null) {
+            return false;
+        }
+        String canonicalUsername = username.trim();
+        String accountKey = canonicalUsername.toLowerCase();
+        if (accountKey.equals(BIDDER_USERNAME) || accountKey.equals(SELLER_USERNAME)
+                || "hieu@auction.vn".equalsIgnoreCase(email.trim())
+                || "seller@auction.vn".equalsIgnoreCase(email.trim())
+                || registeredUsers.containsKey(accountKey)
+                || registeredUsers.values().stream().anyMatch(user -> user.getEmail().equalsIgnoreCase(email.trim()))) {
+            return false;
+        }
+        User user = new User("U-" + System.currentTimeMillis() % 1000, canonicalUsername,
+                fullName.trim(), email.trim(), role, 50_000_000.0);
+        registeredUsers.put(accountKey, user);
+        registeredPasswords.put(accountKey, password);
+        this.currentUser = user;
         return true;
     }
 
@@ -118,6 +182,7 @@ public class MockAuctionClientService implements AuctionClientService {
 
     @Override
     public List<Auction> getAuctions(AuctionStatus filterStatus) {
+        refreshAuctionStatuses();
         if (filterStatus == null) {
             return new ArrayList<>(auctions);
         }
@@ -143,6 +208,13 @@ public class MockAuctionClientService implements AuctionClientService {
 
         if (auction.getStatus() != AuctionStatus.RUNNING) {
             return BidResult.fail("Phiên đấu giá hiện không ở trạng thái đang diễn ra (" + auction.getStatus().getDescription() + ").");
+        }
+        if (auction.getEndTime() == null || !auction.getEndTime().isAfter(LocalDateTime.now())) {
+            auction.setStatus(AuctionStatus.FINISHED);
+            return BidResult.fail("Phiên đấu giá đã kết thúc. Không thể nhận thêm lượt đặt giá.");
+        }
+        if (!Double.isFinite(amount) || amount <= 0 || amount != Math.rint(amount)) {
+            return BidResult.fail("Giá đặt phải là số nguyên dương.");
         }
 
         double minimumAcceptable = auction.getCurrentPrice() + auction.getMinBidStep();
@@ -215,9 +287,32 @@ public class MockAuctionClientService implements AuctionClientService {
 
     @Override
     public boolean deleteItem(String itemId) {
-        items.removeIf(i -> i.getId().equals(itemId));
+        refreshAuctionStatuses();
+        Auction activeAuction = auctions.stream()
+                .filter(a -> a.getItem() != null && a.getItem().getId().equals(itemId))
+                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .findFirst()
+                .orElse(null);
+        if (activeAuction != null) {
+            return false;
+        }
+        boolean removed = items.removeIf(i -> i.getId().equals(itemId));
         auctions.removeIf(a -> a.getItem() != null && a.getItem().getId().equals(itemId));
-        return true;
+        return removed;
+    }
+
+    private void refreshAuctionStatuses() {
+        LocalDateTime now = LocalDateTime.now();
+        for (Auction auction : auctions) {
+            if (auction.getEndTime() != null
+                    && !now.isBefore(auction.getEndTime())) {
+                auction.setStatus(AuctionStatus.FINISHED);
+            } else if (auction.getStatus() == AuctionStatus.OPEN
+                    && auction.getStartTime() != null
+                    && !now.isBefore(auction.getStartTime())) {
+                auction.setStatus(AuctionStatus.RUNNING);
+            }
+        }
     }
 
     @Override

@@ -1,0 +1,1344 @@
+/* ==========================================================================
+   Hệ thống kiểu cơ sở — chỉ dùng looked-up colors -c-*
+   Không dùng mã hex. Bóng đổ dùng rgba đen (không phải màu giao diện).
+   ========================================================================== */
+
+.root {
+    -fx-font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    -fx-font-size: 13px;
+    -fx-base: -c-surface;
+    -fx-background: -c-bg;
+    -fx-background-color: -c-bg;
+    -fx-text-fill: -c-text;
+    -fx-accent: -c-primary;
+    -fx-focus-color: -c-primary;
+    -fx-faint-focus-color: transparent;
+}
+
+/* ==========================================================================
+   Typography & Nhãn chữ
+   ========================================================================== */
+.label {
+    -fx-text-fill: -c-text;
+}
+
+.brand-title {
+    -fx-font-family: 'Georgia', serif;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+
+.brand-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -c-muted;
+}
+
+.view-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.view-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-muted;
+}
+
+.section-header {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.form-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.text-secondary {
+    -fx-text-fill: -c-muted;
+    -fx-font-size: 12px;
+}
+
+.text-bold {
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.product-title {
+    -fx-font-family: 'Georgia', serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.product-description {
+    -fx-text-fill: -c-muted;
+    -fx-line-spacing: 2px;
+}
+
+.category-tag {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+
+/* ==========================================================================
+   Thành phần nổi bật (phòng đấu giá trực tiếp)
+   ========================================================================== */
+.hero-bid-panel {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-primary;
+    -fx-border-width: 1px 1px 1px 4px;
+}
+
+.hero-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -c-muted;
+    -fx-font-weight: bold;
+}
+
+.price-hero {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+
+.price-starting {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-muted;
+}
+
+.min-bid-hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-warning;
+    -fx-font-weight: bold;
+}
+
+.status-explanation {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-muted;
+    -fx-font-style: italic;
+}
+
+.notice-disabled {
+    -fx-text-fill: -c-danger;
+    -fx-font-weight: bold;
+    -fx-font-style: normal;
+}
+
+/* ==========================================================================
+   Bố cục & Bề mặt
+   ========================================================================== */
+.card-panel {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 16px;
+    /* Bóng đen rất nhẹ — không phải token màu giao diện */
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.03), 8, 0, 0, 2);
+}
+
+.top-bar {
+    -fx-background-color: -c-nav;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 12px 24px;
+}
+
+.toolbar-panel {
+    -fx-padding: 10px 16px;
+}
+
+.thin-divider {
+    -fx-background-color: -c-border;
+}
+
+/* ==========================================================================
+   Form Controls
+   ========================================================================== */
+.text-field, .password-field, .text-area, .combo-box {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -c-text;
+    -fx-prompt-text-fill: -c-muted;
+    -fx-padding: 8px 12px;
+}
+
+.text-field:focused, .password-field:focused, .text-area:focused, .combo-box:focused {
+    -fx-border-color: -c-primary;
+    /* Bóng đen nhẹ khi focus — không dùng hex màu nhấn */
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.18), 4, 0, 0, 0);
+}
+
+.bid-input {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: -c-text;
+    -fx-background-color: -c-surface;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: -c-surface-2;
+}
+
+.button {
+    -fx-background-radius: 8px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 8px 16px;
+}
+
+.btn-primary {
+    -fx-background-color: -c-primary;
+    -fx-text-fill: -c-on-primary;
+}
+.btn-primary:hover {
+    -fx-background-color: -c-panel;
+    -fx-text-fill: -c-on-panel;
+}
+.btn-primary:disabled {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-muted;
+    -fx-cursor: default;
+}
+
+.btn-secondary {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-text;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+}
+.btn-secondary:hover {
+    -fx-background-color: -c-border;
+}
+.btn-secondary:disabled {
+    -fx-opacity: 0.5;
+    -fx-cursor: default;
+}
+
+.btn-danger {
+    -fx-background-color: -c-danger;
+    -fx-text-fill: -c-on-primary;
+}
+.btn-danger:hover {
+    -fx-background-color: -c-danger;
+    -fx-opacity: 0.9;
+}
+
+.btn-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+    -fx-text-fill: -c-muted;
+}
+.btn-outline:hover {
+    -fx-border-color: -c-muted;
+    -fx-text-fill: -c-text;
+    -fx-background-color: -c-surface-2;
+}
+
+.btn-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: -c-primary-text;
+    -fx-underline: true;
+    -fx-font-weight: normal;
+}
+.btn-link:hover {
+    -fx-text-fill: -c-panel;
+}
+
+.radio-button {
+    -fx-text-fill: -c-text;
+}
+.radio-button:selected .radio {
+    -fx-background-color: -c-primary;
+}
+
+.theme-toggle {
+    -fx-min-width: 36px;
+    -fx-min-height: 36px;
+    -fx-padding: 6px;
+    -fx-background-color: transparent;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+}
+.theme-toggle:hover {
+    -fx-background-color: -c-surface-2;
+}
+
+.theme-toggle-glyph {
+    -fx-stroke: -c-text;
+    -fx-fill: transparent;
+}
+
+.theme-toggle-glyph-fill {
+    -fx-fill: -c-text;
+    -fx-stroke: transparent;
+}
+
+/* ==========================================================================
+   Table View
+   ========================================================================== */
+.table-view {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+    -fx-fixed-cell-size: 38px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -c-surface-2;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 1px 1px 0;
+    -fx-padding: 8px 10px;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -c-muted;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.table-row-cell {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.table-cell {
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 0 10px;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: -c-surface-2;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: -c-surface-2;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: -c-surface-2;
+}
+.table-row-cell:selected .label {
+    -fx-text-fill: -c-primary-text;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Line Chart
+   ========================================================================== */
+.chart {
+    -fx-padding: 4px;
+}
+
+.chart-plot-background {
+    -fx-background-color: -c-surface-2;
+}
+
+.chart-vertical-grid-lines, .chart-horizontal-grid-lines {
+    -fx-stroke: -c-border;
+    -fx-stroke-dash-array: 2 4;
+}
+
+.axis {
+    -fx-tick-label-fill: -c-muted;
+}
+
+.axis-label {
+    -fx-text-fill: -c-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.default-color0.chart-series-line {
+    -fx-stroke: -c-primary;
+    -fx-stroke-width: 2.5px;
+}
+
+.default-color0.chart-line-symbol {
+    -fx-background-color: -c-primary, -c-surface;
+    -fx-background-insets: 0, 1.5;
+    -fx-background-radius: 4px;
+    -fx-padding: 3.5px;
+}
+
+/* ==========================================================================
+   List View & Placeholders
+   ========================================================================== */
+.plain-list-view {
+    -fx-background-color: transparent;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+}
+
+.plain-list-view .list-cell {
+    -fx-background-color: -c-surface;
+    -fx-text-fill: -c-text;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 6px 10px;
+}
+
+.plain-list-view .list-cell:odd {
+    -fx-background-color: -c-surface-2;
+}
+
+.empty-placeholder {
+    -fx-text-fill: -c-muted;
+    -fx-font-size: 13px;
+    -fx-font-style: italic;
+    -fx-alignment: CENTER;
+}
+
+/* ==========================================================================
+   Huy hiệu & Thông báo
+   ========================================================================== */
+.badge-status {
+    -fx-background-radius: 12px;
+    -fx-padding: 3px 8px;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.badge-running {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-success;
+    -fx-border-color: -c-success;
+    -fx-border-radius: 12px;
+}
+
+.badge-open {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-muted;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 12px;
+}
+
+.badge-finished {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-muted;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 12px;
+}
+
+.live-pill {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-success;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 2px 8px;
+    -fx-background-radius: 10px;
+    -fx-border-color: -c-success;
+    -fx-border-radius: 10px;
+}
+
+.badge-dev {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-warning;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 4px 8px;
+    -fx-background-radius: 4px;
+    -fx-border-color: -c-warning;
+    -fx-border-radius: 4px;
+}
+
+.alert-box {
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 12px;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+
+.alert-error {
+    -fx-background-color: -c-surface-2;
+    -fx-border-color: -c-danger;
+    -fx-text-fill: -c-danger;
+}
+.alert-error .label {
+    -fx-text-fill: -c-danger;
+    -fx-font-weight: bold;
+}
+
+.alert-success {
+    -fx-background-color: -c-surface-2;
+    -fx-border-color: -c-success;
+    -fx-text-fill: -c-success;
+}
+.alert-success .label {
+    -fx-text-fill: -c-success;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Pill Button (bo góc tròn)
+   ========================================================================== */
+.btn-pill {
+    -fx-background-radius: 20px;
+    -fx-padding: 10px 24px;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Category Chips / ToggleButton style
+   ========================================================================== */
+.chip-btn {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 20px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-text-fill: -c-muted;
+    -fx-padding: 6px 16px;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+.chip-btn:hover {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-primary;
+    -fx-text-fill: -c-primary-text;
+}
+.chip-btn:selected {
+    -fx-background-color: -c-primary;
+    -fx-border-color: -c-primary;
+    -fx-text-fill: -c-on-primary;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Auction Cards (Dashboard Grid)
+   ========================================================================== */
+.auction-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 0 0 12px 0;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 10, 0, 0, 3);
+    -fx-cursor: hand;
+}
+.auction-card:hover {
+    -fx-border-color: -c-primary;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.12), 16, 0, 0, 4);
+    -fx-scale-x: 1.01;
+    -fx-scale-y: 1.01;
+}
+.auction-card-image {
+    -fx-background-radius: 16px 16px 0 0;
+    -fx-min-height: 150px;
+}
+.auction-card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+.auction-card-price {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+.auction-card-bid-count {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-muted;
+}
+
+/* ==========================================================================
+   Featured / Hero Card (Dashboard)
+   ========================================================================== */
+.featured-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 20px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 20, 0, 0, 5);
+    -fx-padding: 0;
+}
+.featured-image-placeholder {
+    -fx-background-radius: 20px 20px 0 0;
+    -fx-min-height: 220px;
+}
+.featured-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+.featured-price {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+.featured-body {
+    -fx-padding: 16px;
+}
+
+/* ==========================================================================
+   Sidebar
+   ========================================================================== */
+.sidebar-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 16px;
+}
+.sidebar-item {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 12px;
+}
+.sidebar-item-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+.sidebar-item-price {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+.sell-cta-card {
+    -fx-background-radius: 16px;
+    -fx-padding: 16px;
+    -fx-background-color: linear-gradient(to bottom right, #6354E8, #8B80F9);
+}
+.sell-cta-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-wrap-text: true;
+}
+.sell-cta-subtitle {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255,255,255,0.8);
+    -fx-wrap-text: true;
+}
+.btn-white {
+    -fx-background-color: white;
+    -fx-text-fill: #6354E8;
+    -fx-background-radius: 20px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 8px 20px;
+}
+.btn-white:hover {
+    -fx-background-color: rgba(255,255,255,0.9);
+}
+
+/* ==========================================================================
+   How-it-works steps (Dashboard bottom)
+   ========================================================================== */
+.step-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 20px;
+    -fx-alignment: CENTER;
+}
+.step-number {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 18px;
+    -fx-min-width: 36px;
+    -fx-min-height: 36px;
+    -fx-text-fill: -c-on-primary;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-alignment: CENTER;
+}
+.step-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+    -fx-wrap-text: true;
+}
+.step-desc {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-muted;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+    -fx-wrap-text: true;
+}
+
+/* ==========================================================================
+   Login - Left Panel
+   ========================================================================== */
+.login-left-panel {
+    -fx-background-color: #11131E;
+    -fx-background-radius: 0;
+    -fx-padding: 40px 36px;
+    -fx-min-width: 360px;
+    -fx-pref-width: 380px;
+    -fx-max-width: 420px;
+}
+.login-brand {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.login-slogan {
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(255,255,255,0.7);
+    -fx-wrap-text: true;
+}
+.benefit-item {
+    -fx-background-color: rgba(255,255,255,0.07);
+    -fx-background-radius: 12px;
+    -fx-padding: 12px 16px;
+}
+.benefit-icon {
+    -fx-font-size: 22px;
+}
+.benefit-text {
+    -fx-text-fill: rgba(255,255,255,0.9);
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
+}
+.login-right-panel {
+    -fx-background-color: -c-bg;
+    -fx-padding: 40px 48px;
+}
+.login-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: -c-muted;
+}
+
+/* ==========================================================================
+   Countdown Labels
+   ========================================================================== */
+.countdown-label {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-font-family: 'Courier New', monospace;
+}
+.countdown-label-urgent {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-danger;
+    -fx-font-family: 'Courier New', monospace;
+}
+.countdown-small {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-danger;
+    -fx-font-family: 'Courier New', monospace;
+}
+
+/* ==========================================================================
+   Product Image Placeholder (Auction Detail)
+   ========================================================================== */
+.product-image-placeholder {
+    -fx-background-radius: 12px 12px 0 0;
+    -fx-min-height: 200px;
+}
+.image-upload-zone {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 8px;
+    -fx-border-color: -c-border;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8px;
+    -fx-border-width: 2px;
+    -fx-min-height: 120px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER;
+}
+.image-upload-zone:hover {
+    -fx-border-color: -c-primary;
+}
+
+/* ==========================================================================
+   Seller Management
+   ========================================================================== */
+.seller-avatar {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 22px;
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-on-primary;
+    -fx-font-size: 18px;
+    -fx-alignment: CENTER;
+}
+
+/* ==========================================================================
+   Search Bar
+   ========================================================================== */
+.search-bar-container {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 24px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 24px;
+    -fx-border-width: 1px;
+    -fx-padding: 4px 12px;
+}
+.search-bar {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-font-size: 14px;
+}
+
+/* ==========================================================================
+   Form Helper / Error text
+   ========================================================================== */
+.input-helper {
+    -fx-font-size: 11px;
+    -fx-text-fill: -c-muted;
+}
+.input-error {
+    -fx-border-color: -c-danger;
+}
+.input-error-text {
+    -fx-font-size: 11px;
+    -fx-text-fill: -c-danger;
+    -fx-font-weight: bold;
+}
+.toast-text {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Alert variants (Warning, Info)
+   ========================================================================== */
+.alert-warning {
+    -fx-background-color: -c-surface-2;
+    -fx-border-color: -c-warning;
+}
+.alert-warning .label {
+    -fx-text-fill: -c-warning;
+    -fx-font-weight: bold;
+}
+.alert-info {
+    -fx-background-color: -c-surface-2;
+    -fx-border-color: -c-primary;
+}
+.alert-info .label {
+    -fx-text-fill: -c-primary-text;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   Badge chips (success, warning, error, info)
+   ========================================================================== */
+.badge-success-chip {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-success;
+    -fx-border-color: -c-success;
+    -fx-border-radius: 12px;
+}
+.badge-warning-chip {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-warning;
+    -fx-border-color: -c-warning;
+    -fx-border-radius: 12px;
+}
+.badge-error-chip {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-danger;
+    -fx-border-color: -c-danger;
+    -fx-border-radius: 12px;
+}
+.badge-info-chip {
+    -fx-background-color: -c-surface-2;
+    -fx-text-fill: -c-primary-text;
+    -fx-border-color: -c-primary;
+    -fx-border-radius: 12px;
+}
+
+/* ==========================================================================
+   Skeleton Loading Animation
+   ========================================================================== */
+.skeleton-box {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 8px;
+}
+.skeleton-line {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 4px;
+}
+.skeleton-line-sm {
+    -fx-background-color: -c-border;
+    -fx-background-radius: 4px;
+}
+.skeleton-btn {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 8px;
+}
+
+/* ==========================================================================
+   Color Swatches (UiKit)
+   ========================================================================== */
+.color-swatch-primary {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 8px;
+}
+.color-swatch-surface {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+}
+.color-swatch-success {
+    -fx-background-color: -c-success;
+    -fx-background-radius: 8px;
+}
+.color-swatch-warning {
+    -fx-background-color: -c-warning;
+    -fx-background-radius: 8px;
+}
+.color-swatch-danger {
+    -fx-background-color: -c-danger;
+    -fx-background-radius: 8px;
+}
+
+/* ==========================================================================
+   UiKit Container
+   ========================================================================== */
+.uikit-container {
+    -fx-padding: 0;
+}
+.plain-scroll {
+    -fx-background-color: -c-bg;
+    -fx-background: -c-bg;
+}
+.plain-scroll .scroll-pane {
+    -fx-background-color: -c-bg;
+}
+.plain-scroll > .viewport {
+    -fx-background-color: -c-bg;
+}
+
+/* ==========================================================================
+   Header avatar / user info
+   ========================================================================== */
+.header-avatar {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 18px;
+    -fx-min-width: 36px;
+    -fx-min-height: 36px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-on-primary;
+    -fx-font-size: 14px;
+    -fx-alignment: CENTER;
+}
+.header-user-name {
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-font-size: 13px;
+}
+.header-user-role {
+    -fx-font-size: 11px;
+    -fx-text-fill: -c-muted;
+}
+
+/* ==========================================================================
+   Section title with "xem tất cả" link
+   ========================================================================== */
+.section-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: -c-primary-text;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}
+.section-title-bar {
+    -fx-padding: 8px 0 4px 0;
+}
+
+/* ==========================================================================
+   No-data placeholder (general)
+   ========================================================================== */
+.no-data-box {
+    -fx-alignment: CENTER;
+    -fx-padding: 40px;
+}
+.no-data-icon {
+    -fx-font-size: 40px;
+    -fx-text-fill: -c-border;
+    -fx-alignment: CENTER;
+}
+.no-data-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: -c-muted;
+    -fx-alignment: CENTER;
+    -fx-text-alignment: CENTER;
+}
+
+/* ==========================================================================
+   LOGIN SCREEN STYLES
+   ========================================================================== */
+
+.login-left-panel {
+    -fx-background-color: #11131E;
+    -fx-min-width: 320px;
+}
+
+.login-brand-icon {
+    -fx-font-size: 48px;
+}
+
+.login-brand {
+    -fx-font-family: 'Georgia', serif;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.login-slogan {
+    -fx-font-size: 13px;
+    -fx-text-fill: rgba(255,255,255,0.65);
+}
+
+.login-divider {
+    -fx-background-color: rgba(255,255,255,0.2);
+}
+
+.benefit-item {
+    -fx-padding: 4px 0;
+}
+
+.benefit-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.benefit-desc {
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255,255,255,0.60);
+    -fx-padding: 0 0 0 22px;
+}
+
+.login-demo-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.40);
+    -fx-font-style: italic;
+}
+
+.login-topbar {
+    -fx-padding: 10px 16px;
+    -fx-background-color: -c-nav;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.login-scroll {
+    -fx-background-color: -c-bg;
+    -fx-background: -c-bg;
+}
+
+.login-scroll > .viewport {
+    -fx-background-color: -c-bg;
+}
+
+.auth-form-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.auth-form-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -c-muted;
+}
+
+.remember-checkbox {
+    -fx-text-fill: -c-text;
+    -fx-font-size: 12px;
+}
+
+/* Pill button */
+.btn-pill {
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-padding: 9px 20px;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   SEARCH BAR (Dashboard)
+   ========================================================================== */
+.search-bar {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 20px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-padding: 7px 16px;
+    -fx-text-fill: -c-text;
+    -fx-prompt-text-fill: -c-muted;
+    -fx-font-size: 13px;
+}
+
+.search-bar:focused {
+    -fx-border-color: -c-primary;
+}
+
+/* ==========================================================================
+   CATEGORY CHIPS
+   ========================================================================== */
+.category-chip {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-padding: 5px 14px;
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-text;
+    -fx-cursor: hand;
+}
+
+.category-chip:hover {
+    -fx-background-color: -c-surface-2;
+    -fx-border-color: -c-primary;
+}
+
+.category-chip-active {
+    -fx-background-color: -c-primary;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-primary;
+    -fx-border-radius: 16px;
+    -fx-text-fill: -c-on-primary;
+    -fx-font-weight: bold;
+}
+
+/* ==========================================================================
+   AUCTION CARDS
+   ========================================================================== */
+.auction-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 12px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-padding: 0 0 12px 0;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 10, 0, 0, 3);
+    -fx-cursor: hand;
+    -fx-min-width: 210px;
+    -fx-pref-width: 220px;
+}
+
+.auction-card:hover {
+    -fx-border-color: -c-primary;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.14), 16, 0, 0, 6);
+    -fx-translate-y: -2px;
+}
+
+.auction-card > * {
+    -fx-padding: 0 12px;
+}
+
+.auction-card-image {
+    -fx-background-color: linear-gradient(to bottom right, #6354E8, #3a2fa0);
+    -fx-background-radius: 12px 12px 0 0;
+    -fx-padding: 0;
+    -fx-min-height: 120px;
+    -fx-pref-height: 120px;
+    -fx-alignment: center;
+}
+
+.auction-card-image-icon {
+    -fx-font-size: 36px;
+    -fx-padding: 0;
+}
+
+.auction-card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+
+.auction-card-price {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-primary-text;
+}
+
+/* ==========================================================================
+   COUNTDOWN LABELS
+   ========================================================================== */
+.countdown-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-success;
+}
+
+.countdown-label-urgent {
+    -fx-text-fill: -c-danger;
+}
+
+/* ==========================================================================
+   FEATURED CARD (Hero Section)
+   ========================================================================== */
+.featured-card {
+    -fx-background-color: -c-panel;
+    -fx-background-radius: 16px;
+    -fx-border-color: -c-primary;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 16, 0, 0, 4);
+}
+
+.featured-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+
+.featured-image {
+    -fx-background-color: linear-gradient(to bottom right, #6354E8, #9b59b6);
+    -fx-background-radius: 12px;
+    -fx-min-height: 180px;
+    -fx-pref-height: 200px;
+    -fx-alignment: center;
+}
+
+.featured-image-icon {
+    -fx-font-size: 64px;
+}
+
+/* ==========================================================================
+   SIDEBAR
+   ========================================================================== */
+.sidebar-panel {
+    -fx-background-color: -c-surface;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 0 1px;
+}
+
+.sidebar-card {
+    -fx-background-color: -c-surface-2;
+    -fx-background-radius: 12px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-padding: 16px;
+}
+
+.sidebar-cta {
+    -fx-border-color: -c-primary;
+}
+
+.sidebar-cta-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+    -fx-wrap-text: true;
+}
+
+.upcoming-item {
+    -fx-padding: 8px 0;
+    -fx-border-color: -c-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+/* ==========================================================================
+   STEP CARDS (How it works section)
+   ========================================================================== */
+.step-card {
+    -fx-background-color: -c-surface;
+    -fx-background-radius: 12px;
+    -fx-border-color: -c-border;
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-padding: 20px 16px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.04), 8, 0, 0, 2);
+    -fx-alignment: center;
+}
+
+.step-icon {
+    -fx-font-size: 32px;
+}
+
+.step-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.step-desc {
+    -fx-font-size: 12px;
+    -fx-text-fill: -c-muted;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.step-arrow {
+    -fx-font-size: 20px;
+    -fx-text-fill: -c-muted;
+}
+
+/* ==========================================================================
+   DASHBOARD TOP-BAR EXTRAS
+   ========================================================================== */
+.top-logo-icon {
+    -fx-font-size: 20px;
+}
+
+.top-logo-text {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-font-family: 'Georgia', serif;
+    -fx-text-fill: -c-primary-text;
+}
+
+.top-username {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -c-text;
+}
+
+.main-scroll {
+    -fx-background-color: -c-bg;
+    -fx-background: -c-bg;
+}
+
+.main-scroll > .viewport {
+    -fx-background-color: -c-bg;
+}

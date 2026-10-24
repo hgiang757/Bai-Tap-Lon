@@ -1,0 +1,17 @@
+.root {
+    -c-bg: #F5F5F7;
+    -c-nav: #FFFFFF;
+    -c-surface: #FFFFFF;
+    -c-surface-2: #EEEDF5;
+    -c-border: #E0DEEC;
+    -c-text: #1B1B1F;
+    -c-muted: #5E6470;
+    -c-primary: #6256DD;
+    -c-on-primary: #FFFFFF;
+    -c-primary-text: #6256DD;
+    -c-panel: #AAA1FF;
+    -c-on-panel: #1B1B1F;
+    -c-success: #15803D;
+    -c-warning: #B45309;
+    -c-danger: #B91C1C;
+}
