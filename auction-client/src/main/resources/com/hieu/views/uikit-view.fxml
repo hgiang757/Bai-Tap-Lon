@@ -6,10 +6,12 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
@@ -25,7 +27,7 @@
     <!-- Header -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
-            <Button text="← Quay lại" onAction="#handleBack" styleClass="btn-secondary"/>
+            <Button text="Quay lại" onAction="#handleBack" styleClass="btn-secondary"/>
             <VBox spacing="2.0">
                 <Label text="VaultAuction — Thư viện UI" styleClass="view-title"/>
                 <Label text="Kiểm tra và tham chiếu component dùng trong toàn ứng dụng" styleClass="view-subtitle"/>
@@ -37,14 +39,12 @@
 
     <!-- Nội dung cuộn -->
     <center>
-        <ScrollPane fitToWidth="true" styleClass="plain-scroll">
+        <ScrollPane fx:id="uiKitScroll" fitToWidth="true" hbarPolicy="NEVER" styleClass="plain-scroll">
             <content>
                 <VBox spacing="32.0" styleClass="uikit-container">
                     <padding><Insets top="24.0" right="32.0" bottom="32.0" left="32.0"/></padding>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 1: Buttons -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="1 · Nút (Buttons)" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -69,7 +69,6 @@
                         <FlowPane hgap="12.0" vgap="12.0">
                             <Button text="Xóa sản phẩm" styleClass="btn-danger"/>
                             <Button text="Đăng xuất" styleClass="btn-danger"/>
-                            <Button text="Quên mật khẩu?" styleClass="btn-link"/>
                             <Button text="Đăng ký ngay" styleClass="btn-link"/>
                         </FlowPane>
 
@@ -81,9 +80,7 @@
                         </FlowPane>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 2: Chip / Badge -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="2 · Chip &amp; Badge" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -102,7 +99,7 @@
                             <Label text="Đang diễn ra" styleClass="badge-status, badge-running"/>
                             <Label text="Sắp diễn ra" styleClass="badge-status, badge-open"/>
                             <Label text="Đã kết thúc" styleClass="badge-status, badge-finished"/>
-                            <Label text="● TRỰC TIẾP" styleClass="live-pill"/>
+                            <Label text="TRỰC TIẾP" styleClass="live-pill"/>
                             <Label text="CHẾ ĐỘ DEV" styleClass="badge-dev"/>
                         </FlowPane>
 
@@ -115,9 +112,7 @@
                         </FlowPane>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 3: Form Inputs -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="3 · Form / Input" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -154,27 +149,25 @@
                         </HBox>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 4: Toast Notifications -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="4 · Toast / Thông báo" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
 
                         <HBox fx:id="toastSuccess" alignment="CENTER_LEFT" spacing="8.0" styleClass="alert-box, alert-success">
-                            <Label text="✓  Đặt giá thành công! Bạn đang dẫn đầu với 285.000.000 ₫" styleClass="toast-text"/>
+                            <Label text="Đặt giá thành công! Bạn đang dẫn đầu với 285.000.000 ₫" styleClass="toast-text"/>
                         </HBox>
 
                         <HBox fx:id="toastError" alignment="CENTER_LEFT" spacing="8.0" styleClass="alert-box, alert-error">
-                            <Label text="✕  Giá đặt quá thấp. Mức tối thiểu là 275.000.000 ₫" styleClass="toast-text"/>
+                            <Label text="Giá đặt quá thấp. Mức tối thiểu là 275.000.000 ₫" styleClass="toast-text"/>
                         </HBox>
 
                         <HBox fx:id="toastWarning" alignment="CENTER_LEFT" spacing="8.0" styleClass="alert-box, alert-warning">
-                            <Label text="⚠  Phiên đấu giá sắp kết thúc trong 2 phút!" styleClass="toast-text"/>
+                            <Label text="Phiên đấu giá sắp kết thúc trong 2 phút!" styleClass="toast-text"/>
                         </HBox>
 
                         <HBox fx:id="toastInfo" alignment="CENTER_LEFT" spacing="8.0" styleClass="alert-box, alert-info">
-                            <Label text="ℹ  Có lượt đặt giá mới từ nguyen_van_a" styleClass="toast-text"/>
+                            <Label text="Có lượt đặt giá mới từ nguyen_van_a" styleClass="toast-text"/>
                         </HBox>
 
                         <HBox spacing="12.0">
@@ -184,9 +177,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 5: Skeleton Loading -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="5 · Skeleton Loading" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -220,9 +211,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 6: Typography -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="6 · Typography" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -241,9 +230,7 @@
                         <Label text="00:00:47" styleClass="countdown-label-urgent"/>
                     </VBox>
 
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <!-- SECTION 7: Colors -->
-                    <!-- ═══════════════════════════════════════════════════ -->
                     <VBox spacing="16.0" styleClass="card-panel">
                         <Label text="7 · Bảng màu hệ thống" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
@@ -271,6 +258,43 @@
                                 <Label text="-c-danger" styleClass="text-secondary"/>
                             </VBox>
                         </FlowPane>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="card-panel">
+                        <Label text="8 · Icon gallery" styleClass="section-header"/>
+                        <Separator styleClass="thin-divider"/>
+                        <Label text="Cùng một bộ icon ở kích thước 16, 24 và 48; dùng ThemeToggle để kiểm tra cả hai giao diện."
+                               styleClass="text-secondary" wrapText="true"/>
+                        <FlowPane fx:id="iconGallery" hgap="14.0" vgap="14.0"/>
+                    </VBox>
+
+                    <VBox spacing="16.0" styleClass="card-panel">
+                        <Label text="9 · Checkbox, RadioButton &amp; ThemeToggle" styleClass="section-header"/>
+                        <Separator styleClass="thin-divider"/>
+                        <Label text="Checkbox" styleClass="text-secondary"/>
+                        <FlowPane hgap="20.0" vgap="12.0">
+                            <CheckBox text="Bình thường"/>
+                            <CheckBox text="Đã chọn" selected="true"/>
+                            <CheckBox text="Focus mẫu" styleClass="showcase-focus"/>
+                            <CheckBox text="Vô hiệu hóa" disable="true"/>
+                        </FlowPane>
+                        <Label text="RadioButton" styleClass="text-secondary"/>
+                        <HBox spacing="16.0">
+                            <fx:define>
+                                <ToggleGroup fx:id="showcaseRadioGroup"/>
+                            </fx:define>
+                            <RadioButton text="Bình thường" toggleGroup="$showcaseRadioGroup"/>
+                            <RadioButton text="Đã chọn" toggleGroup="$showcaseRadioGroup" selected="true"/>
+                            <RadioButton text="Focus mẫu" toggleGroup="$showcaseRadioGroup" styleClass="showcase-focus"/>
+                            <RadioButton text="Vô hiệu hóa" disable="true" toggleGroup="$showcaseRadioGroup"/>
+                        </HBox>
+                        <Label text="ThemeToggle" styleClass="text-secondary"/>
+                        <HBox spacing="16.0">
+                            <ThemeToggle/>
+                            <ThemeToggle styleClass="theme-toggle, showcase-selected"/>
+                            <ThemeToggle styleClass="theme-toggle, showcase-focus"/>
+                            <ThemeToggle disable="true"/>
+                        </HBox>
                     </VBox>
 
                 </VBox>

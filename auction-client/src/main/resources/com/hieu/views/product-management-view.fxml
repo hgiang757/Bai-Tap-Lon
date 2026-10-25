@@ -19,7 +19,7 @@
             prefHeight="720.0" prefWidth="1200.0">
     <top>
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
-            <Button text="← Về Dashboard" onAction="#handleBackToDashboard" styleClass="btn-secondary"/>
+            <Button text="Về Dashboard" onAction="#handleBackToDashboard" styleClass="btn-secondary"/>
             <VBox spacing="2.0">
                 <Label text="Quản lý bán hàng" styleClass="view-title"/>
                 <Label text="Quản lý sản phẩm và phiên đấu giá của bạn" styleClass="view-subtitle"/>
