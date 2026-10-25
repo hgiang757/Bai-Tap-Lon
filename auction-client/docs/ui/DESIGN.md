@@ -1,4 +1,4 @@
-# VaultAuction Client UI - Design System
+# Digital Auction Client UI - Design System
 
 Giao diện dùng chung FXML và stylesheet `src/main/resources/com/hieu/css/base.css`, cùng theme sáng/tối để đổi bộ màu mà không thay đổi controller.
 
@@ -18,6 +18,8 @@ Giao diện dùng chung FXML và stylesheet `src/main/resources/com/hieu/css/bas
 | `-c-danger` | `#B91C1C` | `#F87171` | Lỗi/đếm ngược |
 
 Màu được khai báo bằng looked-up color trong theme CSS; không đặt màu inline trong controller. Card bo góc lớn, button pill, chữ dùng Segoe UI để hỗ trợ tiếng Việt.
+
+Màn Đăng nhập/Đăng ký dùng ảnh nền phủ kín cửa sổ với lớp phủ tối và thẻ form đặc theo theme. Ảnh nền không bị làm mờ; thông tin nguồn được quản lý tại [IMAGE_CREDITS.md](../IMAGE_CREDITS.md).
 
 ## Thành phần và tương tác
 

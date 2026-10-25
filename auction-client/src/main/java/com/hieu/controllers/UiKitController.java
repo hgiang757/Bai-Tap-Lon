@@ -3,6 +3,7 @@ package com.hieu.controllers;
 import com.hieu.ui.Icons;
 import com.hieu.util.ViewNavigator;
 import com.hieu.util.SmoothScroll;
+import com.hieu.util.AppInfo;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
@@ -29,9 +30,13 @@ public class UiKitController {
     @FXML private HBox toastInfo;
     @FXML private ScrollPane uiKitScroll;
     @FXML private FlowPane iconGallery;
+    @FXML private Label lblPageTitle;
+    @FXML private Label lblBrandName;
 
     @FXML
     public void initialize() {
+        lblPageTitle.setText(AppInfo.NAME + " — Thư viện UI");
+        lblBrandName.setText(AppInfo.NAME);
         SmoothScroll.apply(uiKitScroll, 3.0);
         buildIconGallery();
     }

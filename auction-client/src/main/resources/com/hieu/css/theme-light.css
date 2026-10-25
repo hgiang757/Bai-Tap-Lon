@@ -14,4 +14,10 @@
     -c-success: #15803D;
     -c-warning: #B45309;
     -c-danger: #B91C1C;
+    -c-auth-overlay-text: #FFFFFF;
+    -c-auth-icon-bg: rgba(255,255,255,0.9);
+    -c-auth-icon-ink: #1B1B1F;
+    /* White translucent surface and border let the background photo show through the auth card. */
+    -c-glass: rgba(255,255,255,0.80);
+    -c-glass-border: rgba(255,255,255,0.35);
 }

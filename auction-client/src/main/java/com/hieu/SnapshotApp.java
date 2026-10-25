@@ -26,7 +26,8 @@ import java.lang.reflect.Method;
 
 public class SnapshotApp extends Application {
 
-    private static final File OUTPUT_DIR = new File("docs/ui/screenshots");
+    private static final File OUTPUT_DIR = new File(System.getProperty("snapshot.outputDir",
+            System.getenv().getOrDefault("SNAPSHOT_OUTPUT_DIR", "docs/ui/screenshots")));
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -75,6 +76,10 @@ public class SnapshotApp extends Application {
             capture(stage, "/com/hieu/views/uikit-view.fxml", "07_uikit_showcase.png", null);
             captureIconGallery(stage);
             verifyThemeToggle(stage);
+            capture(stage, "/com/hieu/views/guide-view.fxml", "09_guide.png", null);
+            captureThemeToggle(stage, "10_guide_dark.png");
+            capture(stage, "/com/hieu/views/contact-view.fxml", "11_contact_dark.png", null);
+            captureThemeToggle(stage, "12_contact_light.png");
 
             System.out.println("THEME_TOGGLE_SUCCESS");
             System.out.println("SNAPSHOTS_SUCCESS");
@@ -115,7 +120,20 @@ public class SnapshotApp extends Application {
         if (gallery == null) {
             throw new IllegalStateException("Icon gallery is missing from the UI Kit.");
         }
+
         saveSnapshot(gallery.snapshot(null, null), "08_icon_gallery.png");
+    }
+
+    private void captureThemeToggle(Stage stage, String filename) throws IOException {
+        Node node = stage.getScene().getRoot().lookup(".theme-toggle");
+        if (!(node instanceof ThemeToggle)) {
+            throw new IllegalStateException("ThemeToggle is missing from the current view.");
+        }
+        ((ThemeToggle) node).fire();
+        Parent root = stage.getScene().getRoot();
+        root.applyCss();
+        root.layout();
+        saveSnapshot(root.snapshot(null, null), filename);
     }
 
     private void capture(Stage stage, String fxml, String filename, java.util.function.Consumer<Object> init) throws IOException {

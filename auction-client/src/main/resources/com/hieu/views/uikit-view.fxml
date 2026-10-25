@@ -29,7 +29,7 @@
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
             <Button text="Quay lại" onAction="#handleBack" styleClass="btn-secondary"/>
             <VBox spacing="2.0">
-                <Label text="VaultAuction — Thư viện UI" styleClass="view-title"/>
+                <Label fx:id="lblPageTitle" styleClass="view-title"/>
                 <Label text="Kiểm tra và tham chiếu component dùng trong toàn ứng dụng" styleClass="view-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
@@ -216,7 +216,7 @@
                         <Label text="6 · Typography" styleClass="section-header"/>
                         <Separator styleClass="thin-divider"/>
 
-                        <Label text="VaultAuction" styleClass="brand-title"/>
+                        <Label fx:id="lblBrandName" styleClass="brand-title"/>
                         <Label text="Hệ thống đấu giá trực tuyến hiện đại" styleClass="brand-subtitle"/>
                         <Label text="Sàn đấu giá trực tuyến" styleClass="view-title"/>
                         <Label text="Khu vực đang diễn ra" styleClass="section-header"/>

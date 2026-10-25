@@ -7,6 +7,7 @@ import com.hieu.models.UserRole;
 import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.FormatUtil;
+import com.hieu.util.AppInfo;
 import com.hieu.util.SmoothScroll;
 import com.hieu.util.ViewNavigator;
 import com.hieu.ui.Icons;
@@ -41,15 +42,11 @@ import java.util.stream.Collectors;
 public class DashboardController {
 
     /* ======= FXML Bindings ======= */
-    @FXML private Label lblWelcomeUser;
-    @FXML private Label lblUserRole;
-    @FXML private Label lblUserAvatar;
-    @FXML private Button btnProductManagement;
-    @FXML private Button btnLogout;
     @FXML private TextField txtSearch;
     @FXML private ScrollPane dashboardScroll;
     @FXML private VBox mainColumn;
     @FXML private Label lblLogoIcon;
+    @FXML private Label lblBrandName;
     @FXML private Label lblSearchIcon;
     @FXML private Button chipWatch;
     @FXML private Button chipArt;
@@ -99,7 +96,6 @@ public class DashboardController {
     @FXML
     public void initialize() {
         configureVisuals();
-        setupUserInfo();
         setupSearchListener();
         loadAuctions();
         startMasterTimer();
@@ -111,6 +107,7 @@ public class DashboardController {
         auctionGrid.setCache(true);
         auctionGrid.setCacheHint(CacheHint.SPEED);
         setIcon(lblLogoIcon, "trophy", 22, "icon-primary");
+        lblBrandName.setText(AppInfo.NAME);
         setIcon(lblSearchIcon, "search", 16, "icon-muted");
         setIcon(lblFeaturedHeader, "trophy", 16, "icon-on-panel");
         setIcon(lblRunningHeader, "gavel", 16, "icon-primary");
@@ -127,7 +124,6 @@ public class DashboardController {
         setButtonIcon(chipHome, "home");
         setButtonIcon(chipCar, "car");
         setButtonIcon(chipLaptop, "laptop");
-        setButtonIcon(btnProductManagement, "bag");
     }
 
     private void setIcon(Label label, String name, double size, String colorClass) {
@@ -144,21 +140,6 @@ public class DashboardController {
         button.setGraphic(icon);
         button.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
         button.setGraphicTextGap(6);
-    }
-
-    private void setupUserInfo() {
-        User user = auctionService.getCurrentUser();
-        if (user != null) {
-            lblWelcomeUser.setText("Xin chào, " + user.getFullName());
-            lblUserRole.setText(user.getRole().getDisplayName());
-            lblUserAvatar.setText(user.getFullName() == null || user.getFullName().isEmpty()
-                    ? "V"
-                    : user.getFullName().substring(0, 1).toUpperCase());
-
-            boolean isSeller = user.getRole() == UserRole.SELLER;
-            btnProductManagement.setVisible(isSeller);
-            btnProductManagement.setManaged(isSeller);
-        }
     }
 
     private void setupSearchListener() {
@@ -557,20 +538,7 @@ public class DashboardController {
     @FXML
     private void handleOpenProductManagement() {
         try {
-            ViewNavigator.loadView("/com/hieu/views/product-management-view.fxml", "Quản lý sản phẩm");
-        } catch (IOException e) {
-            showNavigationError();
-        }
-    }
-
-    @FXML
-    private void handleLogout() {
-        if (masterCountdownTimer != null) {
-            masterCountdownTimer.stop();
-        }
-        auctionService.logout();
-        try {
-            ViewNavigator.loadView("/com/hieu/views/auth-view.fxml", "Đăng nhập");
+            ViewNavigator.navigate(ViewNavigator.Route.PRODUCTS);
         } catch (IOException e) {
             showNavigationError();
         }

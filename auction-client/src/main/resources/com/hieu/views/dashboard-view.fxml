@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import com.hieu.util.ThemeToggle?>
+<?import com.hieu.ui.UserMenu?>
+<?import com.hieu.ui.AppFooter?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -17,15 +19,12 @@
     <top>
         <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
             <Label fx:id="lblLogoIcon" styleClass="top-logo-icon"/>
-            <Label text="VaultAuction" styleClass="top-logo-text"/>
+            <Label fx:id="lblBrandName" styleClass="top-logo-text"/>
             <Region prefWidth="12.0"/>
             <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="search-box"><Label fx:id="lblSearchIcon"/><TextField fx:id="txtSearch" promptText="Tìm kiếm phiên đấu giá..." styleClass="search-bar" prefWidth="260.0"/></HBox>
             <Region HBox.hgrow="ALWAYS"/>
             <ThemeToggle/>
-            <VBox alignment="CENTER_RIGHT" spacing="2.0"><Label fx:id="lblWelcomeUser" text="Xin chào" styleClass="top-username"/><Label fx:id="lblUserRole" text="Người đấu giá" styleClass="badge-status, badge-open"/></VBox>
-            <Label fx:id="lblUserAvatar" text="V" styleClass="seller-avatar"/>
-            <Button fx:id="btnProductManagement" text="Quản lý bán hàng" onAction="#handleOpenProductManagement" styleClass="btn-secondary" visible="false" managed="false"/>
-            <Button fx:id="btnLogout" text="Đăng xuất" onAction="#handleLogout" styleClass="btn-outline"/>
+            <UserMenu/>
         </HBox>
     </top>
     <center>
@@ -72,6 +71,7 @@
                         <VBox styleClass="sidebar-card, sidebar-cta" spacing="12.0"><Label fx:id="lblSellHeader" text="Bạn có sản phẩm để bán?" styleClass="sidebar-cta-title" wrapText="true"/><Label text="Đăng ký làm người bán và bắt đầu kiếm tiền từ sàn đấu giá của chúng tôi." styleClass="text-secondary" wrapText="true"/><Button fx:id="btnListItem" text="Đăng bán ngay" onAction="#handleListItem" styleClass="btn-primary, btn-pill" maxWidth="Infinity"/></VBox>
                     </VBox>
                 </HBox>
+                <AppFooter/>
             </VBox>
         </ScrollPane>
     </center>
