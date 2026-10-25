@@ -5,8 +5,12 @@ import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.ViewNavigator;
 import com.hieu.util.SmoothScroll;
+import com.hieu.util.AppInfo;
 import com.hieu.ui.Icons;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -16,9 +20,13 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.net.URL;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.regex.Pattern;
@@ -37,9 +45,18 @@ public class AuthController {
     private static final String REMEMBERED_USERNAME_KEY = "rememberedUsername";
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static Image cachedBackgroundImage;
+    private static boolean backgroundLoadStarted;
+    private static boolean backgroundFailureLogged;
+    private static WeakReference<AuthController> activeAuthController = new WeakReference<>(null);
 
+    @FXML private StackPane authRoot;
+    @FXML private ImageView backgroundImage;
+    @FXML private Region imageOverlay;
+    @FXML private VBox authContent;
     @FXML private Label lblFormTitle;
     @FXML private Label lblFormSubtitle;
+    @FXML private Label lblBrandName;
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
     @FXML private TextField txtFullName;
@@ -63,6 +80,7 @@ public class AuthController {
     @FXML private Label lblBenefitRealtime;
     @FXML private Label lblBenefitTransparent;
     @FXML private Label lblBenefitSafe;
+    @FXML private HBox authFeatureRow;
 
     private boolean isRegisterMode = false;
     private final AuctionClientService auctionService = ServiceRegistry.getService();
@@ -70,10 +88,16 @@ public class AuthController {
     @FXML
     public void initialize() {
         SmoothScroll.apply(authScroll, 3.0);
-        setIcon(lblBrandIcon, "trophy", 40, "icon-on-panel");
-        setIcon(lblBenefitRealtime, "bolt", 22, "icon-primary");
-        setIcon(lblBenefitTransparent, "book", 22, "icon-primary");
-        setIcon(lblBenefitSafe, "lock", 22, "icon-primary");
+        lblBrandName.setText(AppInfo.NAME);
+        setIcon(lblBrandIcon, "trophy", 28, "icon-on-panel");
+        setIcon(lblBenefitRealtime, "bolt", 16, "icon-on-panel");
+        setIcon(lblBenefitTransparent, "book", 16, "icon-on-panel");
+        setIcon(lblBenefitSafe, "lock", 16, "icon-on-panel");
+        configureBackground();
+        authRoot.widthProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
+        authRoot.heightProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
+        authRoot.widthProperty().addListener((observable, oldValue, newValue) -> updateFeatureVisibility(newValue.doubleValue()));
+        updateFeatureVisibility(authRoot.getWidth());
         loadRememberedUsername();
         txtPassword.clear();
         rbBidder.setSelected(true);
@@ -82,6 +106,97 @@ public class AuthController {
         txtUsername.requestFocus();
         txtUsername.setOnAction(event -> txtPassword.requestFocus());
         txtPassword.setOnAction(event -> handleSubmit());
+    }
+
+    private void configureBackground() {
+        activeAuthController = new WeakReference<>(this);
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(authRoot.widthProperty());
+        clip.heightProperty().bind(authRoot.heightProperty());
+        authRoot.setClip(clip);
+
+        if (!backgroundLoadStarted) {
+            backgroundLoadStarted = true;
+            URL resource = AuthController.class.getResource("/com/hieu/images/login-bg.jpg");
+            if (resource == null) {
+                showBackgroundFallback("Không tìm thấy ảnh nền /com/hieu/images/login-bg.jpg.", null);
+            } else {
+                cachedBackgroundImage = new Image(resource.toExternalForm(), 1600, 0, true, true, true);
+                cachedBackgroundImage.errorProperty().addListener((observable, wasError, isError) -> {
+                    if (isError) {
+                        Platform.runLater(() -> {
+                            AuthController controller = activeAuthController.get();
+                            if (controller != null) {
+                                showBackgroundFallback("Không thể nạp ảnh nền đăng nhập.",
+                                        cachedBackgroundImage.getException());
+                            }
+                        });
+                    }
+                });
+                cachedBackgroundImage.widthProperty().addListener((observable, oldValue, newValue) ->
+                        refreshActiveBackgroundCover());
+                cachedBackgroundImage.heightProperty().addListener((observable, oldValue, newValue) ->
+                        refreshActiveBackgroundCover());
+                if (cachedBackgroundImage.isError()) {
+                    showBackgroundFallback("Không thể nạp ảnh nền đăng nhập.",
+                            cachedBackgroundImage.getException());
+                }
+            }
+        }
+
+        if (cachedBackgroundImage != null && !cachedBackgroundImage.isError()) {
+            backgroundImage.setImage(cachedBackgroundImage);
+            updateBackgroundCover();
+        } else {
+            showBackgroundFallback("Ảnh nền đăng nhập không khả dụng.", null);
+        }
+    }
+
+    private static void refreshActiveBackgroundCover() {
+        AuthController controller = activeAuthController.get();
+        if (controller != null) {
+            controller.updateBackgroundCover();
+        }
+    }
+
+    private void updateBackgroundCover() {
+        if (backgroundImage.getImage() == null || authRoot.getWidth() <= 0 || authRoot.getHeight() <= 0) {
+            return;
+        }
+        Image image = backgroundImage.getImage();
+        double imageWidth = image.getWidth();
+        double imageHeight = image.getHeight();
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            return;
+        }
+        double width = Math.max(authRoot.getWidth(), authRoot.getHeight() * imageWidth / imageHeight);
+        double height = width * imageHeight / imageWidth;
+        backgroundImage.setFitWidth(width);
+        backgroundImage.setFitHeight(0);
+        backgroundImage.relocate((authRoot.getWidth() - width) / 2,
+                (authRoot.getHeight() - height) / 2);
+    }
+
+    private void updateFeatureVisibility(double width) {
+        boolean showFeatures = width >= 900;
+        authFeatureRow.setVisible(showFeatures);
+        authFeatureRow.setManaged(showFeatures);
+    }
+
+    private static void showBackgroundFallback(String message, Exception exception) {
+        if (!backgroundFailureLogged) {
+            backgroundFailureLogged = true;
+            if (exception == null) {
+                LOGGER.warning(message + " Đang dùng nền phẳng dự phòng.");
+            } else {
+                LOGGER.log(Level.WARNING, message + " Đang dùng nền phẳng dự phòng.", exception);
+            }
+        }
+        AuthController controller = activeAuthController.get();
+        if (controller != null) {
+            controller.backgroundImage.setVisible(false);
+            controller.imageOverlay.setVisible(false);
+        }
     }
 
     private void setIcon(Label label, String name, double size, String colorClass) {
@@ -96,7 +211,7 @@ public class AuthController {
         txtPassword.clear();
         if (isRegisterMode) {
             lblFormTitle.setText("Đăng ký tài khoản");
-            lblFormSubtitle.setText("Tham gia VaultAuction ngay hôm nay!");
+            lblFormSubtitle.setText("Tham gia " + AppInfo.NAME + " ngay hôm nay!");
             btnSubmit.setText("Tạo tài khoản");
             btnSwitchMode.setText("Đã có tài khoản? Đăng nhập tại đây");
             registerFieldsBox.setVisible(true);
@@ -123,6 +238,16 @@ public class AuthController {
     private void handleSwitchMode() {
         isRegisterMode = !isRegisterMode;
         updateModeUI();
+    }
+
+    @FXML
+    private void handleOpenGuide() {
+        try {
+            ViewNavigator.navigate(ViewNavigator.Route.GUIDE);
+        } catch (IOException exception) {
+            LOGGER.log(Level.SEVERE, "Không thể mở trang hướng dẫn.", exception);
+            showAlert("Không thể mở trang hướng dẫn. Vui lòng thử lại.", true);
+        }
     }
 
     @FXML

@@ -17,6 +17,9 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Rectangle?>
 <?import com.hieu.util.ThemeToggle?>
+<?import com.hieu.ui.UserMenu?>
+<?import com.hieu.ui.AppFooter?>
+<?import javafx.scene.control.ScrollPane?>
 
 <BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.hieu.controllers.RealtimeBiddingController"
@@ -27,28 +30,28 @@
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
             <Button text="Quay lại" onAction="#handleBackToDashboard" styleClass="btn-secondary"/>
             <VBox spacing="2.0">
-                <Label text="VaultAuction" styleClass="view-title"/>
+                <Label fx:id="lblBrandName" styleClass="view-title"/>
                 <Label text="Phiên đấu giá trực tiếp đang diễn ra" styleClass="view-subtitle"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
 
-            <!-- Badge trạng thái -->
-            <Label fx:id="lblStatus" text="Đang diễn ra" styleClass="badge-status, badge-running"/>
-
-            <!-- Khối chế độ nhà phát triển -->
-            <HBox fx:id="devModeBox" alignment="CENTER_RIGHT" spacing="10.0" visible="false" managed="false">
-                <Label text="CHẾ ĐỘ DEV — DỮ LIỆU GIẢ" styleClass="badge-dev"/>
-                <Button text="Mô phỏng lượt đặt giá" onAction="#handleSimulateIncomingBid" styleClass="btn-outline"/>
-            </HBox>
-
-            <!-- Theme toggle -->
+            <UserMenu/>
             <ThemeToggle/>
         </HBox>
     </top>
 
     <!-- Khu vực nội dung chính -->
     <center>
-        <HBox spacing="20.0" style="-fx-padding: 20px;">
+        <ScrollPane fx:id="detailScroll" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="main-scroll">
+            <content>
+                <VBox spacing="0.0" styleClass="dashboard-content">
+                    <HBox fx:id="devModeBox" alignment="CENTER_RIGHT" spacing="10.0" visible="false"
+                          managed="false" style="-fx-padding: 12px 20px 0 20px;">
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="CHẾ ĐỘ DEV — DỮ LIỆU GIẢ" styleClass="badge-dev"/>
+                        <Button text="Mô phỏng lượt đặt giá" onAction="#handleSimulateIncomingBid" styleClass="btn-outline"/>
+                    </HBox>
+                    <HBox spacing="20.0" style="-fx-padding: 20px;" prefHeight="650.0" minHeight="620.0">
 
             <!-- ===== CỘT TRÁI (500px) ===== -->
             <VBox spacing="16.0" prefWidth="500.0" minWidth="500.0" maxWidth="500.0">
@@ -59,6 +62,7 @@
                     <HBox alignment="CENTER_LEFT" spacing="8.0">
                         <Label fx:id="lblCategory" text="Danh mục" styleClass="category-tag"/>
                         <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="lblStatus" text="Đang diễn ra" styleClass="badge-status, badge-running"/>
                     </HBox>
 
                     <!-- Placeholder ảnh sản phẩm -->
@@ -172,6 +176,10 @@
                     <ListView fx:id="lvRecentBids" VBox.vgrow="ALWAYS" styleClass="plain-list-view"/>
                 </VBox>
             </VBox>
-        </HBox>
+                    </HBox>
+                    <AppFooter/>
+                </VBox>
+            </content>
+        </ScrollPane>
     </center>
 </BorderPane>

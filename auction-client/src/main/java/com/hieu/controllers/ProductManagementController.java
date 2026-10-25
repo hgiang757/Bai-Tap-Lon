@@ -8,6 +8,7 @@ import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.FormatUtil;
 import com.hieu.util.ViewNavigator;
+import com.hieu.util.SmoothScroll;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -22,6 +23,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -41,7 +43,7 @@ public class ProductManagementController {
     @FXML private TableColumn<Item, String> colPrice;
     @FXML private TableColumn<Item, String> colStatus;
     @FXML private TableColumn<Item, Item> colAction;
-    @FXML private Label lblSellerName;
+    @FXML private ScrollPane productScroll;
     @FXML private Label lblFormTitle;
     @FXML private Label lblImageName;
     @FXML private TextField txtSearch;
@@ -63,8 +65,7 @@ public class ProductManagementController {
 
     @FXML
     public void initialize() {
-        User user = auctionService.getCurrentUser();
-        lblSellerName.setText(user == null ? "Người bán" : user.getFullName());
+        SmoothScroll.apply(productScroll, 3.0);
         setupCategories();
         setupTableColumns();
         tblProducts.setItems(filteredProducts);
@@ -332,7 +333,7 @@ public class ProductManagementController {
     @FXML
     private void handleBackToDashboard() {
         try {
-            ViewNavigator.loadView("/com/hieu/views/dashboard-view.fxml", "Sàn đấu giá trực tuyến");
+            ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD);
         } catch (IOException exception) {
             showAlert("Không thể quay lại danh sách phiên đấu giá.", true);
         }

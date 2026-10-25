@@ -35,7 +35,11 @@ public final class Icons {
             Map.entry("lock", "M6 10V7a6 6 0 0 1 12 0v3h2v11H4V10zm2 0h8V7a4 4 0 0 0-8 0zm3 4v4h2v-4z"),
             Map.entry("bolt", "m13 2-9 12h7l-1 8 10-13h-7z"),
             Map.entry("moon", "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6.5 6.5 0 0 0 8.268 8.268c.344-.215.825-.003.803.401z"),
-            Map.entry("sun", "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5h2v3h-2zm0 17h2v3h-2zM2 11h3v2H2zm17 0h3v2h-3zM5 4.4 6.4 3l2.1 2.1-1.4 1.4zM16 18.9l1.4-1.4 2.1 2.1-1.4 1.4zM18.9 5l2.1-2.1 1.4 1.4-2.1 2.1zM5.1 19l2.1-2.1 1.4 1.4-2.1 2.1z")
+            Map.entry("sun", "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5h2v3h-2zm0 17h2v3h-2zM2 11h3v2H2zm17 0h3v2h-3zM5 4.4 6.4 3l2.1 2.1-1.4 1.4zM16 18.9l1.4-1.4 2.1 2.1-1.4 1.4zM18.9 5l2.1-2.1 1.4 1.4-2.1 2.1zM5.1 19l2.1-2.1 1.4 1.4-2.1 2.1z"),
+            Map.entry("chevron-down", "m6 9 6 6 6-6-1.4-1.4L12 12.2 7.4 7.6z"),
+            Map.entry("mail", "M3 5h18v14H3zm2 2v.5l7 5 7-5V7l-7 5zM5 10v7h14v-7l-7 5z"),
+            Map.entry("copy", "M8 3h11a2 2 0 0 1 2 2v13h-2V5H8zm-3 4h11a2 2 0 0 1 2 2v12H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v10h11V9z"),
+            Map.entry("logout", "M10 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H10v-2h10V5H10zm1 4 5 5-5 5v-3H3v-4h8z")
     );
 
     private Icons() { }

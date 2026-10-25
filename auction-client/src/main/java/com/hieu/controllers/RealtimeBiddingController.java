@@ -8,6 +8,8 @@ import com.hieu.services.BidResult;
 import com.hieu.services.MockAuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.FormatUtil;
+import com.hieu.util.AppInfo;
+import com.hieu.util.SmoothScroll;
 import com.hieu.util.ViewNavigator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -21,6 +23,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.control.Alert;
 import javafx.util.Duration;
@@ -39,6 +42,7 @@ import java.util.function.Consumer;
 public class RealtimeBiddingController {
 
     @FXML private Label lblItemName;
+    @FXML private Label lblBrandName;
     @FXML private Label lblCategory;
     @FXML private Label lblSeller;
     @FXML private Label lblDescription;
@@ -61,6 +65,7 @@ public class RealtimeBiddingController {
     @FXML private Label lblAlertMessage;
 
     @FXML private HBox devModeBox;
+    @FXML private ScrollPane detailScroll;
 
     @FXML private LineChart<String, Number> priceChart;
     @FXML private CategoryAxis xAxisTime;
@@ -75,6 +80,8 @@ public class RealtimeBiddingController {
 
     @FXML
     public void initialize() {
+        lblBrandName.setText(AppInfo.NAME);
+        SmoothScroll.apply(detailScroll, 3.0);
         setupChart();
         setupQuickBidButtons();
         setupPlaceholder();
@@ -374,7 +381,7 @@ public class RealtimeBiddingController {
             if (currentAuction != null && realtimeBidConsumer != null) {
                 auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
             }
-            ViewNavigator.loadView("/com/hieu/views/dashboard-view.fxml", "Danh sách phiên đấu giá");
+            ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD);
         } catch (IOException e) {
             showDialog("Không thể mở danh sách phiên đấu giá.");
         }
