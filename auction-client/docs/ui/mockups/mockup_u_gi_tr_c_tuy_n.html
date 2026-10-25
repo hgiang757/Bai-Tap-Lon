@@ -196,15 +196,21 @@
                             
                             <ul class="space-y-6 relative z-10">
                                 <li class="flex items-center gap-4 text-body font-medium">
-                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">⚡</div>
+                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 10-13h-7z"/></svg>
+                                    </div>
                                     Đấu giá thời gian thực với độ trễ siêu thấp
                                 </li>
                                 <li class="flex items-center gap-4 text-body font-medium">
-                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">🔍</div>
+                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+                                    </div>
                                     Quy trình minh bạch, lịch sử đặt giá rõ ràng
                                 </li>
                                 <li class="flex items-center gap-4 text-body font-medium">
-                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">🛡️</div>
+                                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0">
+                                        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"/><path d="m9 12 2 2 4-4"/></svg>
+                                    </div>
                                     Giao dịch an toàn, bảo mật thông tin tuyệt đối
                                 </li>
                             </ul>
@@ -219,20 +225,19 @@
                             
                             <form class="space-y-4" onsubmit="event.preventDefault();">
                                 <div>
-                                    <label class="block text-caption font-semibold text-brand-text mb-2">Tên đăng nhập / Email</label>
-                                    <input type="text" value="nguyen.vana@gmail.com" class="w-full bg-brand-card border border-brand-border text-brand-text text-body rounded-xl px-4 py-3 focus:outline-none focus:border-brand-btn transition-colors">
+                                    <label class="block text-caption font-semibold text-brand-text mb-2">Tên đăng nhập</label>
+                                    <input type="text" value="nguyen.vana" class="w-full bg-brand-card border border-brand-border text-brand-text text-body rounded-xl px-4 py-3 focus:outline-none focus:border-brand-btn transition-colors">
                                 </div>
                                 <div>
                                     <label class="block text-caption font-semibold text-brand-text mb-2">Mật khẩu</label>
                                     <input type="password" value="********" class="w-full bg-brand-card border border-brand-border text-brand-text text-body rounded-xl px-4 py-3 focus:outline-none focus:border-brand-btn transition-colors">
                                 </div>
                                 
-                                <div class="flex justify-between items-center py-2">
+                                <div class="flex items-center py-2">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" class="w-4 h-4 rounded border-brand-border text-brand-btn focus:ring-brand-btn">
                                         <span class="text-caption text-brand-textSec">Ghi nhớ đăng nhập</span>
                                     </label>
-                                    <a href="#" class="text-caption font-medium text-brand-btn hover:underline">Quên mật khẩu?</a>
                                 </div>
 
                                 <button class="w-full bg-brand-btn text-brand-btnText font-semibold text-body py-3 rounded-pill hover:opacity-90 transition-opacity mt-4 shadow-lg shadow-brand-btn/30">
@@ -433,7 +438,9 @@
 
                             <!-- Banner -->
                             <div class="bg-brand-card border border-brand-border rounded-2xl p-6 text-center shadow-sm">
-                                <div class="w-12 h-12 bg-brand-bg rounded-full flex items-center justify-center mx-auto mb-3">🎁</div>
+                                <div class="w-12 h-12 bg-brand-bg rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-6 h-6 text-brand-btn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2zM12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 1 1 2.4-3.2C10.6 5.1 12 7 12 7Zm0 0h4.5a2.5 2.5 0 1 0-2.4-3.2C13.4 5.1 12 7 12 7Z"/></svg>
+                                </div>
                                 <h4 class="text-body font-bold text-brand-text mb-2">Bạn có sản phẩm để bán?</h4>
                                 <p class="text-caption text-brand-textSec mb-4">Tiếp cận hàng ngàn nhà sưu tập và người mua trên toàn quốc.</p>
                                 <button onclick="document.getElementById('screen-select').value='screen-4'; switchScreen('screen-4');" class="w-full border-2 border-brand-btn text-brand-btn rounded-pill py-2 font-semibold text-body hover:bg-brand-btn hover:text-brand-btnText transition-colors">
@@ -661,7 +668,9 @@
                                     <!-- Empty State Demo -->
                                     <tr class="border-b border-brand-border">
                                         <td colspan="5" class="py-12 text-center text-brand-textSec">
-                                            <div class="text-title-sm mb-2">📦</div>
+                                            <div class="text-title-sm mb-2">
+                                                <svg class="w-8 h-8 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4z"/><path d="m3 7 9 4 9-4M12 11v10M8 5l9 4"/></svg>
+                                            </div>
                                             <div class="text-body font-medium">Không tìm thấy sản phẩm nào khác</div>
                                         </td>
                                     </tr>

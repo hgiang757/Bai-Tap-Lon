@@ -25,7 +25,7 @@
     <!-- Thanh điều hướng trên cùng -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
-            <Button text="← Quay lại" onAction="#handleBackToDashboard" styleClass="btn-secondary"/>
+            <Button text="Quay lại" onAction="#handleBackToDashboard" styleClass="btn-secondary"/>
             <VBox spacing="2.0">
                 <Label text="VaultAuction" styleClass="view-title"/>
                 <Label text="Phiên đấu giá trực tiếp đang diễn ra" styleClass="view-subtitle"/>
@@ -65,7 +65,7 @@
                     <StackPane styleClass="product-image-placeholder">
                         <Rectangle width="456.0" height="200.0" arcWidth="10" arcHeight="10"
                                    styleClass="product-image-placeholder"/>
-                        <Label text="🖼 Hình ảnh sản phẩm" styleClass="text-secondary"/>
+                        <Label text="Hình ảnh sản phẩm" styleClass="text-secondary"/>
                     </StackPane>
 
                     <!-- Tên sản phẩm -->
@@ -120,7 +120,7 @@
                         <HBox spacing="8.0">
                             <TextField fx:id="txtBidAmount" promptText="Nhập mức giá"
                                        styleClass="bid-input" HBox.hgrow="ALWAYS"/>
-                            <Button fx:id="btnPlaceBid" text="Đặt giá 🔨" onAction="#handlePlaceBid"
+                            <Button fx:id="btnPlaceBid" text="Đặt giá" onAction="#handlePlaceBid"
                                     styleClass="btn-primary, pill" prefHeight="40.0"/>
                         </HBox>
                         <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
@@ -152,7 +152,7 @@
                     <HBox alignment="CENTER_LEFT">
                         <Label text="Biến động giá" styleClass="section-header"/>
                         <Region HBox.hgrow="ALWAYS"/>
-                        <Label text="● TRỰC TIẾP" styleClass="live-pill"/>
+                        <Label text="TRỰC TIẾP" styleClass="live-pill"/>
                     </HBox>
 
                     <LineChart fx:id="priceChart" VBox.vgrow="ALWAYS">

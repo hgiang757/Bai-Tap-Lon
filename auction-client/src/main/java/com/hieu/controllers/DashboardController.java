@@ -7,7 +7,9 @@ import com.hieu.models.UserRole;
 import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.FormatUtil;
+import com.hieu.util.SmoothScroll;
 import com.hieu.util.ViewNavigator;
+import com.hieu.ui.Icons;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -16,8 +18,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.CacheHint;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Duration;
@@ -42,6 +47,25 @@ public class DashboardController {
     @FXML private Button btnProductManagement;
     @FXML private Button btnLogout;
     @FXML private TextField txtSearch;
+    @FXML private ScrollPane dashboardScroll;
+    @FXML private VBox mainColumn;
+    @FXML private Label lblLogoIcon;
+    @FXML private Label lblSearchIcon;
+    @FXML private Button chipWatch;
+    @FXML private Button chipArt;
+    @FXML private Button chipHome;
+    @FXML private Button chipCar;
+    @FXML private Button chipLaptop;
+    @FXML private Label lblFeaturedHeader;
+    @FXML private Label lblFeaturedImagePlaceholder;
+    @FXML private Label lblRunningHeader;
+    @FXML private Label lblStepsHeader;
+    @FXML private Label lblUpcomingHeader;
+    @FXML private Label lblSellHeader;
+    @FXML private Label lblStepOneIcon;
+    @FXML private Label lblStepTwoIcon;
+    @FXML private Label lblStepThreeIcon;
+    @FXML private Label lblFeaturedCountdownIcon;
 
     // Featured section
     @FXML private VBox featuredPane;
@@ -74,10 +98,52 @@ public class DashboardController {
 
     @FXML
     public void initialize() {
+        configureVisuals();
         setupUserInfo();
         setupSearchListener();
         loadAuctions();
         startMasterTimer();
+    }
+
+    private void configureVisuals() {
+        SmoothScroll.apply(dashboardScroll, 3.0);
+        auctionGrid.prefWrapLengthProperty().bind(mainColumn.widthProperty());
+        auctionGrid.setCache(true);
+        auctionGrid.setCacheHint(CacheHint.SPEED);
+        setIcon(lblLogoIcon, "trophy", 22, "icon-primary");
+        setIcon(lblSearchIcon, "search", 16, "icon-muted");
+        setIcon(lblFeaturedHeader, "trophy", 16, "icon-on-panel");
+        setIcon(lblRunningHeader, "gavel", 16, "icon-primary");
+        setIcon(lblStepsHeader, "book", 16, "icon-primary");
+        setIcon(lblUpcomingHeader, "calendar", 16, "icon-primary");
+        setIcon(lblSellHeader, "bag", 16, "icon-primary");
+        setIcon(lblFeaturedCountdownIcon, "clock", 16, "icon-on-panel");
+        setIcon(lblStepOneIcon, "user", 28, "icon-primary");
+        setIcon(lblStepTwoIcon, "gavel", 28, "icon-primary");
+        setIcon(lblStepThreeIcon, "bag", 28, "icon-primary");
+        setButtonIcon(chipWatch, "watch");
+        setButtonIcon(chipAll, "search");
+        setButtonIcon(chipArt, "image");
+        setButtonIcon(chipHome, "home");
+        setButtonIcon(chipCar, "car");
+        setButtonIcon(chipLaptop, "laptop");
+        setButtonIcon(btnProductManagement, "bag");
+    }
+
+    private void setIcon(Label label, String name, double size, String colorClass) {
+        Region icon = Icons.icon(name, size);
+        icon.getStyleClass().add(colorClass);
+        label.setGraphic(icon);
+        label.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+        label.setGraphicTextGap(8);
+    }
+
+    private void setButtonIcon(Button button, String name) {
+        Region icon = Icons.icon(name, 14);
+        icon.getStyleClass().add("icon-current");
+        button.setGraphic(icon);
+        button.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
+        button.setGraphicTextGap(6);
     }
 
     private void setupUserInfo() {
@@ -147,6 +213,8 @@ public class DashboardController {
         featuredPane.setManaged(true);
 
         lblFeaturedName.setText(featuredAuction.getItemName());
+        setIcon(lblFeaturedImagePlaceholder, getCategoryIconName(featuredAuction.getItemCategory()),
+                80, "icon-on-panel");
         lblFeaturedPrice.setText(FormatUtil.formatCurrency(featuredAuction.getCurrentPrice()));
         lblFeaturedCode.setText("#" + featuredAuction.getId());
         lblFeaturedCategory.setText(featuredAuction.getItemCategory());
@@ -155,13 +223,13 @@ public class DashboardController {
         String statusText;
         String statusClass;
         if (featuredAuction.getStatus() == AuctionStatus.RUNNING) {
-            statusText = "● ĐANG DIỄN RA";
+            statusText = "ĐANG DIỄN RA";
             statusClass = "badge-running";
         } else if (featuredAuction.getStatus() == AuctionStatus.OPEN) {
-            statusText = "○ SẮP DIỄN RA";
+            statusText = "SẮP DIỄN RA";
             statusClass = "badge-open";
         } else {
-            statusText = "✕ ĐÃ KẾT THÚC";
+            statusText = "ĐÃ KẾT THÚC";
             statusClass = "badge-finished";
         }
         lblFeaturedStatus.setText(statusText);
@@ -177,6 +245,7 @@ public class DashboardController {
 
         List<Auction> running = auctions.stream()
                 .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .filter(a -> featuredAuction == null || !a.getId().equals(featuredAuction.getId()))
                 .collect(Collectors.toList());
 
         boolean noResults = running.isEmpty();
@@ -194,14 +263,17 @@ public class DashboardController {
     private VBox buildAuctionCard(Auction auction) {
         VBox card = new VBox(8.0);
         card.getStyleClass().add("auction-card");
-        card.setPrefWidth(220.0);
+        card.setPrefWidth(300.0);
+        card.setMinWidth(300.0);
+        card.setMaxWidth(300.0);
+        card.setPrefHeight(340.0);
 
         // Image placeholder
         VBox imgBox = new VBox();
         imgBox.getStyleClass().add("auction-card-image");
         imgBox.setPrefHeight(120.0);
-        Label imgLabel = new Label(getCategoryIcon(auction.getItemCategory()));
-        imgLabel.getStyleClass().add("auction-card-image-icon");
+        Label imgLabel = new Label();
+        setIcon(imgLabel, getCategoryIconName(auction.getItemCategory()), 64, "icon-on-panel");
         imgBox.getChildren().add(imgLabel);
         imgBox.setAlignment(javafx.geometry.Pos.CENTER);
 
@@ -228,21 +300,24 @@ public class DashboardController {
         lblName.setWrapText(true);
 
         // Người bán
-        Label lblSeller = new Label("👤 " + auction.getSellerUsername());
+        Label lblSeller = new Label(auction.getSellerUsername());
         lblSeller.getStyleClass().add("text-secondary");
+        setIcon(lblSeller, "user", 14, "icon-muted");
 
         // Số bid
-        Label lblBids = new Label("🔥 " + auction.getTotalBids() + " lượt đặt giá");
+        Label lblBids = new Label(auction.getTotalBids() + " lượt đặt giá");
         lblBids.getStyleClass().add("text-secondary");
+        setIcon(lblBids, "gavel", 14, "icon-muted");
 
         // Giá hiện tại
         Label lblPrice = new Label(FormatUtil.formatCurrency(auction.getCurrentPrice()));
         lblPrice.getStyleClass().add("auction-card-price");
 
         // Nút đặt giá
-        Button btnBid = new Button("Đặt giá →");
+        Button btnBid = new Button("Đặt giá");
         btnBid.getStyleClass().addAll("btn-primary", "btn-pill");
         btnBid.setMaxWidth(Double.MAX_VALUE);
+        setButtonIcon(btnBid, "arrow-right");
         btnBid.setOnAction(e -> openAuctionDetail(auction));
         btnBid.addEventFilter(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
 
@@ -251,9 +326,12 @@ public class DashboardController {
         topRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         topRow.getChildren().addAll(statusBadge, lblCountdown);
 
-        card.getChildren().addAll(imgBox, topRow, lblName, lblSeller, lblBids, lblPrice, btnBid);
+        Region flexibleSpace = new Region();
+        VBox.setVgrow(flexibleSpace, javafx.scene.layout.Priority.ALWAYS);
+        VBox.setMargin(btnBid, new javafx.geometry.Insets(12, 16, 0, 16));
+        card.getChildren().addAll(imgBox, topRow, lblName, lblSeller, lblBids, lblPrice, flexibleSpace, btnBid);
 
-        // Click toàn card → mở detail
+        // Click toàn card để mở detail.
         card.setOnMouseClicked(e -> {
             if (e.getClickCount() == 1 && !(e.getTarget() instanceof Button)) {
                 openAuctionDetail(auction);
@@ -263,15 +341,15 @@ public class DashboardController {
         return card;
     }
 
-    private String getCategoryIcon(String category) {
-        if (category == null) return "🏷";
+    private String getCategoryIconName(String category) {
+        if (category == null) return "tag";
         String cat = category.toLowerCase();
-        if (cat.contains("đồng hồ") || cat.contains("trang sức")) return "⌚";
-        if (cat.contains("tranh") || cat.contains("nghệ thuật") || cat.contains("cổ vật")) return "🎨";
-        if (cat.contains("bất động sản")) return "🏠";
-        if (cat.contains("xe")) return "🚗";
-        if (cat.contains("công nghệ") || cat.contains("thiết bị")) return "💻";
-        return "🏷";
+        if (cat.contains("đồng hồ") || cat.contains("trang sức")) return "watch";
+        if (cat.contains("tranh") || cat.contains("nghệ thuật") || cat.contains("cổ vật")) return "image";
+        if (cat.contains("bất động sản")) return "home";
+        if (cat.contains("xe")) return "car";
+        if (cat.contains("công nghệ") || cat.contains("thiết bị")) return "laptop";
+        return "tag";
     }
 
     /* ======= Upcoming Sidebar ======= */
@@ -311,8 +389,9 @@ public class DashboardController {
         String startTime = auction.getStartTime() == null
                 ? auction.getFormattedEndTime()
                 : auction.getStartTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        Label lblTime = new Label("🕐 " + startTime);
+        Label lblTime = new Label(startTime);
         lblTime.getStyleClass().add("text-secondary");
+        setIcon(lblTime, "clock", 14, "icon-muted");
 
         item.getChildren().addAll(lblName, lblPrice, lblTime);
         return item;

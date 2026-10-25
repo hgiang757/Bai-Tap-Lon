@@ -3,6 +3,7 @@ module com.hieu {
     requires javafx.fxml;
     requires java.desktop;
     requires java.prefs;
+    requires java.logging;
 
     opens com.hieu to javafx.fxml, javafx.graphics;
     opens com.hieu.controllers to javafx.fxml;

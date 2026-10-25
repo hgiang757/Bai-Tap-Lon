@@ -6,11 +6,13 @@ import com.hieu.models.Auction;
 import com.hieu.services.AuctionClientService;
 import com.hieu.services.ServiceRegistry;
 import com.hieu.util.ThemeManager;
+import com.hieu.util.ThemeToggle;
 import com.hieu.util.ViewNavigator;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
@@ -69,6 +71,12 @@ public class SnapshotApp extends Application {
             // 6. Product Management
             capture(stage, "/com/hieu/views/product-management-view.fxml", "06_product_management.png", null);
 
+            // 7. UI Kit, including the icon gallery and theme control states
+            capture(stage, "/com/hieu/views/uikit-view.fxml", "07_uikit_showcase.png", null);
+            captureIconGallery(stage);
+            verifyThemeToggle(stage);
+
+            System.out.println("THEME_TOGGLE_SUCCESS");
             System.out.println("SNAPSHOTS_SUCCESS");
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,6 +85,37 @@ public class SnapshotApp extends Application {
             Platform.exit();
             System.exit(0);
         }
+    }
+
+    private void verifyThemeToggle(Stage stage) {
+        Node node = stage.getScene().getRoot().lookup(".theme-toggle");
+        if (!(node instanceof ThemeToggle)) {
+            throw new IllegalStateException("ThemeToggle is missing from the UI Kit.");
+        }
+
+        ThemeToggle toggle = (ThemeToggle) node;
+        ThemeManager.Theme originalTheme = ThemeManager.current();
+        Node originalGraphic = toggle.getGraphic();
+        toggle.fire();
+        if (ThemeManager.current() == originalTheme || toggle.getGraphic() == originalGraphic) {
+            throw new IllegalStateException("ThemeToggle did not update its theme and icon.");
+        }
+
+        toggle.fire();
+        if (ThemeManager.current() != originalTheme || toggle.getGraphic() == null) {
+            throw new IllegalStateException("ThemeToggle did not restore its original theme.");
+        }
+    }
+
+    private void captureIconGallery(Stage stage) throws IOException {
+        Parent root = stage.getScene().getRoot();
+        root.applyCss();
+        root.layout();
+        Node gallery = root.lookup("#iconGallery");
+        if (gallery == null) {
+            throw new IllegalStateException("Icon gallery is missing from the UI Kit.");
+        }
+        saveSnapshot(gallery.snapshot(null, null), "08_icon_gallery.png");
     }
 
     private void capture(Stage stage, String fxml, String filename, java.util.function.Consumer<Object> init) throws IOException {
@@ -88,7 +127,7 @@ public class SnapshotApp extends Application {
         renderAndSave(stage, root, filename);
     }
 
-    private void renderAndSave(Stage stage, Parent root, String filename) {
+    private void renderAndSave(Stage stage, Parent root, String filename) throws IOException {
         Scene scene = stage.getScene();
         if (scene == null) {
             scene = new Scene(root, 1080, 720);
@@ -102,6 +141,10 @@ public class SnapshotApp extends Application {
         root.layout();
 
         WritableImage img = root.snapshot(null, null);
+        saveSnapshot(img, filename);
+    }
+
+    private void saveSnapshot(WritableImage img, String filename) throws IOException {
         int w = (int) img.getWidth();
         int h = (int) img.getHeight();
         BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
@@ -111,13 +154,11 @@ public class SnapshotApp extends Application {
                 bi.setRGB(x, y, pr.getArgb(x, y));
             }
         }
-        try {
-            File dest = new File(OUTPUT_DIR, filename);
-            ImageIO.write(bi, "PNG", dest);
-            System.out.println("SAVED: " + dest.getName() + " (" + w + "x" + h + ")");
-        } catch (IOException e) {
-            e.printStackTrace();
+        File dest = new File(OUTPUT_DIR, filename);
+        if (!ImageIO.write(bi, "PNG", dest)) {
+            throw new IOException("No PNG writer is available for " + dest.getName());
         }
+        System.out.println("SAVED: " + dest.getName() + " (" + w + "x" + h + ")");
     }
 
     public static void main(String[] args) {

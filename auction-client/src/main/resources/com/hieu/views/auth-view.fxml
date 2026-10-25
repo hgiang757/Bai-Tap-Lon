@@ -6,11 +6,10 @@
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
-<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -19,133 +18,107 @@
 <HBox xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.hieu.controllers.AuthController"
       prefHeight="680.0" prefWidth="960.0">
-
-    <!-- ===== CỘT TRÁI: Panel thương hiệu (40%) ===== -->
-    <VBox styleClass="login-left-panel" alignment="CENTER" spacing="32.0" prefWidth="384.0" minWidth="320.0">
+    <VBox styleClass="login-left-panel" alignment="CENTER" spacing="28.0"
+          prefWidth="384.0" minWidth="320.0" HBox.hgrow="NEVER">
         <padding>
-            <Insets top="48.0" right="40.0" bottom="48.0" left="40.0"/>
+            <Insets top="40.0" right="36.0" bottom="40.0" left="36.0"/>
         </padding>
-
-        <!-- Logo icon -->
         <VBox alignment="CENTER" spacing="8.0">
-            <Label text="🏆" styleClass="login-brand-icon"/>
+            <Label fx:id="lblBrandIcon" styleClass="login-brand-icon"/>
             <Label text="VaultAuction" styleClass="login-brand"/>
             <Label text="Sàn đấu giá trực tuyến hàng đầu" styleClass="login-slogan"/>
         </VBox>
-
-        <!-- Divider nhỏ -->
         <Region styleClass="login-divider" prefHeight="2.0" maxWidth="60.0"/>
-
-        <!-- Danh sách lợi ích -->
-        <VBox spacing="20.0">
-            <VBox styleClass="benefit-item" spacing="6.0">
-                <Label text="⚡  Đấu giá thời gian thực" styleClass="benefit-title"/>
-                <Label text="Độ trễ siêu thấp, kết quả cập nhật tức thì" styleClass="benefit-desc" wrapText="true"/>
-            </VBox>
-            <VBox styleClass="benefit-item" spacing="6.0">
-                <Label text="📋  Quy trình minh bạch" styleClass="benefit-title"/>
-                <Label text="Lịch sử đặt giá rõ ràng, không gian lận" styleClass="benefit-desc" wrapText="true"/>
-            </VBox>
-            <VBox styleClass="benefit-item" spacing="6.0">
-                <Label text="🔒  Giao dịch an toàn" styleClass="benefit-title"/>
-                <Label text="Bảo mật thông tin tuyệt đối, thanh toán tin cậy" styleClass="benefit-desc" wrapText="true"/>
-            </VBox>
+        <VBox spacing="20.0" maxWidth="Infinity">
+            <HBox styleClass="benefit-item" spacing="14.0" alignment="CENTER_LEFT">
+                <StackPane styleClass="benefit-icon"><Label fx:id="lblBenefitRealtime"/></StackPane>
+                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="lblBenefitRealtimeTitle" text="Đấu giá thời gian thực" styleClass="benefit-title"/>
+                    <Label text="Độ trễ siêu thấp, kết quả cập nhật tức thì" styleClass="benefit-desc" wrapText="true"/>
+                </VBox>
+            </HBox>
+            <HBox styleClass="benefit-item" spacing="14.0" alignment="CENTER_LEFT">
+                <StackPane styleClass="benefit-icon"><Label fx:id="lblBenefitTransparent"/></StackPane>
+                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label text="Quy trình minh bạch" styleClass="benefit-title"/>
+                    <Label text="Lịch sử đặt giá rõ ràng, không gian lận" styleClass="benefit-desc" wrapText="true"/>
+                </VBox>
+            </HBox>
+            <HBox styleClass="benefit-item" spacing="14.0" alignment="CENTER_LEFT">
+                <StackPane styleClass="benefit-icon"><Label fx:id="lblBenefitSafe"/></StackPane>
+                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label text="Giao dịch an toàn" styleClass="benefit-title"/>
+                    <Label text="Bảo mật thông tin, thanh toán tin cậy" styleClass="benefit-desc" wrapText="true"/>
+                </VBox>
+            </HBox>
         </VBox>
-
         <Region VBox.vgrow="ALWAYS"/>
-
-        <!-- Demo hint -->
-        <Label text="Demo: bidder_hieu / 123456&#10;Seller: seller_hieu / 123456" styleClass="login-demo-hint"/>
     </VBox>
 
-    <!-- ===== CỘT PHẢI: Form đăng nhập (60%) ===== -->
-    <StackPane HBox.hgrow="ALWAYS">
-        <VBox alignment="CENTER" spacing="0.0">
-            <!-- Top bar theme toggle -->
-            <HBox alignment="CENTER_RIGHT" styleClass="login-topbar" spacing="12.0">
-                <Region HBox.hgrow="ALWAYS"/>
-                <ThemeToggle/>
-            </HBox>
-
-            <!-- Scroll container for form -->
-            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="login-scroll" VBox.vgrow="ALWAYS">
-                <VBox alignment="CENTER" spacing="24.0" maxWidth="420.0" minWidth="320.0">
-                    <padding>
-                        <Insets top="32.0" right="40.0" bottom="32.0" left="40.0"/>
-                    </padding>
-
-                    <!-- Tiêu đề form -->
-                    <VBox alignment="CENTER" spacing="6.0">
-                        <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="auth-form-title"/>
-                        <Label fx:id="lblFormSubtitle" text="Chào mừng trở lại!" styleClass="auth-form-subtitle"/>
-                    </VBox>
-
-                    <!-- Alert box -->
-                    <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
-                          styleClass="alert-box, alert-error" visible="false" managed="false">
-                        <Label fx:id="lblAlertMessage" text="Thông báo" wrapText="true"/>
-                    </HBox>
-
-                    <!-- Card form -->
-                    <VBox spacing="16.0" styleClass="card-panel">
-
-                        <!-- Tên đăng nhập -->
+    <StackPane HBox.hgrow="ALWAYS" styleClass="auth-right-pane">
+        <ScrollPane fx:id="authScroll" fitToWidth="true" fitToHeight="true"
+                    hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                    prefWidth="400.0" maxWidth="400.0" maxHeight="Infinity"
+                    styleClass="login-scroll">
+            <VBox alignment="CENTER" spacing="22.0" maxWidth="400.0" minWidth="300.0">
+                <padding>
+                    <Insets top="36.0" right="32.0" bottom="36.0" left="32.0"/>
+                </padding>
+                <VBox alignment="CENTER" spacing="6.0">
+                    <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="auth-form-title"/>
+                    <Label fx:id="lblFormSubtitle" text="Chào mừng trở lại!" styleClass="auth-form-subtitle"/>
+                </VBox>
+                <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
+                      styleClass="alert-box, alert-error" visible="false" managed="false">
+                    <Label fx:id="lblAlertMessage" text="Thông báo" wrapText="true"/>
+                </HBox>
+                <VBox spacing="16.0" styleClass="card-panel">
+                    <VBox fx:id="registerFieldsBox" spacing="14.0" visible="false" managed="false">
                         <VBox spacing="6.0">
-                            <Label text="Email hoặc tên đăng nhập" styleClass="form-label"/>
+                            <Label text="Họ và tên" styleClass="form-label"/>
+                            <TextField fx:id="txtFullName" promptText="Nhập họ và tên đầy đủ"/>
+                        </VBox>
+                        <VBox spacing="6.0">
+                            <Label text="Email" styleClass="form-label"/>
+                            <TextField fx:id="txtEmail" promptText="Nhập địa chỉ email"/>
+                        </VBox>
+                    </VBox>
+                    <VBox spacing="14.0">
+                        <VBox spacing="6.0">
+                            <Label text="Tên đăng nhập" styleClass="form-label"/>
                             <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập"/>
                         </VBox>
-
-                        <!-- Mật khẩu -->
                         <VBox spacing="6.0">
-                            <HBox alignment="CENTER_LEFT">
-                                <Label text="Mật khẩu" styleClass="form-label" HBox.hgrow="ALWAYS"/>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="btnForgotPassword" text="Quên mật khẩu?" styleClass="btn-link" onAction="#handleForgotPassword"/>
-                            </HBox>
+                            <Label text="Mật khẩu" styleClass="form-label"/>
                             <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu"/>
                         </VBox>
-
-                        <!-- Ghi nhớ đăng nhập (chỉ ở mode login) -->
-                        <HBox fx:id="rememberBox" alignment="CENTER_LEFT" spacing="8.0">
-                            <CheckBox fx:id="chkRemember" text="Ghi nhớ đăng nhập" styleClass="remember-checkbox"/>
+                        <HBox fx:id="rememberBox">
+                            <CheckBox fx:id="chkRemember" text="Ghi nhớ tên đăng nhập"/>
                         </HBox>
-
-                        <!-- Các trường chỉ xuất hiện khi đăng ký -->
-                        <VBox fx:id="registerFieldsBox" spacing="14.0" visible="false" managed="false">
-                            <VBox spacing="6.0">
-                                <Label text="Họ và tên" styleClass="form-label"/>
-                                <TextField fx:id="txtFullName" promptText="Nhập họ và tên đầy đủ"/>
-                            </VBox>
-
-                            <VBox spacing="6.0">
-                                <Label text="Địa chỉ email" styleClass="form-label"/>
-                                <TextField fx:id="txtEmail" promptText="Nhập địa chỉ thư điện tử"/>
-                            </VBox>
-
-                            <!-- Lựa chọn vai trò -->
-                            <VBox spacing="8.0">
-                                <Label text="Vai trò tài khoản" styleClass="form-label"/>
-                                <HBox spacing="20.0">
-                                    <fx:define>
-                                        <ToggleGroup fx:id="roleToggleGroup"/>
-                                    </fx:define>
-                                    <RadioButton fx:id="rbBidder" text="Người đấu giá" toggleGroup="$roleToggleGroup" selected="true"/>
-                                    <RadioButton fx:id="rbSeller" text="Người bán" toggleGroup="$roleToggleGroup"/>
-                                </HBox>
-                            </VBox>
-                        </VBox>
-
-                        <!-- Nút gửi form -->
-                        <Button fx:id="btnSubmit" text="Đăng nhập" onAction="#handleSubmit"
-                                styleClass="btn-primary, btn-pill" maxWidth="Infinity"/>
-
-                        <!-- Nút chuyển đổi đăng nhập / đăng ký -->
-                        <Button fx:id="btnSwitchMode" text="Chưa có tài khoản? Đăng ký ngay"
-                                onAction="#handleSwitchMode" styleClass="btn-link" maxWidth="Infinity"/>
                     </VBox>
+                    <VBox fx:id="registerRoleBox" spacing="8.0" visible="false" managed="false">
+                        <Label text="Vai trò tài khoản" styleClass="form-label"/>
+                        <HBox spacing="10.0">
+                            <fx:define>
+                                <ToggleGroup fx:id="roleToggleGroup"/>
+                            </fx:define>
+                            <ToggleButton fx:id="rbBidder" text="Người mua" toggleGroup="$roleToggleGroup"
+                                          selected="true" styleClass="role-chip" HBox.hgrow="ALWAYS"/>
+                            <ToggleButton fx:id="rbSeller" text="Người bán" toggleGroup="$roleToggleGroup"
+                                          styleClass="role-chip" HBox.hgrow="ALWAYS"/>
+                        </HBox>
+                    </VBox>
+                    <Button fx:id="btnSubmit" text="Đăng nhập" onAction="#handleSubmit"
+                            styleClass="btn-primary, btn-pill" maxWidth="Infinity"/>
+                    <Button fx:id="btnSwitchMode" text="Chưa có tài khoản? Đăng ký ngay"
+                            onAction="#handleSwitchMode" styleClass="btn-link" maxWidth="Infinity"/>
                 </VBox>
-            </ScrollPane>
-        </VBox>
+            </VBox>
+        </ScrollPane>
+        <ThemeToggle StackPane.alignment="TOP_RIGHT">
+            <StackPane.margin>
+                <Insets top="16.0" right="20.0" bottom="0.0" left="0.0"/>
+            </StackPane.margin>
+        </ThemeToggle>
     </StackPane>
-
 </HBox>
