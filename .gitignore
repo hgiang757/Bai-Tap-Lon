@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 *.class
-=======
 ﻿target/
 .idea/
 *.iml
@@ -9,4 +7,3 @@ nbactions.xml
 nb-configuration.xml
 *.log
 .maven-repository/
->>>>>>> 9c19ed7dd173a579d74b759ea9ac632ce957fe9c
