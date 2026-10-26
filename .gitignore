@@ -1,0 +1,9 @@
+*.class
+target/
+.idea/
+*.iml
+.vscode/
+nbactions.xml
+nb-configuration.xml
+*.log
+.maven-repository/
