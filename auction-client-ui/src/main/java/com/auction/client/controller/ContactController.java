@@ -20,7 +20,8 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.TilePane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.stage.Window;
@@ -47,15 +48,31 @@ public class ContactController {
     }
 
     private void buildPage() {
-        TilePane members = new TilePane();
+        GridPane members = new GridPane();
         members.getStyleClass().add("contact-grid");
         members.setHgap(20);
         members.setVgap(20);
-        members.setPrefColumns(2);
-        members.prefTileWidthProperty().bind(pageContent.widthProperty().subtract(84).divide(2));
-        for (TeamMember member : loadMembers()) {
-            members.getChildren().add(memberCard(member));
-        }
+        List<VBox> cards = loadMembers().stream().map(this::memberCard).toList();
+        Runnable updateGrid = () -> {
+            int columns = pageContent.getWidth() < 720 ? 1 : 2;
+            members.getChildren().clear();
+            members.getColumnConstraints().clear();
+            for (int i = 0; i < columns; i++) {
+                ColumnConstraints column = new ColumnConstraints();
+                column.setPercentWidth(100.0 / columns);
+                column.setHgrow(Priority.ALWAYS);
+                members.getColumnConstraints().add(column);
+            }
+            for (int i = 0; i < cards.size(); i++) {
+                members.add(cards.get(i), i % columns, i / columns);
+            }
+        };
+        pageContent.widthProperty().addListener((observable, oldWidth, newWidth) -> {
+            if ((oldWidth.doubleValue() < 720) != (newWidth.doubleValue() < 720)) {
+                updateGrid.run();
+            }
+        });
+        updateGrid.run();
 
         VBox note = new VBox(8);
         note.getStyleClass().addAll("card-panel", "contact-note");
@@ -92,7 +109,8 @@ public class ContactController {
     private VBox memberCard(TeamMember member) {
         VBox card = new VBox(12);
         card.getStyleClass().addAll("card-panel", "contact-member-card");
-        card.setPrefWidth(420);
+        card.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHgrow(card, Priority.ALWAYS);
         HBox identity = new HBox(12);
         identity.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         Label avatar = new Label(member.name.substring(0, 1));

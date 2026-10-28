@@ -82,8 +82,6 @@ public class GuideController {
         contact.setOnAction(event -> navigate(ViewNavigator.Route.CONTACT));
         HBox supportRow = new HBox(contact);
         supportRow.setAlignment(javafx.geometry.Pos.CENTER);
-        javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
         pageContent.getChildren().add(supportRow);
         AppFooter.install(guideScroll, pageContent);
     }
