@@ -35,7 +35,7 @@
         <ScrollPane fx:id="dashboardScroll" fitToWidth="true" fitToHeight="false"
                     hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="main-scroll">
             <StackPane alignment="TOP_CENTER">
-            <VBox fx:id="pageContent" spacing="32.0" maxWidth="1200.0" styleClass="dashboard-content"><padding><Insets top="32.0" right="32.0" bottom="32.0" left="32.0"/></padding>
+            <VBox fx:id="pageContent" spacing="32.0" maxWidth="1200.0" styleClass="dashboard-content"><padding><Insets top="32.0" right="32.0" bottom="0.0" left="32.0"/></padding>
                 <VBox styleClass="page-intro">
                     <Label text="Trang chủ" styleClass="page-title t-display"/>
                     <Label text="Khám phá những món đồ đặc biệt và tham gia cuộc đua giá trực tiếp." styleClass="page-subtitle t-body" wrapText="true"/>

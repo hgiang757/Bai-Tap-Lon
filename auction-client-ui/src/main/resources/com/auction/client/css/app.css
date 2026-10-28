@@ -301,7 +301,6 @@
 .user-menu-item-selected .label { -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .keyboard-nav .user-menu-item:focused { -fx-border-color: -c-primary; -fx-border-width: 2px; -fx-background-radius: 12px; -fx-border-radius: 12px; }
 
-.app-footer { -fx-border-color: transparent; -fx-padding: 36px 28px; -fx-background-color: -c-surface; }
 .app-footer-content { -fx-alignment: CENTER; }
 .app-footer-intro { -fx-font-size: 13px; -fx-line-spacing: 4px; -fx-text-alignment: CENTER; }
 .guide-toc { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 18px; -fx-min-width: 190px; -fx-pref-width: 190px; }
@@ -309,7 +308,7 @@
 .guide-card { -fx-spacing: 14px; -fx-padding: 28px; }
 .guide-copy { -fx-font-size: 15px; -fx-line-spacing: 4px; }
 .contact-intro { -fx-font-size: 15px; }
-.contact-grid { -fx-alignment: TOP_CENTER; -fx-pref-tile-width: 420px; }
+.contact-grid { -fx-alignment: TOP_CENTER; }
 .contact-member-card { -fx-min-width: 360px; -fx-padding: 24px; }
 .contact-member-email { -fx-font-size: 13px; }
 .contact-note { -fx-padding: 22px; }

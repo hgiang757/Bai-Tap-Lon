@@ -3,6 +3,7 @@ package com.auction.client.ui;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.util.AppInfo;
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -17,6 +18,8 @@ import javafx.scene.layout.StackPane;
 import java.io.IOException;
 
 public final class AppFooter extends VBox {
+    private static final double CONTENT_BOTTOM_GAP = 40;
+
     public AppFooter() {
         getStyleClass().add("app-footer");
         setAlignment(Pos.CENTER);
@@ -48,6 +51,7 @@ public final class AppFooter extends VBox {
         if (content.getParent() instanceof StackPane oldParent) oldParent.getChildren().remove(content);
         StackPane centered = new StackPane(content);
         centered.setAlignment(Pos.TOP_CENTER);
+        centered.setPadding(new Insets(0, 0, CONTENT_BOTTOM_GAP, 0));
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
         VBox page = new VBox(centered, spacer, new AppFooter());

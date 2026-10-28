@@ -35,7 +35,7 @@
             <content>
                 <StackPane alignment="TOP_CENTER">
                 <VBox fx:id="pageContent" spacing="24.0" maxWidth="1200.0" styleClass="dashboard-content">
-                    <padding><Insets top="32.0" right="32.0" bottom="32.0" left="32.0"/></padding>
+                    <padding><Insets top="32.0" right="32.0" bottom="0.0" left="32.0"/></padding>
                     <VBox styleClass="page-intro">
                         <Label text="Quản lý sản phẩm" styleClass="page-title t-display"/>
                         <Label text="Theo dõi sản phẩm và cập nhật thông tin bán đấu giá." styleClass="page-subtitle t-body"/>
