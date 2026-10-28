@@ -31,7 +31,6 @@ import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
-import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,8 +44,6 @@ public class AuthController {
 
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
     private static final String REMEMBERED_USERNAME_KEY = "rememberedUsername";
-    private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static Image cachedBackgroundImage;
     private static boolean backgroundLoadStarted;
     private static boolean backgroundFailureLogged;
@@ -229,7 +226,6 @@ public class AuthController {
         txtConfirm.clear();
         touchedUsername = touchedEmail = touchedPassword = touchedConfirm = false;
         confirmBox.setVisible(isRegisterMode); confirmBox.setManaged(isRegisterMode);
-        passwordHint.setVisible(isRegisterMode); passwordHint.setManaged(isRegisterMode);
         validateFields();
         if (isRegisterMode) {
             lblFormTitle.setText("Đăng ký tài khoản");
@@ -336,8 +332,13 @@ public class AuthController {
         boolean p = Validators.password(txtPassword.getText());
         boolean c = !txtConfirm.getText().isEmpty() && Validators.matches(txtPassword.getText(), txtConfirm.getText());
         fieldError(txtUsername, errUsername, isRegisterMode && touchedUsername && !u, "Tên đăng nhập dài 3–30 ký tự, gồm chữ, số, dấu cách, _ . - và không bắt đầu/kết thúc bằng dấu cách.");
-        fieldError(txtEmail, errEmail, isRegisterMode && touchedEmail && !e, "Email chưa đúng định dạng (ví dụ ten@gmail.com).");
-        fieldError(txtPassword, errPassword, isRegisterMode && touchedPassword && !p, "Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.");
+        String emailMessage = txtEmail.getText().trim().isEmpty()
+                ? "Vui lòng nhập email." : "Email chưa đúng định dạng (ví dụ ten@gmail.com).";
+        fieldError(txtEmail, errEmail, isRegisterMode && touchedEmail && !e, emailMessage);
+        boolean showPasswordError = isRegisterMode && touchedPassword && !p;
+        fieldError(txtPassword, errPassword, showPasswordError, "Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.");
+        passwordHint.setVisible(isRegisterMode && !showPasswordError);
+        passwordHint.setManaged(isRegisterMode && !showPasswordError);
         boolean showConfirm = isRegisterMode && (touchedConfirm || !txtConfirm.getText().isEmpty());
         fieldError(txtConfirm, errConfirm, showConfirm && !c, "Mật khẩu nhập lại chưa khớp");
         if (showConfirm && c) { errConfirm.setText("Mật khẩu khớp"); errConfirm.setAccessibleText("Mật khẩu khớp"); errConfirm.setVisible(true); errConfirm.setManaged(true); }
