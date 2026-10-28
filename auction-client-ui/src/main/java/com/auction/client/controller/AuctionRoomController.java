@@ -100,6 +100,7 @@ public class AuctionRoomController {
         pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
                 () -> detailScroll.getViewportBounds().getHeight(), detailScroll.viewportBoundsProperty()));
         SmoothScroll.apply(detailScroll, 3.0);
+        com.auction.client.ui.AppFooter.install(detailScroll, pageContent);
         Platform.runLater(detailScroll::requestFocus);
         setupChart();
         setupQuickBidButtons();
@@ -165,6 +166,8 @@ public class AuctionRoomController {
         Label placeholder = new Label("Chưa có lượt đặt giá");
         placeholder.getStyleClass().add("empty-placeholder");
         lvRecentBids.setPlaceholder(placeholder);
+        com.auction.client.ui.RoundedClip.apply(lvRecentBids, 12);
+        com.auction.client.ui.RoundedClip.apply(chartContainer, 12);
     }
 
     /**
@@ -184,6 +187,7 @@ public class AuctionRoomController {
             auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
         }
         this.currentAuction = auction;
+        ViewNavigator.setCurrentAuctionId(auction.getId());
         renderAuctionDetails();
         loadBidHistory();
         registerRealtimeObserver();
@@ -517,13 +521,17 @@ public class AuctionRoomController {
         auctionService.placeBid(currentAuction.getId(), simulatedPrice);
     }
 
+    public void dispose() {
+        if (countdownTimer != null) countdownTimer.stop();
+        if (currentAuction != null && realtimeBidConsumer != null) {
+            auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
+            realtimeBidConsumer = null;
+        }
+    }
+
     @FXML
     private void handleBackToHome() {
         try {
-            if (countdownTimer != null) countdownTimer.stop();
-            if (currentAuction != null && realtimeBidConsumer != null) {
-                auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
-            }
             ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD);
         } catch (IOException e) {
             showDialog("Không thể mở danh sách phiên đấu giá.");

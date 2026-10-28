@@ -1,6 +1,8 @@
 package com.auction.client.navigation;
 
 import com.auction.client.ui.UserMenu;
+import com.auction.client.controller.AuctionRoomController;
+import com.auction.client.service.ServiceRegistry;
 import com.auction.client.ui.AppBackground;
 import com.auction.client.util.AppInfo;
 import javafx.application.Platform;
@@ -50,6 +52,9 @@ public final class ViewNavigator {
     private static Stage primaryStage;
     private static View currentView;
     private static String loadingPath;
+    private static Object currentController;
+    private static boolean sellingMode;
+    public static boolean isSellingMode() { return sellingMode; }
 
     private ViewNavigator() {
     }
@@ -81,6 +86,9 @@ public final class ViewNavigator {
         }
 
         UserMenu.closeActive();
+        if (currentController instanceof AuctionRoomController) {
+            ((AuctionRoomController) currentController).dispose();
+        }
         if (recordHistory && currentView != null
                 && (!currentView.path.equals(fxmlPath) || !currentView.title.equals(windowTitle))) {
             history.addLast(currentView);
@@ -93,6 +101,8 @@ public final class ViewNavigator {
             sceneRoot = appRoot;
         }
 
+        if (Route.PRODUCTS.path.equals(fxmlPath)) sellingMode = true;
+        else if (Route.DASHBOARD.path.equals(fxmlPath)) sellingMode = false;
         Scene scene = primaryStage.getScene();
         if (scene == null) {
             scene = new Scene(sceneRoot, 1024, 680);
@@ -101,7 +111,8 @@ public final class ViewNavigator {
             scene.setRoot(sceneRoot);
         }
 
-        currentView = new View(fxmlPath, windowTitle);
+        currentView = new View(fxmlPath, windowTitle, null);
+        currentController = loader.getController();
         applyAppStylesheet(scene);
         primaryStage.setTitle(AppInfo.NAME + " - " + windowTitle);
         primaryStage.show();
@@ -170,8 +181,20 @@ public final class ViewNavigator {
             return false;
         }
         View previous = history.removeLast();
-        loadView(previous.path, previous.title, false);
+        try {
+            Object controller = loadView(previous.path, previous.title, false);
+            if (previous.auctionId != null && controller instanceof AuctionRoomController) {
+                com.auction.client.model.Auction auction = ServiceRegistry.getService().getAuctionById(previous.auctionId);
+                if (auction == null) throw new IOException("Không tìm thấy phiên đấu giá " + previous.auctionId);
+                ((AuctionRoomController) controller).setAuction(auction);
+                setCurrentAuctionId(previous.auctionId);
+            }
+        } catch (IOException ex) { history.addLast(previous); throw ex; }
         return true;
+    }
+
+    public static void setCurrentAuctionId(String auctionId) {
+        if (currentView != null) currentView = new View(currentView.path, currentView.title, auctionId);
     }
 
     public static void clearHistory() {
@@ -194,9 +217,12 @@ public final class ViewNavigator {
         private final String path;
         private final String title;
 
-        private View(String path, String title) {
+        private final String auctionId;
+
+        private View(String path, String title, String auctionId) {
             this.path = path;
             this.title = title;
+            this.auctionId = auctionId;
         }
     }
 }

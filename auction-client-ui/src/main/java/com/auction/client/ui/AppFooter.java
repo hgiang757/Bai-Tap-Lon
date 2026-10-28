@@ -6,10 +6,13 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.beans.binding.Bindings;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 
 import java.io.IOException;
 
@@ -20,8 +23,8 @@ public final class AppFooter extends VBox {
         VBox content = new VBox(20);
         content.getStyleClass().add("app-footer-content");
         content.setAlignment(Pos.CENTER);
-        content.setMaxWidth(900);
-        Label intro = new Label(AppInfo.NAME + " — Sàn đấu giá trực tuyến theo thời gian thực. Người bán đăng sản phẩm và đặt giá khởi điểm, người đấu giá theo dõi đồng hồ đếm ngược và đặt giá; máy chủ là bên xác nhận mọi lượt đặt giá nên kết quả luôn nhất quán và minh bạch.");
+        content.setMaxWidth(1200);
+        Label intro = new Label(AppInfo.NAME + " — Sàn đấu giá trực tuyến theo thời gian thực, minh bạch và thuận tiện.");
         intro.getStyleClass().add("app-footer-intro");
         intro.setWrapText(true);
 
@@ -35,6 +38,22 @@ public final class AppFooter extends VBox {
         content.getChildren().addAll(intro, links);
         getChildren().add(content);
         VBox.setVgrow(content, Priority.NEVER);
+    }
+
+    public static void install(ScrollPane scroll, VBox content) {
+        content.minHeightProperty().unbind();
+        content.getChildren().removeIf(node -> node instanceof AppFooter ||
+                (node instanceof Region && VBox.getVgrow(node) == Priority.ALWAYS && node.getClass() == Region.class));
+        scroll.setContent(null);
+        if (content.getParent() instanceof StackPane oldParent) oldParent.getChildren().remove(content);
+        StackPane centered = new StackPane(content);
+        centered.setAlignment(Pos.TOP_CENTER);
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        VBox page = new VBox(centered, spacer, new AppFooter());
+        page.minHeightProperty().bind(Bindings.createDoubleBinding(
+                () -> scroll.getViewportBounds().getHeight(), scroll.viewportBoundsProperty()));
+        scroll.setContent(page);
     }
 
     private Button linkButton(String text, String iconName) {

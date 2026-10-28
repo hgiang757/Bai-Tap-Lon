@@ -37,45 +37,34 @@ import java.util.Properties;
 public class ContactController {
     @FXML private ScrollPane contactScroll;
     @FXML private VBox pageContent;
-    @FXML private UserMenu userMenu;
-    @FXML private Button btnLogin;
 
     @FXML
     public void initialize() {
         pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
                 () -> contactScroll.getViewportBounds().getHeight(), contactScroll.viewportBoundsProperty()));
-        boolean openedBeforeLogin = ViewNavigator.Route.AUTH.getPath().equals(ViewNavigator.getNavigationSourcePath())
-                || (ViewNavigator.Route.GUIDE.getPath().equals(ViewNavigator.getNavigationSourcePath())
-                && ViewNavigator.Route.AUTH.getPath().equals(ViewNavigator.getPreviousPath()));
-        userMenu.setVisible(!openedBeforeLogin);
-        userMenu.setManaged(!openedBeforeLogin);
-        btnLogin.setVisible(openedBeforeLogin);
-        btnLogin.setManaged(openedBeforeLogin);
         SmoothScroll.apply(contactScroll, 3.0);
         buildPage();
     }
 
     private void buildPage() {
-        Label introduction = new Label("Nhóm phát triển " + AppInfo.NAME + ". Liên hệ qua email bên dưới.");
-        introduction.getStyleClass().add("contact-intro");
         TilePane members = new TilePane();
         members.getStyleClass().add("contact-grid");
-        members.setHgap(16);
-        members.setVgap(16);
+        members.setHgap(20);
+        members.setVgap(20);
         members.setPrefColumns(2);
+        members.prefTileWidthProperty().bind(pageContent.widthProperty().subtract(84).divide(2));
         for (TeamMember member : loadMembers()) {
             members.getChildren().add(memberCard(member));
         }
 
         VBox note = new VBox(8);
         note.getStyleClass().addAll("card-panel", "contact-note");
-        Label noteText = new Label("Góp ý về giao diện hoặc báo lỗi? Gửi email kèm ảnh chụp màn hình cho nhóm.");
+        Label noteText = new Label("Nếu có sai sót gì trong quá trình sử dụng, xin vui lòng liên hệ với nhóm phát triển qua các email ở trên.");
         noteText.setWrapText(true);
         note.getChildren().add(noteText);
-        note.setMaxWidth(900);
-        Region spacer = new Region();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-        pageContent.getChildren().addAll(introduction, members, note, spacer, new AppFooter());
+        note.setMaxWidth(Double.MAX_VALUE);
+        pageContent.getChildren().addAll(members, note);
+        AppFooter.install(contactScroll, pageContent);
     }
 
     private List<TeamMember> loadMembers() {
@@ -127,6 +116,10 @@ public class ContactController {
         });
         Button emailButton = actionButton("Gửi email", "mail");
         emailButton.setOnAction(event -> sendEmail(member.email));
+        copy.setMaxWidth(Double.MAX_VALUE);
+        emailButton.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(copy, Priority.ALWAYS);
+        HBox.setHgrow(emailButton, Priority.ALWAYS);
         actions.getChildren().addAll(copy, emailButton);
         card.getChildren().addAll(identity, actions);
         return card;

@@ -40,12 +40,7 @@ import java.util.Optional;
 
 public class SellerProductsController {
 
-    @FXML private TableView<Item> tblProducts;
-    @FXML private TableColumn<Item, String> colName;
-    @FXML private TableColumn<Item, String> colCategory;
-    @FXML private TableColumn<Item, String> colPrice;
-    @FXML private TableColumn<Item, String> colStatus;
-    @FXML private TableColumn<Item, Item> colAction;
+    @FXML private javafx.scene.control.ListView<Item> tblProducts;
     @FXML private ScrollPane productScroll;
     @FXML private VBox pageContent;
     @FXML private Label lblProductSearchIcon;
@@ -72,6 +67,7 @@ public class SellerProductsController {
     public void initialize() {
         pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
                 () -> productScroll.getViewportBounds().getHeight(), productScroll.viewportBoundsProperty()));
+        com.auction.client.ui.AppFooter.install(productScroll, pageContent);
         javafx.scene.layout.Region searchIcon = Icons.icon("search", 16);
         searchIcon.getStyleClass().add("icon-muted");
         lblProductSearchIcon.setGraphic(searchIcon);
@@ -105,38 +101,25 @@ public class SellerProductsController {
     }
 
     private void setupTableColumns() {
-        colName.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("name"));
-        colCategory.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("category"));
-        colPrice.setCellValueFactory(cell -> new SimpleStringProperty(
-                FormatUtil.formatCurrency(cell.getValue().getStartingPrice())));
-        colStatus.setCellValueFactory(cell -> new SimpleStringProperty(statusFor(cell.getValue())));
-        colAction.setCellValueFactory(cell -> new SimpleObjectProperty<>(cell.getValue()));
-        colAction.setCellFactory(column -> new TableCell<Item, Item>() {
-            private final Button editButton = new Button("Sửa");
-            private final Button deleteButton = new Button("Xóa");
-            private final HBox actions = new HBox(6, editButton, deleteButton);
-
-            {
-                deleteButton.getStyleClass().add("btn-danger");
-                editButton.setOnAction(event -> {
-                    Item item = getItem();
-                    if (item != null) {
-                        tblProducts.getSelectionModel().select(item);
-                        populateForm(item);
-                    }
-                });
-                deleteButton.setOnAction(event -> {
-                    Item item = getItem();
-                    if (item != null) {
-                        confirmDelete(item);
-                    }
-                });
-            }
-
-            @Override
-            protected void updateItem(Item item, boolean empty) {
+        tblProducts.setCellFactory(list -> new javafx.scene.control.ListCell<Item>() {
+            @Override protected void updateItem(Item item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty || item == null ? null : actions);
+                setText(null);
+                if (empty || item == null) { setGraphic(null); return; }
+                Label name = new Label(item.getName()); name.getStyleClass().add("product-title");
+                Label category = new Label(item.getCategory());
+                Label price = new Label(FormatUtil.formatCurrency(item.getStartingPrice()));
+                Label status = new Label(statusFor(item)); status.getStyleClass().add("product-status");
+                VBox details = new VBox(5, name, category, price, status);
+                HBox.setHgrow(details, javafx.scene.layout.Priority.ALWAYS);
+                Button edit = new Button("Sửa");
+                edit.setOnAction(e -> { tblProducts.getSelectionModel().select(item); populateForm(item); });
+                Button delete = new Button("Xóa"); delete.getStyleClass().add("btn-danger");
+                delete.setOnAction(e -> confirmDelete(item));
+                HBox card = new HBox(10, details, edit, delete); card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                card.getStyleClass().add("product-card");
+                card.prefWidthProperty().bind(list.widthProperty().subtract  (30));
+                setGraphic(card);
             }
         });
     }
