@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 /** Lightweight SVG icons which do not depend on the operating system font. */
 public final class Icons {
     private static final Map<String, String> PATHS = Map.ofEntries(
+            Map.entry("eye", "M2 12C4 7 8 4 12 4s8 3 10 8c-2 5-6 8-10 8S4 17 2 12zm2.2 0c1.7 3.8 4.5 6 7.8 6s6.1-2.2 7.8-6C18.1 8.2 15.3 6 12 6s-6.1 2.2-7.8 6zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"),
+            Map.entry("eye-off", "M3 2l19 19-1.4 1.4-3.2-3.2C15.8 19.7 14 20 12 20 8 20 4 17 2 12c.8-2 2-3.7 3.4-5L1.6 3.4zM7 8.6C5.9 9.5 5 10.7 4.2 12c1.7 3.8 4.5 6 7.8 6 1.3 0 2.6-.3 3.7-.9l-1.3-1.3A4 4 0 0 1 8.2 9.8zM12 4c4 0 8 3 10 8-.6 1.4-1.4 2.7-2.4 3.8l-1.4-1.4c.6-.7 1.1-1.5 1.6-2.4C18.1 8.2 15.3 6 12 6c-.7 0-1.4.1-2 .3L8.4 4.7C9.5 4.2 10.7 4 12 4z"),
             Map.entry("trophy", "M7 3h10v3h3v3a5 5 0 0 1-5 5h-1v3h3v2H7v-2h3v-3H9a5 5 0 0 1-5-5V6h3V3zm-1 5a3 3 0 0 0 3 3V5H6v3zm9 3a3 3 0 0 0 3-3V5h-3v6z"),
             Map.entry("search", "M10 3a7 7 0 1 0 4.9 12L21 21l-1.4 1.4-6.1-6.1A7 7 0 0 0 10 3zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10z"),
             Map.entry("bag", "M6 8h12l1 13H5L6 8zm3 0V6a3 3 0 0 1 6 0v2h-2V6a1 1 0 0 0-2 0v2H9z"),

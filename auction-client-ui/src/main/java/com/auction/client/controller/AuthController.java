@@ -6,7 +6,9 @@ import com.auction.client.service.ServiceRegistry;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.ui.SmoothScroll;
 import com.auction.client.util.AppInfo;
+import com.auction.client.util.Validators;
 import com.auction.client.ui.Icons;
+import com.auction.client.ui.PasswordFieldWithToggle;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.image.Image;
@@ -59,7 +61,12 @@ public class AuthController {
     @FXML private Label lblBrandName;
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
-    @FXML private TextField txtFullName;
+    @FXML private PasswordField txtConfirm;
+    @FXML private TextField visiblePassword, visibleConfirm;
+    @FXML private Button togglePassword, toggleConfirm;
+    @FXML private Label errUsername, errEmail, errPassword, errConfirm, passwordHint;
+    @FXML private VBox confirmBox;
+    private boolean touchedUsername, touchedEmail, touchedPassword, touchedConfirm;
     @FXML private TextField txtEmail;
     @FXML private VBox registerFieldsBox;
     @FXML private VBox registerRoleBox;
@@ -90,9 +97,9 @@ public class AuthController {
         SmoothScroll.apply(authScroll, 3.0);
         lblBrandName.setText(AppInfo.NAME);
         setIcon(lblBrandIcon, "trophy", 28, "icon-on-panel");
-        setIcon(lblBenefitRealtime, "bolt", 16, "icon-on-panel");
-        setIcon(lblBenefitTransparent, "book", 16, "icon-on-panel");
-        setIcon(lblBenefitSafe, "lock", 16, "icon-on-panel");
+        setIcon(lblBenefitRealtime, "bolt", 18, "icon-on-primary");
+        setIcon(lblBenefitTransparent, "book", 18, "icon-on-primary");
+        setIcon(lblBenefitSafe, "lock", 18, "icon-on-primary");
         configureBackground();
         authRoot.widthProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
         authRoot.heightProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
@@ -105,6 +112,17 @@ public class AuthController {
         hideAlert();
         txtUsername.setOnAction(event -> txtPassword.requestFocus());
         txtPassword.setOnAction(event -> handleSubmit());
+        PasswordFieldWithToggle.install(txtPassword, visiblePassword, togglePassword);
+        PasswordFieldWithToggle.install(txtConfirm, visibleConfirm, toggleConfirm);
+        watchField(txtUsername, () -> touchedUsername = true);
+        watchField(txtEmail, () -> touchedEmail = true);
+        watchField(txtPassword, () -> touchedPassword = true);
+        watchField(visiblePassword, () -> touchedPassword = true);
+        watchField(txtConfirm, () -> touchedConfirm = true);
+        watchField(visibleConfirm, () -> touchedConfirm = true);
+        for (TextField field : new TextField[]{txtUsername, txtEmail, txtPassword, txtConfirm}) {
+            field.textProperty().addListener((o, a, b) -> validateFields());
+        }
     }
 
     private void configureBackground() {
@@ -208,6 +226,11 @@ public class AuthController {
     private void updateModeUI() {
         hideAlert();
         txtPassword.clear();
+        txtConfirm.clear();
+        touchedUsername = touchedEmail = touchedPassword = touchedConfirm = false;
+        confirmBox.setVisible(isRegisterMode); confirmBox.setManaged(isRegisterMode);
+        passwordHint.setVisible(isRegisterMode); passwordHint.setManaged(isRegisterMode);
+        validateFields();
         if (isRegisterMode) {
             lblFormTitle.setText("Đăng ký tài khoản");
             lblFormSubtitle.setText("Tham gia " + AppInfo.NAME + " ngay hôm nay!");
@@ -252,35 +275,27 @@ public class AuthController {
     @FXML
     private void handleSubmit() {
         hideAlert();
-        String username = txtUsername.getText();
+        String username = Validators.normalizeUsername(txtUsername.getText());
         String password = txtPassword.getText();
 
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            showAlert("Vui lòng điền đầy đủ tên đăng nhập và mật khẩu.", true);
+        if (username.isEmpty()) {
+            showAlert("Vui lòng nhập tên đăng nhập.", true);
+            txtUsername.requestFocus();
             return;
         }
+
         if (isRegisterMode) {
-            String fullName = txtFullName.getText();
+            touchedUsername = touchedEmail = touchedPassword = touchedConfirm = true;
+            if (!validateFields()) {
+                if (!Validators.username(username)) txtUsername.requestFocus();
+                else if (!Validators.email(txtEmail.getText())) txtEmail.requestFocus();
+                else if (!Validators.password(password)) (visiblePassword.isVisible() ? visiblePassword : txtPassword).requestFocus();
+                else (visibleConfirm.isVisible() ? visibleConfirm : txtConfirm).requestFocus();
+                return;
+            }
             String email = txtEmail.getText();
-
-            if (fullName == null || fullName.trim().isEmpty()) {
-                showAlert("Vui lòng nhập họ và tên của bạn.", true);
-                return;
-            }
-
-            // Validate email format
-            if (email != null && !email.trim().isEmpty()) {
-                if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
-                    showAlert("Địa chỉ email không hợp lệ. Vui lòng kiểm tra lại.", true);
-                    return;
-                }
-            } else {
-                showAlert("Vui lòng nhập địa chỉ email.", true);
-                return;
-            }
-
             UserRole selectedRole = rbSeller.isSelected() ? UserRole.SELLER : UserRole.BIDDER;
-            boolean ok = auctionService.register(username.trim(), password.trim(), fullName.trim(),
+            boolean ok = auctionService.register(username.trim(), password, username.trim(),
                     email.trim(), selectedRole);
             if (ok) {
                 showAlert("Đăng ký thành công. Đang chuyển hướng vào sàn đấu giá...", false);
@@ -290,7 +305,7 @@ public class AuthController {
             }
         } else {
             // Đăng nhập: không gửi vai trò, vai trò do server trả về
-            boolean ok = auctionService.login(username.trim(), password.trim(), null);
+            boolean ok = auctionService.login(username.trim(), password, null);
             if (ok) {
                 saveRememberedUsername(username.trim());
                 showAlert("Đăng nhập thành công. Đang chuyển hướng...", false);
@@ -300,6 +315,38 @@ public class AuthController {
             }
 
         }
+    }
+
+    private void watchField(TextField field, Runnable touch) {
+        field.focusedProperty().addListener((o, was, focused) -> {
+            if (was && !focused && isRegisterMode) { touch.run(); validateFields(); }
+        });
+    }
+
+    private void fieldError(TextField field, Label label, boolean show, String message) {
+        field.getStyleClass().remove("invalid-field");
+        if (show) field.getStyleClass().add("invalid-field");
+        label.setText(message); label.setAccessibleText(message);
+        label.setVisible(show); label.setManaged(show);
+    }
+
+    private boolean validateFields() {
+        boolean u = Validators.username(txtUsername.getText());
+        boolean e = Validators.email(txtEmail.getText());
+        boolean p = Validators.password(txtPassword.getText());
+        boolean c = !txtConfirm.getText().isEmpty() && Validators.matches(txtPassword.getText(), txtConfirm.getText());
+        fieldError(txtUsername, errUsername, isRegisterMode && touchedUsername && !u, "Tên đăng nhập dài 3–30 ký tự, gồm chữ, số, dấu cách, _ . - và không bắt đầu/kết thúc bằng dấu cách.");
+        fieldError(txtEmail, errEmail, isRegisterMode && touchedEmail && !e, "Email chưa đúng định dạng (ví dụ ten@gmail.com).");
+        fieldError(txtPassword, errPassword, isRegisterMode && touchedPassword && !p, "Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.");
+        boolean showConfirm = isRegisterMode && (touchedConfirm || !txtConfirm.getText().isEmpty());
+        fieldError(txtConfirm, errConfirm, showConfirm && !c, "Mật khẩu nhập lại chưa khớp");
+        if (showConfirm && c) { errConfirm.setText("Mật khẩu khớp"); errConfirm.setAccessibleText("Mật khẩu khớp"); errConfirm.setVisible(true); errConfirm.setManaged(true); }
+        errConfirm.getStyleClass().remove("field-success");
+        if (showConfirm && c) errConfirm.getStyleClass().add("field-success");
+        if (isRegisterMode && touchedUsername && touchedEmail && touchedPassword && touchedConfirm && !(u && e && p && c)) {
+            // Focus is assigned by the submit handler, not while typing.
+        }
+        return u && e && p && c;
     }
 
     private void loadRememberedUsername() {

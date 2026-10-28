@@ -40,33 +40,28 @@
                         <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="auth-form-title t-h2"/>
                         <Label fx:id="lblFormSubtitle" text="Chào mừng trở lại!" styleClass="auth-form-subtitle t-small"/>
                     </VBox>
-                    <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
-                          styleClass="alert-box, alert-error" visible="false" managed="false">
-                        <Label fx:id="lblAlertMessage" text="Thông báo" wrapText="true"/>
-                    </HBox>
-                    <VBox fx:id="registerFieldsBox" spacing="14.0" visible="false" managed="false">
-                        <VBox spacing="6.0">
-                            <Label text="Họ và tên" styleClass="form-label"/>
-                            <TextField fx:id="txtFullName" promptText="Nhập họ và tên đầy đủ"/>
-                        </VBox>
-                        <VBox spacing="6.0">
-                            <Label text="Email" styleClass="form-label"/>
-                            <TextField fx:id="txtEmail" promptText="Nhập địa chỉ email"/>
-                        </VBox>
+                    <VBox spacing="6.0">
+                        <Label text="Tên đăng nhập" styleClass="form-label"/>
+                        <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập"/>
+                        <Label fx:id="errUsername" styleClass="field-error" wrapText="true" visible="false" managed="false"/>
                     </VBox>
-                    <VBox spacing="14.0">
-                        <VBox spacing="6.0">
-                            <Label text="Tên đăng nhập" styleClass="form-label"/>
-                            <TextField fx:id="txtUsername" promptText="Nhập tên đăng nhập"/>
-                        </VBox>
-                        <VBox spacing="6.0">
-                            <Label text="Mật khẩu" styleClass="form-label"/>
-                            <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu"/>
-                        </VBox>
-                        <HBox fx:id="rememberBox">
-                            <CheckBox fx:id="chkRemember" text="Ghi nhớ tên đăng nhập"/>
-                        </HBox>
+                    <VBox fx:id="registerFieldsBox" spacing="6.0" visible="false" managed="false">
+                        <Label text="Email" styleClass="form-label"/>
+                        <TextField fx:id="txtEmail" promptText="Nhập địa chỉ email"/>
+                        <Label fx:id="errEmail" styleClass="field-error" wrapText="true" visible="false" managed="false"/>
                     </VBox>
+                    <VBox spacing="6.0">
+                        <Label text="Mật khẩu" styleClass="form-label"/>
+                        <StackPane><PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu" styleClass="password-input"/><TextField fx:id="visiblePassword" promptText="Nhập mật khẩu" styleClass="password-input" visible="false" managed="false"/><Button fx:id="togglePassword" styleClass="password-toggle" StackPane.alignment="CENTER_RIGHT"/></StackPane>
+                        <Label fx:id="passwordHint" text="Tối thiểu 8 ký tự, gồm chữ và số." styleClass="field-hint" visible="false" managed="false"/>
+                        <Label fx:id="errPassword" styleClass="field-error" wrapText="true" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox fx:id="confirmBox" spacing="6.0" visible="false" managed="false">
+                        <Label text="Nhập lại mật khẩu" styleClass="form-label"/>
+                        <StackPane><PasswordField fx:id="txtConfirm" promptText="Nhập lại mật khẩu" styleClass="password-input"/><TextField fx:id="visibleConfirm" promptText="Nhập lại mật khẩu" styleClass="password-input" visible="false" managed="false"/><Button fx:id="toggleConfirm" styleClass="password-toggle" StackPane.alignment="CENTER_RIGHT"/></StackPane>
+                        <Label fx:id="errConfirm" styleClass="field-error" wrapText="true" visible="false" managed="false"/>
+                    </VBox>
+                    <HBox fx:id="rememberBox"><CheckBox fx:id="chkRemember" text="Ghi nhớ tên đăng nhập"/></HBox>
                     <VBox fx:id="registerRoleBox" spacing="8.0" visible="false" managed="false">
                         <Label text="Vai trò tài khoản" styleClass="form-label"/>
                         <HBox spacing="10.0">
@@ -81,6 +76,10 @@
                     </VBox>
                     <Button fx:id="btnSubmit" text="Đăng nhập" onAction="#handleSubmit"
                             styleClass="btn-primary" maxWidth="Infinity"/>
+                    <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
+                          styleClass="alert-box, alert-error" visible="false" managed="false">
+                        <Label fx:id="lblAlertMessage" text="Thông báo" wrapText="true"/>
+                    </HBox>
                     <Button fx:id="btnSwitchMode" text="Chưa có tài khoản? Đăng ký ngay"
                             onAction="#handleSwitchMode" maxWidth="Infinity"/>
                     <Button text="Hướng dẫn sử dụng" onAction="#handleOpenGuide"

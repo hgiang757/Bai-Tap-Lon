@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import com.auction.client.ui.UserMenu?>
+<?import com.auction.client.ui.AppHeader?>
 <?import com.auction.client.ui.AppFooter?>
 <?import javafx.scene.control.ScrollPane?>
 
@@ -23,7 +23,7 @@
 
     <!-- Thanh điều hướng trên cùng -->
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
+        <AppHeader alignment="CENTER_LEFT" spacing="16.0" styleClass="top-bar">
             <Button text="Quay lại" onAction="#handleBackToHome"/>
             <VBox spacing="2.0">
                 <Label fx:id="lblBrandName" styleClass="view-title t-h3"/>
@@ -31,8 +31,8 @@
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
 
-            <UserMenu/>
-        </HBox>
+            
+        </AppHeader>
     </top>
 
     <!-- Khu vực nội dung chính -->

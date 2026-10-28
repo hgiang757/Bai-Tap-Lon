@@ -8,6 +8,7 @@
     -c-primary-hover: #004FA3;
     -c-on-primary: #FFFFFF;
     -c-border: #D2D2D7;
+    -c-hairline: #E5E5EA;
     -c-border-input: #86868B;
     -c-success: #1D7F3A;
     -c-warning: #B64400;
@@ -83,9 +84,9 @@
 .card-panel, .sidebar-card, .featured-card, .guide-card, .contact-member-card,
 .contact-note, .hero-bid-panel {
     -fx-background-color: -c-surface;
-    -fx-background-radius: 22px;
+    -fx-background-radius: 18px;
     -fx-border-color: -c-border;
-    -fx-border-radius: 22px;
+    -fx-border-radius: 18px;
     -fx-border-width: 1px;
     -fx-padding: 24px;
 }
@@ -226,9 +227,9 @@
 .carousel-track { -fx-padding: 2px 1px 12px 1px; }
 .auction-card {
     -fx-background-color: -c-surface;
-    -fx-background-radius: 20px;
+    -fx-background-radius: 18px;
     -fx-border-color: -c-border;
-    -fx-border-radius: 20px;
+    -fx-border-radius: 18px;
     -fx-border-width: 1px;
     -fx-padding: 0 0 16px 0;
     -fx-cursor: hand;
@@ -236,8 +237,8 @@
 .auction-card:hover { -fx-border-color: -c-primary; }
 .auction-card > .label { -fx-padding: 0 16px; }
 .auction-card-meta { -fx-padding: 0 16px; }
-.auction-card-image, .featured-image { -fx-background-color: -c-surface-2; -fx-background-radius: 19px 19px 0 0; -fx-min-height: 140px; -fx-alignment: CENTER; }
-.featured-image { -fx-background-radius: 16px; -fx-min-height: 180px; }
+.auction-card-image, .featured-image { -fx-background-color: -c-surface-2; -fx-background-radius: 12px; -fx-min-height: 140px; -fx-alignment: CENTER; }
+.featured-image { -fx-background-radius: 12px; -fx-min-height: 180px; }
 .auction-card-image .glyph, .featured-image .glyph { -fx-fill: -c-text; }
 .auction-card-title { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .auction-card-price { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
@@ -249,7 +250,7 @@
 .panel-text-muted { -fx-text-fill: -c-muted; }
 .upcoming-item { -fx-padding: 8px 0; -fx-border-color: -c-border; -fx-border-width: 0 0 1px 0; }
 
-.step-card { -fx-background-color: -c-surface; -fx-background-radius: 20px; -fx-border-color: -c-border; -fx-border-radius: 20px; -fx-border-width: 1px; -fx-padding: 24px 18px; -fx-alignment: CENTER; }
+.step-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px 18px; -fx-alignment: CENTER; }
 .step-number { -fx-background-color: -c-text; -fx-background-radius: 18px; -fx-min-width: 36px; -fx-pref-width: 36px; -fx-max-width: 36px; -fx-min-height: 36px; -fx-pref-height: 36px; -fx-max-height: 36px; -fx-alignment: CENTER; }
 .step-number .label { -fx-text-fill: -c-on-primary; -fx-font-weight: bold; }
 .step-title { -fx-font-size: 15px; -fx-font-weight: bold; }
@@ -303,7 +304,7 @@
 .app-footer { -fx-border-color: transparent; -fx-padding: 36px 28px; -fx-background-color: -c-surface; }
 .app-footer-content { -fx-alignment: CENTER; }
 .app-footer-intro { -fx-font-size: 13px; -fx-line-spacing: 4px; -fx-text-alignment: CENTER; }
-.guide-toc { -fx-background-color: -c-surface; -fx-background-radius: 20px; -fx-border-color: -c-border; -fx-border-radius: 20px; -fx-padding: 18px; -fx-min-width: 190px; -fx-pref-width: 190px; }
+.guide-toc { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 18px; -fx-min-width: 190px; -fx-pref-width: 190px; }
 .guide-toc-title, .contact-member-name { -fx-font-weight: bold; }
 .guide-card { -fx-spacing: 14px; -fx-padding: 28px; }
 .guide-copy { -fx-font-size: 15px; -fx-line-spacing: 4px; }
@@ -365,3 +366,59 @@
 .user-menu-note, .app-footer-intro, .contact-member-email, .step-desc, .status-explanation {
     -fx-line-spacing: 3px;
 }
+
+/* Shared geometry and validation */
+.card-panel, .sidebar-card, .featured-card, .guide-card, .contact-member-card, .contact-note,
+.hero-bid-panel, .auction-card, .auth-form-card, .guide-toc, .user-menu-popup {
+    -fx-background-radius: 18px; -fx-border-radius: 18px;
+}
+.auction-card { -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 12, 0, 0, 2); }
+.auction-card:hover { -fx-border-color: -c-primary; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.14), 12, 0, 0, 2); }
+.auction-card-image, .featured-image { -fx-background-radius: 12px; }
+.guide-toc { -fx-min-width: 240px; -fx-pref-width: 240px; }
+.field-error { -fx-font-size: 13px; -fx-text-fill: -c-danger; }
+.field-hint { -fx-font-size: 13px; -fx-text-fill: -c-muted; }
+.field-success { -fx-text-fill: -c-success; }
+.text-field.invalid-field, .password-field.invalid-field { -fx-border-color: -c-danger; }
+
+/* Shared type scale and layout refinements. */
+.t-h2, .section-header, .auth-form-title { -fx-font-size: 28px; -fx-font-weight: bold; }
+.t-body, .page-subtitle, .auth-form-subtitle { -fx-font-size: 16px; -fx-line-spacing: 4px; }
+.t-small { -fx-font-size: 14px; }
+.t-price, .price-hero { -fx-font-size: 40px; -fx-font-weight: bold; }
+.auction-card-price { -fx-font-size: 20px; -fx-font-weight: bold; }
+.login-brand { -fx-font-size: 28px; -fx-font-weight: bold; }
+.login-slogan { -fx-font-size: 16px; }
+.auth-feature-text { -fx-font-size: 14px; -fx-font-weight: normal; }
+.auth-feature-text .glyph, .auth-feature-row .glyph { -fx-fill: white; }
+.auth-form-card { -fx-padding: 28px; -fx-spacing: 12px; }
+.password-input { -fx-padding: 8px 44px 8px 12px; }
+.password-toggle { -fx-min-width: 32px; -fx-pref-width: 32px; -fx-max-width: 32px; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; -fx-padding: 0; -fx-background-color: transparent; -fx-border-color: transparent; -fx-background-radius: 16px; }
+.password-toggle:hover .glyph { -fx-fill: -c-text; }
+.user-menu-trigger { -fx-min-height: 40px; -fx-pref-height: 40px; -fx-max-height: 40px; -fx-padding: 4px 12px 4px 4px; -fx-background-color: transparent; -fx-background-radius: 20px; -fx-border-color: -c-border; -fx-border-radius: 20px; }
+.user-menu-trigger:hover { -fx-background-color: -c-bg; }
+.user-menu-trigger-name { -fx-font-size: 14px; -fx-font-weight: bold; }
+.user-menu-avatar { -fx-min-width: 32px; -fx-pref-width: 32px; -fx-max-width: 32px; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; }
+.user-menu-popup { -fx-padding: 8px; }
+.user-menu-account-name { -fx-font-size: 16px; }
+.user-menu-account-secondary { -fx-font-size: 13px; }
+.user-menu-divider { -fx-background-color: -c-hairline; }
+.user-menu-item { -fx-min-height: 40px; -fx-pref-height: 40px; -fx-background-radius: 10px; -fx-border-radius: 10px; -fx-padding: 0 12px; -fx-font-size: 14px; }
+.user-menu-item.btn-danger { -fx-background-color: transparent; -fx-border-color: transparent; }
+.user-menu-item.btn-danger .label { -fx-text-fill: -c-danger; }
+.user-menu-item.btn-danger .icon .glyph { -fx-fill: -c-danger; }
+.user-menu-item.btn-danger:hover { -fx-background-color: -c-bg; }
+.app-footer { -fx-background-color: white; -fx-background-radius: 0; -fx-border-color: -c-hairline transparent transparent transparent; -fx-border-width: 1px 0 0 0; -fx-padding: 24px 32px; -fx-effect: null; }
+.contact-member-name { -fx-font-size: 18px; -fx-font-weight: bold; }
+.contact-member-email { -fx-font-size: 14px; }
+.contact-member-card { -fx-min-width: 0; -fx-max-width: infinity; }
+.contact-note { -fx-padding: 24px; }
+.home-panel { -fx-padding: 24px; -fx-background-radius: 24px; -fx-border-radius: 24px; -fx-border-color: -c-border; -fx-border-width: 1px; }
+.home-panel-white { -fx-background-color: white; }
+.home-panel-alt { -fx-background-color: -c-bg; }
+.empty-placeholder { -fx-text-fill: -c-muted; -fx-font-style: normal; -fx-max-width: infinity; -fx-alignment: center; }
+.product-list { -fx-background-color: transparent; -fx-border-color: transparent; }
+.product-list .list-cell { -fx-background-color: transparent; -fx-padding: 0 0 12px 0; }
+.product-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 16px; }
+.product-card:hover { -fx-border-color: -c-primary; }
+.product-status { -fx-background-color: -c-surface-2; -fx-background-radius: 999px; -fx-padding: 3px 9px; }

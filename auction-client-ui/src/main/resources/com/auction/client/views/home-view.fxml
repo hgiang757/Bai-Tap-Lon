@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import com.auction.client.ui.UserMenu?>
+<?import com.auction.client.ui.AppHeader?>
 <?import com.auction.client.ui.AppFooter?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -16,7 +16,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.HomeController" prefHeight="780.0" prefWidth="1200.0">
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
+        <AppHeader alignment="CENTER_LEFT" spacing="12.0" styleClass="top-bar">
             <Label fx:id="lblLogoIcon" styleClass="top-logo-icon"/>
             <Label fx:id="lblBrandName" styleClass="top-logo-text"/>
             <Region prefWidth="12.0"/>
@@ -28,8 +28,8 @@
                 </Label>
             </StackPane>
             <Region HBox.hgrow="ALWAYS"/>
-            <UserMenu/>
-        </HBox>
+            
+        </AppHeader>
     </top>
     <center>
         <ScrollPane fx:id="dashboardScroll" fitToWidth="true" fitToHeight="false"
@@ -48,9 +48,8 @@
                     <Button fx:id="chipCar" text="Xe cộ" onAction="#handleCategoryFilter" userData="Xe cộ"/>
                     <Button fx:id="chipLaptop" text="Công nghệ" onAction="#handleCategoryFilter" userData="Thiết bị công nghệ"/>
                 </HBox>
-                <HBox spacing="20.0" alignment="TOP_LEFT">
-                    <VBox fx:id="mainColumn" spacing="36.0" HBox.hgrow="ALWAYS">
-                        <VBox fx:id="featuredPane" spacing="16.0" styleClass="featured-section">
+                    <VBox fx:id="mainColumn" spacing="32.0">
+                        <VBox fx:id="featuredPane" spacing="16.0" styleClass="home-panel, home-panel-white">
                             <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="featured-heading">
                                 <Label fx:id="lblFeaturedHeader" text="Phiên đấu giá nổi bật" styleClass="section-header t-h2"/>
                                 <Region HBox.hgrow="ALWAYS"/>
@@ -59,6 +58,7 @@
                                     <Button fx:id="btnCarouselNext" text="" accessibleText="Phiên tiếp theo" onAction="#handleCarouselNext" styleClass="btn-icon"/>
                                 </HBox>
                             </HBox>
+                            <Label text="Khám phá các phiên đấu giá nổi bật." styleClass="text-secondary"/>
                             <ScrollPane fx:id="featuredCarouselScroll" fitToHeight="true" hbarPolicy="NEVER"
                                         vbarPolicy="NEVER" pannable="true" styleClass="featured-carousel">
                                 <content>
@@ -66,19 +66,22 @@
                                 </content>
                             </ScrollPane>
                         </VBox>
-                        <VBox spacing="16.0"><HBox alignment="CENTER_LEFT" spacing="8.0"><Label fx:id="lblRunningHeader" text="Đang diễn ra" styleClass="section-header t-h2"/><Region HBox.hgrow="ALWAYS"/><Button text="Làm mới" onAction="#loadAuctions"/></HBox>
+                        <VBox spacing="16.0" styleClass="home-panel, home-panel-alt"><HBox alignment="CENTER_LEFT" spacing="8.0"><Label fx:id="lblRunningHeader" text="Đang diễn ra" styleClass="section-header t-h2"/><Region HBox.hgrow="ALWAYS"/><Button text="Làm mới" onAction="#loadAuctions"/></HBox>
+                            <Label text="Tham gia các phiên đang mở." styleClass="text-secondary"/>
                             <FlowPane fx:id="auctionGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT" prefWrapLength="720.0"/>
                             <Label fx:id="lblNoResults" text="Không có phiên đấu giá nào phù hợp." styleClass="empty-placeholder" visible="false" managed="false"/>
                         </VBox>
-                        <VBox spacing="16.0">
+                        <VBox spacing="16.0" styleClass="home-panel, home-panel-white">
                             <HBox alignment="CENTER_LEFT" spacing="12.0">
                                 <Label fx:id="lblUpcomingHeader" text="Sắp diễn ra" styleClass="section-header t-h2"/>
                                 <Region HBox.hgrow="ALWAYS"/>
                                 <Button text="Xem lịch đầy đủ" onAction="#handleShowFullSchedule"/>
                             </HBox>
+                            <Label text="Theo dõi các phiên sắp bắt đầu." styleClass="text-secondary"/>
                             <FlowPane fx:id="upcomingGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT" prefWrapLength="720.0"/>
                         </VBox>
-                        <VBox spacing="16.0"><Label fx:id="lblStepsHeader" text="Cách hoạt động" styleClass="section-header t-h2"/>
+                        <VBox spacing="16.0" styleClass="home-panel, home-panel-alt"><Label fx:id="lblStepsHeader" text="Cách hoạt động" styleClass="section-header t-h2"/>
+                            <Label text="Bắt đầu chỉ với ba bước đơn giản." styleClass="text-secondary"/>
                             <HBox spacing="16.0" alignment="CENTER" fillHeight="true">
                                 <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="1"/></StackPane><Label fx:id="lblStepOneIcon"/><Label text="Đăng ký" styleClass="step-title"/><Label text="Tạo tài khoản miễn phí và xác minh danh tính trong vài phút" styleClass="step-desc" wrapText="true"/></VBox>
                                 <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="2"/></StackPane><Label fx:id="lblStepTwoIcon"/><Label text="Đấu giá" styleClass="step-title"/><Label text="Tìm phiên yêu thích, đặt giá và theo dõi kết quả thời gian thực" styleClass="step-desc" wrapText="true"/></VBox>
@@ -86,10 +89,9 @@
                             </HBox>
                         </VBox>
                     </VBox>
-                    <VBox styleClass="sidebar-panel" prefWidth="300.0" minWidth="280.0" maxWidth="300.0" spacing="20.0">
+                    <VBox styleClass="sidebar-panel" spacing="20.0">
                         <VBox styleClass="sidebar-card, sidebar-cta" spacing="12.0"><Label fx:id="lblSellHeader" text="Bạn có sản phẩm để bán?" styleClass="sidebar-cta-title" wrapText="true"/><Label text="Đăng ký làm người bán và bắt đầu kiếm tiền từ sàn đấu giá của chúng tôi." styleClass="text-secondary" wrapText="true"/><Button fx:id="btnListItem" text="Đăng bán ngay" onAction="#handleListItem" styleClass="btn-primary" maxWidth="Infinity"/></VBox>
                     </VBox>
-                </HBox>
                 <Region VBox.vgrow="ALWAYS"/>
                 <AppFooter/>
             </VBox>

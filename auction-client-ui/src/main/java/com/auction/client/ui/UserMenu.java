@@ -51,14 +51,15 @@ public final class UserMenu extends HBox {
         avatar.getStyleClass().add("user-menu-avatar");
         Label name = new Label(displayName);
         name.getStyleClass().add("user-menu-trigger-name");
-        name.setMaxWidth(180);
+        name.setMaxWidth(140);
         name.setWrapText(false);
         name.setTextOverrun(OverrunStyle.ELLIPSIS);
         name.setTooltip(new Tooltip(displayName));
-        Region chevron = icon("chevron-down", 14, "icon-muted");
+        Region chevron = icon("chevron-down", 12, "icon-muted");
         HBox contents = new HBox(9, avatar, name, chevron);
         contents.setAlignment(Pos.CENTER);
         trigger.setGraphic(contents);
+        trigger.getStyleClass().add("user-menu-trigger");
         trigger.setAccessibleText("Mở menu tài khoản của " + displayName);
         trigger.setTooltip(new Tooltip("Menu tài khoản"));
         trigger.setOnAction(event -> {
@@ -84,8 +85,8 @@ public final class UserMenu extends HBox {
     private void createMenu(User user, String displayName) {
         menuContent.getStyleClass().add("user-menu-popup");
         menuContent.setFocusTraversable(true);
-        menuContent.setPrefWidth(280);
-        menuContent.setMinWidth(280);
+        menuContent.setPrefWidth(260);
+        menuContent.setMinWidth(260);
 
         VBox account = new VBox(5);
         account.getStyleClass().add("user-menu-account");
@@ -138,13 +139,13 @@ public final class UserMenu extends HBox {
         button.setContentDisplay(javafx.scene.control.ContentDisplay.GRAPHIC_ONLY);
         button.setAccessibleText(text);
         HBox row = new HBox(12);
-        row.setPrefWidth(240);
+        row.setPrefWidth(212);
         row.setMaxWidth(Double.MAX_VALUE);
         row.setAlignment(Pos.CENTER_LEFT);
         row.getChildren().add(icon(iconName, 20, "icon-muted"));
         Label label = new Label(text);
         label.setMinWidth(0);
-        label.setPrefWidth(180);
+        label.setPrefWidth(150);
         label.setWrapText(true);
         label.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(label, javafx.scene.layout.Priority.ALWAYS);
@@ -173,13 +174,8 @@ public final class UserMenu extends HBox {
     }
 
     private boolean isProductsRoute() {
-        String currentPath = ViewNavigator.getCurrentPath();
-        if (ViewNavigator.Route.PRODUCTS.getPath().equals(currentPath)) {
-            return true;
-        }
-        return (ViewNavigator.Route.GUIDE.getPath().equals(currentPath)
-                || ViewNavigator.Route.CONTACT.getPath().equals(currentPath))
-                && ViewNavigator.Route.PRODUCTS.getPath().equals(ViewNavigator.getNavigationSourcePath());
+        return ViewNavigator.isSellingMode()
+                || ViewNavigator.Route.PRODUCTS.getPath().equals(ViewNavigator.getCurrentPath());
     }
 
     private void openMenu() {
@@ -189,7 +185,7 @@ public final class UserMenu extends HBox {
             return;
         }
         activeMenu = this;
-        popup.show(owner, Math.max(bounds.getMinX(), bounds.getMaxX() - 280), bounds.getMaxY() + 8);
+        popup.show(owner, bounds.getMaxX() - 260, bounds.getMaxY() + 8);
         Scene popupScene = popup.getScene();
         ViewNavigator.applyAppStylesheet(popupScene);
         popupScene.addEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
@@ -311,7 +307,7 @@ public final class UserMenu extends HBox {
     }
 
     private String safeName(User user) {
-        String name = user.getFullName();
+        String name = user.getUsername();
         if (name != null && !name.trim().isEmpty()) {
             return name;
         }

@@ -24,8 +24,6 @@ import java.io.IOException;
 public class GuideController {
     @FXML private ScrollPane guideScroll;
     @FXML private VBox pageContent;
-    @FXML private UserMenu userMenu;
-    @FXML private Button btnLogin;
 
     private VBox sections;
 
@@ -33,12 +31,6 @@ public class GuideController {
     public void initialize() {
         pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
                 () -> guideScroll.getViewportBounds().getHeight(), guideScroll.viewportBoundsProperty()));
-        boolean openedFromAuth = ViewNavigator.Route.AUTH.getPath().equals(ViewNavigator.getNavigationSourcePath())
-                || ViewNavigator.Route.AUTH.getPath().equals(ViewNavigator.getPreviousPath());
-        userMenu.setVisible(!openedFromAuth);
-        userMenu.setManaged(!openedFromAuth);
-        btnLogin.setVisible(openedFromAuth);
-        btnLogin.setManaged(openedFromAuth);
         SmoothScroll.apply(guideScroll, 3.0);
         buildPage();
     }
@@ -77,6 +69,7 @@ public class GuideController {
             VBox section = (VBox) node;
             Button jump = new Button((++index) + ". " + ((Label) section.getChildren().get(0)).getText());
             jump.setMaxWidth(Double.MAX_VALUE);
+            jump.setWrapText(true);
             jump.setAccessibleText("Đi tới mục " + ((Label) section.getChildren().get(0)).getText());
             jump.setOnAction(event -> scrollTo(section));
             tableOfContents.getChildren().add(jump);
@@ -91,7 +84,8 @@ public class GuideController {
         supportRow.setAlignment(javafx.geometry.Pos.CENTER);
         javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
-        pageContent.getChildren().addAll(supportRow, spacer, new AppFooter());
+        pageContent.getChildren().add(supportRow);
+        AppFooter.install(guideScroll, pageContent);
     }
 
     private void addSection(String title, String id, String... paragraphs) {

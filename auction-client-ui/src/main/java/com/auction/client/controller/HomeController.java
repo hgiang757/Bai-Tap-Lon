@@ -101,6 +101,7 @@ public class HomeController {
         pageContent.minHeightProperty().bind(Bindings.createDoubleBinding(
                 () -> dashboardScroll.getViewportBounds().getHeight(), dashboardScroll.viewportBoundsProperty()));
         SmoothScroll.apply(dashboardScroll, 3.0);
+        com.auction.client.ui.AppFooter.install(dashboardScroll, pageContent);
         auctionGrid.prefWrapLengthProperty().bind(mainColumn.widthProperty());
         upcomingGrid.prefWrapLengthProperty().bind(mainColumn.widthProperty());
         setIcon(lblLogoIcon, "trophy", 22, "icon-primary");
