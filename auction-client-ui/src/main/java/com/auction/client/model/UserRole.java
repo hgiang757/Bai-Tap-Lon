@@ -5,7 +5,8 @@ package com.auction.client.model;
  */
 public enum UserRole {
     BIDDER("Người đấu giá"),
-    SELLER("Người bán");
+    SELLER("Người bán"),
+    ADMIN("Quản trị viên");
 
     private final String displayName;
 

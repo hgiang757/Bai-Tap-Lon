@@ -196,14 +196,7 @@ public class AuctionRoomController {
     }
 
     private void setProductImageIcon(String category) {
-        String normalizedCategory = category == null ? "" : category.toLowerCase(Locale.ROOT);
-        String iconName = normalizedCategory.contains("đồng hồ") || normalizedCategory.contains("trang sức")
-                ? "watch"
-                : normalizedCategory.contains("nghệ thuật") ? "palette"
-                : normalizedCategory.contains("công nghệ") ? "laptop"
-                : normalizedCategory.contains("xe") ? "car"
-                : normalizedCategory.contains("bất động sản") ? "home"
-                : "image";
+        String iconName = com.auction.client.model.ItemCategory.from(category).getIcon();
         javafx.scene.layout.Region icon = Icons.icon(iconName, 72);
         icon.getStyleClass().add("icon-primary");
         lblProductImageIcon.setGraphic(icon);
@@ -214,7 +207,7 @@ public class AuctionRoomController {
         if (currentAuction == null) return;
 
         lblItemName.setText(currentAuction.getItemName());
-        lblItemName.setTextOverrun(OverrunStyle.ELLIPSIS);
+        lblItemName.setWrapText(true);
         lblCategory.setText(currentAuction.getItemCategory());
         lblSeller.setText("Người bán: " + currentAuction.getSellerUsername());
         lblDescription.setText(currentAuction.getItem() != null ? currentAuction.getItem().getDescription() : "");
@@ -244,12 +237,21 @@ public class AuctionRoomController {
             lblStatusExplanation.getStyleClass().add("notice-disabled");
         }
 
-        // Sửa lỗi A.2: Khóa toàn bộ các thành phần nhập giá khi phiên không ở trạng thái diễn ra
-        txtBidAmount.setDisable(!isRunning);
-        btnPlaceBid.setDisable(!isRunning);
-        btnQuickAdd1.setDisable(!isRunning);
-        btnQuickAdd2.setDisable(!isRunning);
-        btnQuickAdd3.setDisable(!isRunning);
+        var user = auctionService.getCurrentUser();
+        boolean seller = user != null && user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername());
+        boolean canBid = isRunning && user != null && !seller;
+        if (isRunning && user == null) {
+            lblStatusExplanation.setText("Vui lòng đăng nhập để đặt giá.");
+            lblStatusExplanation.getStyleClass().add("notice-disabled");
+        } else if (isRunning && seller) {
+            lblStatusExplanation.setText("Bạn không thể đặt giá cho sản phẩm của mình.");
+            lblStatusExplanation.getStyleClass().add("notice-disabled");
+        }
+        txtBidAmount.setDisable(!canBid);
+        btnPlaceBid.setDisable(!canBid);
+        btnQuickAdd1.setDisable(!canBid);
+        btnQuickAdd2.setDisable(!canBid);
+        btnQuickAdd3.setDisable(!canBid);
 
         // Đề xuất mức giá tối thiểu vào ô nhập
         txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
@@ -316,7 +318,7 @@ public class AuctionRoomController {
         LocalDateTime end = currentAuction.getEndTime();
         if (!now.isBefore(end)) {
             lblCountdown.setText("Đã kết thúc");
-            currentAuction.setStatus(AuctionStatus.FINISHED);
+            auctionService.getAuctionById(currentAuction.getId());
             countdownTimer.stop();
             renderAuctionDetails();
             return;
@@ -324,7 +326,7 @@ public class AuctionRoomController {
         if (currentAuction.getStatus() == AuctionStatus.OPEN
                 && currentAuction.getStartTime() != null
                 && !now.isBefore(currentAuction.getStartTime())) {
-            currentAuction.setStatus(AuctionStatus.RUNNING);
+            auctionService.getAuctionById(currentAuction.getId());
             renderAuctionDetails();
         }
         long seconds = ChronoUnit.SECONDS.between(now, end);

@@ -6,7 +6,9 @@ package com.auction.client.model;
 public enum AuctionStatus {
     OPEN("Sắp diễn ra"),
     RUNNING("Đang diễn ra"),
-    FINISHED("Đã kết thúc");
+    FINISHED("Đã kết thúc"),
+    PAID("Đã thanh toán"),
+    CANCELED("Đã hủy");
 
     private final String description;
 

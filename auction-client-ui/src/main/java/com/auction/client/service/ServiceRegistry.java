@@ -8,6 +8,24 @@ import com.auction.client.service.mock.MockAuctionClientService;
  */
 public class ServiceRegistry {
     private static AuctionClientService instance;
+    private static final com.auction.client.service.mock.MockManagementService MANAGEMENT =
+            new com.auction.client.service.mock.MockManagementService();
+    private static ProductService productService = MANAGEMENT;
+    private static UserAdminService userAdminService = MANAGEMENT;
+    private static AuctionAdminService auctionAdminService = MANAGEMENT;
+
+    /** Lấy dịch vụ sản phẩm. */
+    public static ProductService getProductService() { return productService; }
+    /** Thay dịch vụ sản phẩm khi kết nối Socket. */
+    public static void setProductService(ProductService service) { productService = service; }
+    /** Lấy dịch vụ quản trị người dùng. */
+    public static UserAdminService getUserAdminService() { return userAdminService; }
+    /** Thay dịch vụ quản trị người dùng khi kết nối Socket. */
+    public static void setUserAdminService(UserAdminService service) { userAdminService = service; }
+    /** Lấy dịch vụ quản trị phiên. */
+    public static AuctionAdminService getAuctionAdminService() { return auctionAdminService; }
+    /** Thay dịch vụ quản trị phiên khi kết nối Socket. */
+    public static void setAuctionAdminService(AuctionAdminService service) { auctionAdminService = service; }
 
     private ServiceRegistry() {
     }

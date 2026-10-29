@@ -421,3 +421,10 @@
 .product-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 16px; }
 .product-card:hover { -fx-border-color: -c-primary; }
 .product-status { -fx-background-color: -c-surface-2; -fx-background-radius: 999px; -fx-padding: 3px 9px; }
+.status-open { -fx-background-color: #e5f1ff; -fx-text-fill: #075fb9; }
+.status-running { -fx-background-color: #e4f6eb; -fx-text-fill: #187743; }
+.status-finished { -fx-background-color: #f0f0f2; -fx-text-fill: #545862; }
+.status-paid { -fx-background-color: #e7f0ff; -fx-text-fill: #2454a1; }
+.status-canceled { -fx-background-color: #fdebec; -fx-text-fill: #b32632; }
+
+.table-view .column-header .label { -fx-alignment: CENTER_LEFT; }
