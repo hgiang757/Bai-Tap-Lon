@@ -124,6 +124,7 @@
 
                     <!-- Form đặt giá -->
                     <VBox spacing="8.0">
+                        <Label fx:id="lblAvailableBalance" text="Số dư khả dụng: —" wrapText="true" styleClass="text-secondary"/>
                         <Label text="Số tiền đặt giá (₫)" styleClass="form-label"/>
                         <VBox spacing="8.0">
                             <TextField fx:id="txtBidAmount" promptText="Nhập mức giá"

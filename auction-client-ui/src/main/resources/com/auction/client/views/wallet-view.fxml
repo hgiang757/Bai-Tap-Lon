@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import com.auction.client.ui.AppHeader?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.WalletController">
+  <top><AppHeader alignment="CENTER_LEFT" spacing="14" styleClass="top-bar">
+    <Button text="← Quay lại" onAction="#back"/><Label text="Ví của tôi" styleClass="view-title t-h3"/><Region HBox.hgrow="ALWAYS"/>
+  </AppHeader></top>
+  <center><ScrollPane fx:id="scroll" fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="main-scroll"><content>
+    <StackPane alignment="TOP_CENTER"><VBox fx:id="pageContent" spacing="24" maxWidth="1200" styleClass="dashboard-content">
+      <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+      <VBox styleClass="page-intro"><Label text="Ví của tôi" styleClass="page-title t-display"/><Label text="Quản lý số dư, nạp rút tiền và xem lịch sử giao dịch." wrapText="true" styleClass="page-subtitle t-body"/></VBox>
+      <FlowPane fx:id="statistics" hgap="12" vgap="12"/>
+      <HBox spacing="12"><Button text="Nạp tiền" onAction="#deposit" styleClass="btn-primary"/><Button text="Rút tiền" onAction="#withdraw"/></HBox>
+      <VBox spacing="12" styleClass="card-panel"><Label text="Lịch sử giao dịch" styleClass="section-header t-h2"/>
+        <HBox spacing="12"><ComboBox fx:id="typeFilter" promptText="Tất cả loại"/><TextField fx:id="search" promptText="Tìm ghi chú hoặc phiên" HBox.hgrow="ALWAYS"/></HBox>
+        <TableView fx:id="table" prefHeight="360"/>
+      </VBox>
+    </VBox></StackPane>
+  </content></ScrollPane></center>
+</BorderPane>

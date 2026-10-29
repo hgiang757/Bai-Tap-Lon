@@ -67,6 +67,7 @@ public class MockAuctionClientService implements AuctionClientService {
                 return false;
             }
             currentUser = registeredUser;
+            store.attachUser(currentUser);
             return true;
         }
         UserRole actualRole;
@@ -104,6 +105,7 @@ public class MockAuctionClientService implements AuctionClientService {
         actualRole = managed.getUser().getRole();
         this.currentUser = new User("U-" + canonicalUsername, canonicalUsername,
                 fullName, email, actualRole, 100_000_000.0);
+        store.attachUser(currentUser);
         return true;
     }
 
@@ -129,6 +131,7 @@ public class MockAuctionClientService implements AuctionClientService {
         registeredUsers.put(accountKey, user);
         registeredPasswords.put(accountKey, password);
         this.currentUser = user;
+        store.attachUser(user);
         return true;
     }
 
@@ -193,6 +196,10 @@ public class MockAuctionClientService implements AuctionClientService {
         }
 
         String username = currentUser.getUsername();
+
+        if (amount > Long.MAX_VALUE || !store.holdBid(auctionId, username, (long) amount)) {
+            return BidResult.fail("Số dư khả dụng không đủ. Hãy nạp thêm tiền trong mục Ví.");
+        }
 
         // Cập nhật giá và người đấu cao nhất
         auction.setCurrentPrice(amount);

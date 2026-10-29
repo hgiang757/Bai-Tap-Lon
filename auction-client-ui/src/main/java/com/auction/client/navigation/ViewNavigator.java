@@ -28,6 +28,7 @@ public final class ViewNavigator {
         AUTH("/com/auction/client/views/auth-view.fxml", "Đăng nhập"),
         DASHBOARD("/com/auction/client/views/home-view.fxml", "Sàn đấu giá trực tuyến"),
         PRODUCTS("/com/auction/client/views/seller-products-view.fxml", "Quản lý sản phẩm"),
+        WALLET("/com/auction/client/views/wallet-view.fxml", "Ví của tôi"),
         GUIDE("/com/auction/client/views/guide-view.fxml", "Hướng dẫn sử dụng"),
         CONTACT("/com/auction/client/views/contact-view.fxml", "Liên hệ");
 

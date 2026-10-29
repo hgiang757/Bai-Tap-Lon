@@ -117,6 +117,11 @@ public final class UserMenu extends HBox {
             menuContent.getChildren().addAll(auctionMode, salesMode, note, divider());
         }
 
+        if (user != null && (user.getRole() == UserRole.BIDDER || user.getRole() == UserRole.SELLER)) {
+            Button wallet = menuButton("Ví của tôi", "bag", false);
+            wallet.setOnAction(event -> navigate(ViewNavigator.Route.WALLET));
+            menuContent.getChildren().add(wallet);
+        }
         Button guide = menuButton("Hướng dẫn sử dụng", "book", false);
         guide.setOnAction(event -> navigate(ViewNavigator.Route.GUIDE));
         Button contact = menuButton("Liên hệ", "mail", false);

@@ -14,7 +14,74 @@ public final class MockDataStore {
     final Map<String, String> cancellationReasons = new HashMap<>();
     final Map<String, List<Bid>> bidHistories = new HashMap<>();
 
-    private MockDataStore() { initSampleData(); initManagementData(); }
+    final Map<String, Long> balances = new HashMap<>();
+    final Map<String, User> walletUsers = new HashMap<>();
+    final Map<String, Hold> holds = new HashMap<>();
+    final Map<String, List<Transaction>> walletHistory = new HashMap<>();
+    record Hold(String username, long amount) { }
+
+    void attachUser(User user) {
+        synchronized (this) {
+            String name = user.getUsername();
+            balances.putIfAbsent(name, (long) user.getBalance());
+            walletUsers.put(name, user);
+            user.setBalance(balances.get(name));
+        }
+    }
+    long balance(String user) { return balances.getOrDefault(user, 0L); }
+    long held(String user) { return holds.values().stream().filter(h -> h.username().equals(user)).mapToLong(Hold::amount).sum(); }
+    List<Transaction> transactions(String user) {
+        List<Transaction> result = new ArrayList<>(walletHistory.getOrDefault(user, List.of()));
+        Collections.reverse(result);
+        return result;
+    }
+    void log(String user, TransactionType type, long amount, String auction) {
+        walletHistory.computeIfAbsent(user, key -> new ArrayList<>()).add(new Transaction(
+                UUID.randomUUID().toString(), user, type, amount, balance(user), LocalDateTime.now(), "Thành công", "", auction));
+    }
+    void changeBalance(String user, long value, TransactionType type, long amount, String auction) {
+        balances.put(user, value);
+        User account = walletUsers.get(user);
+        if (account != null) account.setBalance(value);
+        log(user, type, amount, auction);
+    }
+    boolean holdBid(String auctionId, String user, long amount) {
+        Hold previous = holds.get(auctionId);
+        long existing = previous != null && previous.username().equals(user) ? previous.amount() : 0;
+        if (balance(user) - held(user) + existing < amount) return false;
+        if (previous != null) {
+            holds.remove(auctionId);
+            log(previous.username(), TransactionType.BID_RELEASE, previous.amount(), auctionId);
+        }
+        holds.put(auctionId, new Hold(user, amount));
+        log(user, TransactionType.BID_HOLD, amount, auctionId);
+        return true;
+    }
+    void releaseHold(String auctionId) {
+        Hold hold = holds.remove(auctionId);
+        if (hold != null) log(hold.username(), TransactionType.BID_RELEASE, hold.amount(), auctionId);
+    }
+    private void settle(Auction auction) {
+        Hold hold = holds.remove(auction.getId());
+        if (hold == null) return;
+        if (hold.username().equals(auction.getHighestBidderUsername())) {
+            changeBalance(hold.username(), balance(hold.username()) - hold.amount(), TransactionType.PAYMENT, hold.amount(), auction.getId());
+            auction.setStatus(AuctionStatus.PAID);
+        } else log(hold.username(), TransactionType.BID_RELEASE, hold.amount(), auction.getId());
+    }
+
+    private MockDataStore() {
+        initSampleData(); initManagementData();
+        balances.put("bidder_hieu", 100_000_000L);
+        balances.put("bidder_vip99", 300_000_000L);
+        for (Auction auction : auctions) {
+            if (auction.getStatus() == AuctionStatus.RUNNING && auction.getTotalBids() > 0) {
+                String winner = auction.getHighestBidderUsername();
+                long amount = (long) auction.getCurrentPrice();
+                if (balance(winner) - held(winner) >= amount) holdBid(auction.getId(), winner, amount);
+            }
+        }
+    }
     /** Lấy kho dùng chung của ứng dụng. */
     public static MockDataStore getInstance() { return INSTANCE; }
     /** Tạo kho độc lập phục vụ kiểm thử. */
@@ -23,8 +90,10 @@ public final class MockDataStore {
     public synchronized void refreshStatuses() {
         LocalDateTime now = LocalDateTime.now();
         for (Auction a : auctions) {
+            if (a.getStatus() == AuctionStatus.FINISHED) { settle(a); continue; }
+            if (a.getStatus() == AuctionStatus.CANCELED) { releaseHold(a.getId()); continue; }
             if (a.getStatus() != AuctionStatus.OPEN && a.getStatus() != AuctionStatus.RUNNING) continue;
-            if (a.getEndTime() != null && !now.isBefore(a.getEndTime())) a.setStatus(AuctionStatus.FINISHED);
+            if (a.getEndTime() != null && !now.isBefore(a.getEndTime())) { a.setStatus(AuctionStatus.FINISHED); settle(a); }
             else if (a.getStatus() == AuctionStatus.OPEN && a.getStartTime() != null && !now.isBefore(a.getStartTime())) a.setStatus(AuctionStatus.RUNNING);
         }
     }

@@ -66,6 +66,7 @@ public class AuctionRoomController {
     @FXML private Label lblStatusExplanation;
     @FXML private Label lblCountdown;
     @FXML private Label lblProductImageIcon;
+    @FXML private Label lblAvailableBalance;
 
     @FXML private TextField txtBidAmount;
     @FXML private Button btnPlaceBid;
@@ -107,6 +108,15 @@ public class AuctionRoomController {
         setupPlaceholder();
         checkDevMode();
         hideAlert();
+        refreshAvailable();
+    }
+
+    private void refreshAvailable() {
+        var user = auctionService.getCurrentUser();
+        if (user == null) { lblAvailableBalance.setText("Số dư khả dụng: vui lòng đăng nhập."); return; }
+        javafx.concurrent.Task<Long> task = new javafx.concurrent.Task<>() { protected Long call() { return ServiceRegistry.getWalletService().getAvailable(user.getUsername()); } };
+        task.setOnSucceeded(e -> lblAvailableBalance.setText("Số dư khả dụng: " + FormatUtil.formatCurrency(task.getValue())));
+        Thread thread = new Thread(task, "wallet-room"); thread.setDaemon(true); thread.start();
     }
 
     private void setupChart() {
@@ -438,13 +448,12 @@ public class AuctionRoomController {
                     bid.getAmount(), bid.getBidderUsername());
             lblNoBids.setVisible(false);
             lblNoBids.setManaged(false);
-            currentAuction.setCurrentPrice(bid.getAmount());
-            currentAuction.setHighestBidderUsername(bid.getBidderUsername());
             lblCurrentPrice.setText(FormatUtil.formatCurrency(bid.getAmount()));
             lblHighestBidder.setText(bid.getBidderUsername());
             lblMinNextBid.setText(FormatUtil.formatCurrency(bid.getAmount() + currentAuction.getMinBidStep()));
             txtBidAmount.setText(String.format("%.0f", bid.getAmount() + currentAuction.getMinBidStep()));
             lvRecentBids.getItems().add(0, formatBid(bid));
+            refreshAvailable();
             showAlert("Lượt trả giá mới: " + bid.getBidderUsername() + " vừa đặt " + FormatUtil.formatCurrency(bid.getAmount()), false);
         });
     }
@@ -493,12 +502,17 @@ public class AuctionRoomController {
             return;
         }
 
-        BidResult result = auctionService.placeBid(currentAuction.getId(), bidAmount);
-        if (result.isSuccess()) {
-            showAlert("Đặt giá thành công: " + FormatUtil.formatCurrency((double) bidAmount), false);
-        } else {
-            showAlert(result.getMessage(), true);
-        }
+        String id = currentAuction.getId();
+        btnPlaceBid.setDisable(true);
+        javafx.concurrent.Task<BidResult> task = new javafx.concurrent.Task<>() { protected BidResult call() { return auctionService.placeBid(id, bidAmount); } };
+        task.setOnSucceeded(e -> {
+            renderAuctionDetails(); refreshAvailable();
+            BidResult result = task.getValue();
+            if (result.isSuccess()) showAlert("Đặt giá thành công: " + FormatUtil.formatCurrency((double) bidAmount), false);
+            else showAlert(result.getMessage(), true);
+        });
+        task.setOnFailed(e -> { renderAuctionDetails(); showAlert("Không thể đặt giá. Vui lòng thử lại.", true); });
+        Thread thread = new Thread(task, "place-bid"); thread.setDaemon(true); thread.start();
     }
 
     private void setupQuickBidButtons() {

@@ -8,6 +8,11 @@ import com.auction.client.service.mock.MockAuctionClientService;
  */
 public class ServiceRegistry {
     private static AuctionClientService instance;
+    private static WalletService walletService = new com.auction.client.service.mock.MockWalletService();
+    /** Lấy dịch vụ ví mô phỏng. */
+    public static synchronized WalletService getWalletService() { return walletService; }
+    /** Thay dịch vụ ví. */
+    public static synchronized void setWalletService(WalletService service) { walletService = java.util.Objects.requireNonNull(service); }
     private static final com.auction.client.service.mock.MockManagementService MANAGEMENT =
             new com.auction.client.service.mock.MockManagementService();
     private static ProductService productService = MANAGEMENT;
