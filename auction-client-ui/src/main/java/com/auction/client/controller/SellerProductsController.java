@@ -40,6 +40,7 @@ public class SellerProductsController {
     @FXML private ComboBox<String> status;
     @FXML private ComboBox<String> category;
     @FXML private TableView<Auction> table;
+    @FXML private TableColumn<Auction, String> image, nameColumn, categoryColumn, startingPrice, currentPrice, state, startColumn, endColumn, actions;
     @FXML private Button addButton;
     @FXML private Label message;
     @FXML private ProgressIndicator progress;
@@ -65,10 +66,6 @@ public class SellerProductsController {
         for (var c : com.auction.client.model.ItemCategory.values()) category.getItems().add(c.getLabel());
         category.getSelectionModel().selectFirst();
 
-        table.setPlaceholder(new Label("Chưa có sản phẩm nào. Bấm 'Thêm sản phẩm' để bắt đầu."));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); table.setFixedCellSize(52);
-        TableColumn<Auction, String> image = new TableColumn<>("Ảnh");
-        image.setPrefWidth(65);
         image.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId()));
         image.setCellFactory(c -> new TableCell<>() {
             @Override protected void updateItem(String id, boolean empty) {
@@ -85,12 +82,11 @@ public class SellerProductsController {
                 setAlignment(javafx.geometry.Pos.CENTER);
             }
         });
-        table.getColumns().add(image);
-        column("Tên", Auction::getItemName);
-        column("Loại", Auction::getItemCategory);
-        column("Giá khởi điểm", a -> FormatUtil.formatCurrency(a.getStartingPrice()));
-        column("Giá hiện tại", a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
-        TableColumn<Auction, String> state = column("Trạng thái", a -> a.getStatus().name());
+        column(nameColumn, Auction::getItemName);
+        column(categoryColumn, Auction::getItemCategory);
+        column(startingPrice, a -> FormatUtil.formatCurrency(a.getStartingPrice()));
+        column(currentPrice, a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
+        column(state, a -> a.getStatus().name());
         state.setCellFactory(c -> new TableCell<>() {
             @Override protected void updateItem(String value, boolean empty) {
                 super.updateItem(value, empty); setText(null); setGraphic(null);
@@ -99,10 +95,8 @@ public class SellerProductsController {
                 }
             }
         });
-        column("Bắt đầu", a -> a.getStartTime().format(formatter));
-        column("Kết thúc", a -> a.getEndTime().format(formatter));
-        TableColumn<Auction, String> actions = new TableColumn<>("Thao tác");
-        actions.setPrefWidth(230); actions.setMinWidth(220);
+        column(startColumn, a -> a.getStartTime().format(formatter));
+        column(endColumn, a -> a.getEndTime().format(formatter));
         actions.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId()));
         actions.setCellFactory(c -> new TableCell<>() {
             @Override protected void updateItem(String id, boolean empty) {
@@ -126,17 +120,13 @@ public class SellerProductsController {
                 setGraphic(new HBox(5, detail, edit, delete));
             }
         });
-        table.getColumns().add(actions);
         search.textProperty().addListener((o, a, b) -> filter());
         status.valueProperty().addListener((o, a, b) -> filter());
         category.valueProperty().addListener((o, a, b) -> filter());
         load();
     }
-    private TableColumn<Auction, String> column(String title, Function<Auction, String> value) {
-        TableColumn<Auction, String> c = new TableColumn<>(title);
-        c.setPrefWidth(140);
-        c.setCellValueFactory(row -> new SimpleStringProperty(value.apply(row.getValue())));
-        table.getColumns().add(c); return c;
+    private void column(TableColumn<Auction, String> column, Function<Auction, String> value) {
+        column.setCellValueFactory(row -> new SimpleStringProperty(value.apply(row.getValue())));
     }
     private void filter() {
         String q = search.getText().trim().toLowerCase();

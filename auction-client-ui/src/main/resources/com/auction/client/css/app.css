@@ -334,8 +334,7 @@
     -fx-stroke-width: 0.7px;
     -fx-opacity: 0.6;
 }
-.chart-container .chart-series-area-fill { -fx-fill: -c-primary; -fx-opacity: 0.12; }
-.chart-container .chart-series-area-line {
+.chart-container .chart-series-line {
     -fx-stroke: -c-primary;
     -fx-stroke-width: 2.5px;
     -fx-stroke-line-cap: round;
