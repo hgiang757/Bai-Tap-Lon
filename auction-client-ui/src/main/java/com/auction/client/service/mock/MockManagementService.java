@@ -90,6 +90,7 @@ public class MockManagementService implements ProductService, AuctionAdminServic
             throw new IllegalStateException("Không thể hủy phiên ở trạng thái này.");
         }
         auction.setStatus(AuctionStatus.CANCELED);
+        store.stopAutoBids(id);
         store.releaseHold(id);
         cancellationReasons.put(id, reason);
      }}

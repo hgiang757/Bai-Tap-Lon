@@ -37,7 +37,7 @@ public class MockAuctionClientService implements AuctionClientService {
     private final Map<String, String> registeredPasswords = new ConcurrentHashMap<>();
     private final Map<String, User> registeredUsers = new ConcurrentHashMap<>();
     private final Map<String, List<Bid>> bidHistories;
-    private final Map<String, List<Consumer<Bid>>> listeners = new ConcurrentHashMap<>();
+
 
     public MockAuctionClientService() { this(MockDataStore.getInstance()); }
 
@@ -206,13 +206,14 @@ public class MockAuctionClientService implements AuctionClientService {
         auction.setHighestBidderUsername(username);
         auction.setTotalBids(auction.getTotalBids() + 1);
 
-        Bid newBid = new Bid("BID-" + System.currentTimeMillis(), auctionId, username, amount, LocalDateTime.now());
+        Bid newBid = new Bid("BID-" + java.util.UUID.randomUUID(), auctionId, username, amount, LocalDateTime.now());
         bidHistories.computeIfAbsent(auctionId, k -> new ArrayList<>()).add(newBid);
 
         // Kích hoạt Observer thông báo tới các listeners (để cập nhật biểu đồ / UI)
-        notifyListeners(auctionId, newBid);
+        store.notifyBid(auctionId, newBid);
+        new AutoBidEngine(store).process(auction);
 
-        return BidResult.ok("Đặt giá thành công!", amount, newBid);
+        return BidResult.ok("Đặt giá thành công!", auction.getCurrentPrice(), newBid);
      }}
 
     @Override
@@ -282,27 +283,10 @@ public class MockAuctionClientService implements AuctionClientService {
 
     @Override
     public void registerBidListener(String auctionId, Consumer<Bid> listener) {
-        listeners.computeIfAbsent(auctionId, k -> new CopyOnWriteArrayList<>()).add(listener);
+        synchronized (store) { store.bidListeners.computeIfAbsent(auctionId, key -> new ArrayList<>()).add(listener); }
     }
-
     @Override
     public void unregisterBidListener(String auctionId, Consumer<Bid> listener) {
-        List<Consumer<Bid>> list = listeners.get(auctionId);
-        if (list != null) {
-            list.remove(listener);
-        }
-    }
-
-    private void notifyListeners(String auctionId, Bid bid) {
-        List<Consumer<Bid>> list = listeners.get(auctionId);
-        if (list != null) {
-            for (Consumer<Bid> listener : list) {
-                try {
-                    listener.accept(bid);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        synchronized (store) { List<Consumer<Bid>> listeners = store.bidListeners.get(auctionId); if (listeners != null) listeners.remove(listener); }
     }
 }

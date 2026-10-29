@@ -13,6 +13,25 @@ public final class MockDataStore {
     final Map<String, String> images = new HashMap<>();
     final Map<String, String> cancellationReasons = new HashMap<>();
     final Map<String, List<Bid>> bidHistories = new HashMap<>();
+    final Map<String, PriorityQueue<AutoBid>> autoBids = new HashMap<>();
+    private LocalDateTime lastAutoRegistration = LocalDateTime.MIN;
+    LocalDateTime nextAutoRegistration() {
+        LocalDateTime now = LocalDateTime.now();
+        lastAutoRegistration = now.isAfter(lastAutoRegistration) ? now : lastAutoRegistration.plusNanos(1);
+        return lastAutoRegistration;
+    }
+    void stopAutoBids(String id) {
+        for (AutoBid rule : autoQueue(id)) rule.deactivate();
+    }
+    final Map<String, List<java.util.function.Consumer<Bid>>> bidListeners = new HashMap<>();
+    void notifyBid(String id, Bid bid) {
+        for (var listener : List.copyOf(bidListeners.getOrDefault(id, List.of()))) {
+            try { listener.accept(bid); } catch (RuntimeException ex) { ex.printStackTrace(); }
+        }
+    }
+    PriorityQueue<AutoBid> autoQueue(String id) {
+        return autoBids.computeIfAbsent(id, key -> new PriorityQueue<>(Comparator.comparing(AutoBid::getCreatedAt).thenComparing(AutoBid::getId)));
+    }
 
     final Map<String, Long> balances = new HashMap<>();
     final Map<String, User> walletUsers = new HashMap<>();
@@ -90,10 +109,10 @@ public final class MockDataStore {
     public synchronized void refreshStatuses() {
         LocalDateTime now = LocalDateTime.now();
         for (Auction a : auctions) {
-            if (a.getStatus() == AuctionStatus.FINISHED) { settle(a); continue; }
-            if (a.getStatus() == AuctionStatus.CANCELED) { releaseHold(a.getId()); continue; }
+            if (a.getStatus() == AuctionStatus.FINISHED) { stopAutoBids(a.getId()); settle(a); continue; }
+            if (a.getStatus() == AuctionStatus.CANCELED) { stopAutoBids(a.getId()); releaseHold(a.getId()); continue; }
             if (a.getStatus() != AuctionStatus.OPEN && a.getStatus() != AuctionStatus.RUNNING) continue;
-            if (a.getEndTime() != null && !now.isBefore(a.getEndTime())) { a.setStatus(AuctionStatus.FINISHED); settle(a); }
+            if (a.getEndTime() != null && !now.isBefore(a.getEndTime())) { a.setStatus(AuctionStatus.FINISHED); stopAutoBids(a.getId()); settle(a); }
             else if (a.getStatus() == AuctionStatus.OPEN && a.getStartTime() != null && !now.isBefore(a.getStartTime())) a.setStatus(AuctionStatus.RUNNING);
         }
     }

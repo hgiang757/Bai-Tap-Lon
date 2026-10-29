@@ -8,6 +8,12 @@ import com.auction.client.service.mock.MockAuctionClientService;
  */
 public class ServiceRegistry {
     private static AuctionClientService instance;
+    private static AutoBidService autoBidService = new com.auction.client.service.mock.MockAutoBidService(
+            com.auction.client.service.mock.MockDataStore.getInstance(), ServiceRegistry::getService);
+    /** Lấy dịch vụ đặt giá tự động. */
+    public static synchronized AutoBidService getAutoBidService() { return autoBidService; }
+    /** Thay dịch vụ đặt giá tự động. */
+    public static synchronized void setAutoBidService(AutoBidService service) { autoBidService = java.util.Objects.requireNonNull(service); }
     private static WalletService walletService = new com.auction.client.service.mock.MockWalletService();
     /** Lấy dịch vụ ví mô phỏng. */
     public static synchronized WalletService getWalletService() { return walletService; }
