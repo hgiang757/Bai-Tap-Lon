@@ -40,14 +40,15 @@
                     <Label text="Trang chủ" styleClass="page-title t-display"/>
                     <Label text="Khám phá những món đồ đặc biệt và tham gia cuộc đua giá trực tiếp." styleClass="page-subtitle t-body" wrapText="true"/>
                 </VBox>
-                <HBox fx:id="categoryChipsBox" spacing="8.0" alignment="CENTER_LEFT">
+                <FlowPane fx:id="categoryChipsBox" hgap="8.0" vgap="8.0" alignment="CENTER_LEFT">
                     <Button fx:id="chipAll" text="Tất cả" styleClass="btn-primary" onAction="#handleCategoryFilter" userData="all"/>
-                    <Button fx:id="chipWatch" text="Đồng hồ và trang sức" onAction="#handleCategoryFilter" userData="Đồng hồ cao cấp"/>
-                    <Button fx:id="chipArt" text="Tranh nghệ thuật" onAction="#handleCategoryFilter" userData="Nghệ thuật"/>
-                    <Button fx:id="chipHome" text="Bất động sản" onAction="#handleCategoryFilter" userData="Bất động sản"/>
-                    <Button fx:id="chipCar" text="Xe cộ" onAction="#handleCategoryFilter" userData="Xe cộ"/>
-                    <Button fx:id="chipLaptop" text="Công nghệ" onAction="#handleCategoryFilter" userData="Thiết bị công nghệ"/>
-                </HBox>
+                    <Button fx:id="chipWatch" text="Đồng hồ và trang sức" onAction="#handleCategoryFilter" userData="JEWELRY"/>
+                    <Button fx:id="chipArt" text="Tranh nghệ thuật" onAction="#handleCategoryFilter" userData="ART"/>
+                    <Button fx:id="chipHome" text="Bất động sản" onAction="#handleCategoryFilter" userData="REAL_ESTATE"/>
+                    <Button fx:id="chipCar" text="Xe cộ" onAction="#handleCategoryFilter" userData="VEHICLE"/>
+                    <Button fx:id="chipLaptop" text="Công nghệ" onAction="#handleCategoryFilter" userData="ELECTRONICS"/>
+                    <Button fx:id="chipOther" text="Khác" onAction="#handleCategoryFilter" userData="OTHER"/>
+                </FlowPane>
                     <VBox fx:id="mainColumn" spacing="32.0">
                         <VBox fx:id="featuredPane" spacing="16.0" styleClass="home-panel, home-panel-white">
                             <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="featured-heading">

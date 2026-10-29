@@ -56,7 +56,7 @@ public class Item implements Serializable {
     }
 
     public String getCategory() {
-        return category;
+        return ItemCategory.from(category).getLabel();
     }
 
     public void setCategory(String category) {

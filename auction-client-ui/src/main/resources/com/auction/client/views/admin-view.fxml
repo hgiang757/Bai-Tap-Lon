@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import com.auction.client.ui.AppHeader?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminController">
+ <top><AppHeader spacing="16" styleClass="top-bar"><Label text="Digital Auction — Quản trị" styleClass="view-title"/><Region HBox.hgrow="ALWAYS"/></AppHeader></top>
+ <left><VBox spacing="10" prefWidth="260" styleClass="sidebar-card"><padding><Insets top="24" right="16" bottom="24" left="16"/></padding><Label text="Quản trị" styleClass="section-header"/><Button text="Tổng quan" maxWidth="Infinity" onAction="#overview"/><Button text="Quản lý người dùng" maxWidth="Infinity" onAction="#users"/><Button text="Quản lý phiên đấu giá" maxWidth="Infinity" onAction="#auctions"/><Region VBox.vgrow="ALWAYS"/><Button text="Đăng xuất" maxWidth="Infinity" onAction="#logout"/></VBox></left>
+ <center><VBox spacing="14" styleClass="dashboard-content"><padding><Insets top="25" right="30" bottom="25" left="30"/></padding><Label fx:id="title" styleClass="page-title"/><Label fx:id="message" styleClass="alert-error" wrapText="true"/><ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/><VBox fx:id="content" spacing="12" VBox.vgrow="ALWAYS"/></VBox></center>
+</BorderPane>

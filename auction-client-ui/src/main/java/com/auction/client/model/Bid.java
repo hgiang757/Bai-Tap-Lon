@@ -16,6 +16,7 @@ public class Bid implements Serializable {
     private String bidderUsername;
     private double amount;
     private LocalDateTime timestamp;
+    private boolean auto;
 
     public Bid() {
     }
@@ -27,6 +28,15 @@ public class Bid implements Serializable {
         this.amount = amount;
         this.timestamp = timestamp;
     }
+
+    /** Tạo lượt đặt giá với cờ tự động. */
+    public Bid(String id, String auctionId, String bidderUsername, double amount, LocalDateTime timestamp, boolean auto) {
+        this(id, auctionId, bidderUsername, amount, timestamp);
+        this.auto = auto;
+    }
+
+    /** Lượt giá do hệ thống tự đặt. */
+    public boolean isAuto() { return auto; }
 
     // Getters and Setters
     public String getId() {

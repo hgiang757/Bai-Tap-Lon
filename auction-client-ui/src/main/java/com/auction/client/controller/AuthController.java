@@ -192,7 +192,7 @@ public class AuthController {
     }
 
     private void updateFeatureVisibility(double width) {
-        boolean showFeatures = width >= 900;
+        boolean showFeatures = width >= authFeatureRow.prefWidth(-1) + 32;
         authFeatureRow.setVisible(showFeatures);
         authFeatureRow.setManaged(showFeatures);
     }
@@ -222,8 +222,13 @@ public class AuthController {
 
     private void updateModeUI() {
         hideAlert();
+        txtUsername.clear();
+        txtEmail.clear();
         txtPassword.clear();
         txtConfirm.clear();
+        rbBidder.setSelected(true);
+        if (!isRegisterMode) loadRememberedUsername();
+        Platform.runLater(txtUsername::requestFocus);
         touchedUsername = touchedEmail = touchedPassword = touchedConfirm = false;
         confirmBox.setVisible(isRegisterMode); confirmBox.setManaged(isRegisterMode);
         validateFields();
@@ -294,20 +299,20 @@ public class AuthController {
             boolean ok = auctionService.register(username.trim(), password, username.trim(),
                     email.trim(), selectedRole);
             if (ok) {
-                showAlert("Đăng ký thành công. Đang chuyển hướng vào sàn đấu giá...", false);
+                showAlert("Đăng ký thành công. Đang vào sàn đấu giá...", false);
                 navigateToHome();
             } else {
-                showAlert("Đăng ký không thành công. Tên đăng nhập có thể đã được sử dụng.", true);
+                showAlert("Tên đăng nhập hoặc email đã được sử dụng.", true);
             }
         } else {
             // Đăng nhập: không gửi vai trò, vai trò do server trả về
             boolean ok = auctionService.login(username.trim(), password, null);
             if (ok) {
                 saveRememberedUsername(username.trim());
-                showAlert("Đăng nhập thành công. Đang chuyển hướng...", false);
+                showAlert("Đăng nhập thành công. Đang chuyển trang...", false);
                 navigateToHome();
             } else {
-                showAlert("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin tài khoản.", true);
+                showAlert("Sai tên đăng nhập hoặc mật khẩu, hoặc tài khoản đã bị khóa.", true);
             }
 
         }
@@ -354,6 +359,10 @@ public class AuthController {
         try {
             Preferences preferences = Preferences.userNodeForPackage(AuthController.class);
             String rememberedUsername = preferences.get(REMEMBERED_USERNAME_KEY, "");
+            if (java.util.Set.of("admin_hieu", "bidder_hieu", "seller_hieu").contains(rememberedUsername.toLowerCase(java.util.Locale.ROOT))) {
+                preferences.remove(REMEMBERED_USERNAME_KEY);
+                rememberedUsername = "";
+            }
             txtUsername.setText(rememberedUsername);
             chkRemember.setSelected(!rememberedUsername.isEmpty());
         } catch (SecurityException ex) {
@@ -364,7 +373,7 @@ public class AuthController {
     private void saveRememberedUsername(String username) {
         try {
             Preferences preferences = Preferences.userNodeForPackage(AuthController.class);
-            if (chkRemember.isSelected()) {
+            if (chkRemember.isSelected() && auctionService.getCurrentUser() != null && auctionService.getCurrentUser().getRole() != UserRole.ADMIN && !java.util.Set.of("admin_hieu", "bidder_hieu", "seller_hieu").contains(username.toLowerCase(java.util.Locale.ROOT))) {
                 preferences.put(REMEMBERED_USERNAME_KEY, username);
             } else {
                 preferences.remove(REMEMBERED_USERNAME_KEY);
@@ -377,7 +386,8 @@ public class AuthController {
 
     private void navigateToHome() {
         try {
-            ViewNavigator.loadView("/com/auction/client/views/home-view.fxml", "Sàn đấu giá trực tuyến");
+            ViewNavigator.navigate(auctionService.getCurrentUser().getRole() == UserRole.ADMIN
+                    ? ViewNavigator.Route.ADMIN : ViewNavigator.Route.DASHBOARD);
         } catch (IOException e) {
             showAlert("Không thể mở danh sách đấu giá. Vui lòng thử lại.", true);
         }

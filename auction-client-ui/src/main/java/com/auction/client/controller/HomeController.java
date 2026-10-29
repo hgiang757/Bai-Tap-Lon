@@ -2,6 +2,7 @@ package com.auction.client.controller;
 
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
+import com.auction.client.model.ItemCategory;
 import com.auction.client.model.User;
 import com.auction.client.model.UserRole;
 import com.auction.client.service.AuctionClientService;
@@ -56,6 +57,7 @@ public class HomeController {
     @FXML private Button chipHome;
     @FXML private Button chipCar;
     @FXML private Button chipLaptop;
+    @FXML private Button chipOther;
     @FXML private Label lblFeaturedHeader;
     @FXML private Label lblRunningHeader;
     @FXML private Label lblStepsHeader;
@@ -118,6 +120,7 @@ public class HomeController {
         setButtonIcon(chipHome, "home");
         setButtonIcon(chipCar, "car");
         setButtonIcon(chipLaptop, "laptop");
+        setButtonIcon(chipOther, "tag");
         featuredCarouselScroll.hvalueProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
         featuredCarouselScroll.viewportBoundsProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
         featuredCarouselTrack.widthProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
@@ -158,7 +161,7 @@ public class HomeController {
         List<Auction> filtered = allAuctions.stream()
                 .filter(a -> {
                     boolean categoryMatch = "all".equals(activeCategory)
-                            || a.getItemCategory().toLowerCase().contains(activeCategory.toLowerCase());
+                            || ItemCategory.from(a.getItemCategory()) == ItemCategory.from(activeCategory);
                     boolean searchMatch = search.isEmpty()
                             || a.getItemName().toLowerCase().contains(search)
                             || a.getItemCategory().toLowerCase().contains(search)
@@ -211,6 +214,9 @@ public class HomeController {
 
         boolean noResults = running.isEmpty();
         if (lblNoResults != null) {
+            lblNoResults.setText(featuredAuctions.isEmpty() ? "Không có phiên đấu giá nào phù hợp."
+                    : "Tất cả phiên đang diễn ra đã hiển thị ở mục Nổi bật.");
+            lblNoResults.setWrapText(true);
             lblNoResults.setVisible(noResults);
             lblNoResults.setManaged(noResults);
         }
@@ -275,9 +281,7 @@ public class HomeController {
         lblName.getStyleClass().add("auction-card-title");
         lblName.getStyleClass().add("t-h3");
         lblName.setWrapText(true);
-        lblName.setPrefHeight(44);
-        lblName.setMaxHeight(44);
-        lblName.setTextOverrun(javafx.scene.control.OverrunStyle.ELLIPSIS);
+        lblName.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         lblName.setTooltip(new javafx.scene.control.Tooltip(auction.getItemName()));
 
         // Người bán
@@ -325,14 +329,7 @@ public class HomeController {
     }
 
     private String getCategoryIconName(String category) {
-        if (category == null) return "tag";
-        String cat = category.toLowerCase();
-        if (cat.contains("đồng hồ") || cat.contains("trang sức")) return "watch";
-        if (cat.contains("tranh") || cat.contains("nghệ thuật") || cat.contains("cổ vật")) return "image";
-        if (cat.contains("bất động sản")) return "home";
-        if (cat.contains("xe")) return "car";
-        if (cat.contains("công nghệ") || cat.contains("thiết bị")) return "laptop";
-        return "tag";
+        return ItemCategory.from(category).getIcon();
     }
 
     /* ======= Countdown Timer ======= */
@@ -350,21 +347,11 @@ public class HomeController {
 
     private void tickCountdowns() {
         LocalDateTime now = LocalDateTime.now();
-        boolean statusChanged = false;
-        for (Auction auction : allAuctions) {
-            if (auction.getStatus() != AuctionStatus.FINISHED
-                    && auction.getEndTime() != null
-                    && !now.isBefore(auction.getEndTime())) {
-                auction.setStatus(AuctionStatus.FINISHED);
-                statusChanged = true;
-            } else if (auction.getStatus() == AuctionStatus.OPEN
-                    && auction.getStartTime() != null
-                    && !now.isBefore(auction.getStartTime())) {
-                auction.setStatus(AuctionStatus.RUNNING);
-                statusChanged = true;
-            }
-        }
-        if (statusChanged) {
+        java.util.Map<String, AuctionStatus> before = new java.util.HashMap<>();
+        for (Auction auction : allAuctions) before.put(auction.getId(), auction.getStatus());
+        List<Auction> refreshed = auctionService.getAuctions(null);
+        if (refreshed.size() != allAuctions.size() || refreshed.stream().anyMatch(a -> before.get(a.getId()) != a.getStatus())) {
+            allAuctions = refreshed;
             applyFilters();
             return;
         }
@@ -422,7 +409,7 @@ public class HomeController {
         activeCategory = userData != null ? userData.toString() : "all";
 
         // Update chip styles
-        for (Button chip : List.of(chipAll, chipWatch, chipArt, chipHome, chipCar, chipLaptop)) {
+        for (Button chip : List.of(chipAll, chipWatch, chipArt, chipHome, chipCar, chipLaptop, chipOther)) {
             chip.getStyleClass().remove("btn-primary");
         }
         source.getStyleClass().add("btn-primary");

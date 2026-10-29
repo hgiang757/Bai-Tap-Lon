@@ -124,6 +124,7 @@
 
                     <!-- Form đặt giá -->
                     <VBox spacing="8.0">
+                        <Label fx:id="lblAvailableBalance" text="Số dư khả dụng: —" wrapText="true" styleClass="text-secondary"/>
                         <Label text="Số tiền đặt giá (₫)" styleClass="form-label"/>
                         <VBox spacing="8.0">
                             <TextField fx:id="txtBidAmount" promptText="Nhập mức giá"
@@ -149,6 +150,20 @@
                                     HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
                         </HBox>
                     </VBox>
+                </VBox>
+                <VBox fx:id="autoBidCard" spacing="10.0" styleClass="card-panel">
+                    <Label fx:id="lblAutoTitle" text="Đặt giá tự động" styleClass="section-header t-h2"/>
+                    <Label text="Hệ thống tự trả giá thay bạn khi có người trả cao hơn, không bao giờ vượt giá tối đa." wrapText="true" styleClass="text-secondary"/>
+                    <Label text="Giá tối đa (₫)" styleClass="form-label"/>
+                    <TextField fx:id="txtAutoMax" promptText="VD: 300000000"/>
+                    <Label fx:id="lblAutoMaxFormat" wrapText="true" styleClass="text-secondary"/>
+                    <Label text="Bước giá mỗi lần (₫)" styleClass="form-label"/>
+                    <TextField fx:id="txtAutoIncrement" promptText="VD: 5000000"/>
+                    <Label fx:id="lblAutoStepFormat" wrapText="true" styleClass="text-secondary"/>
+                    <Label fx:id="lblAutoError" wrapText="true" styleClass="field-error"/>
+                    <Label fx:id="lblAutoReason" wrapText="true" styleClass="text-secondary"/>
+                    <Button fx:id="btnAutoBid" text="Bật đặt giá tự động" onAction="#handleAutoBid" styleClass="btn-primary" maxWidth="Infinity"/>
+                    <Label fx:id="lblAutoStatus" wrapText="true" styleClass="alert-box, alert-success" visible="false" managed="false"/>
                 </VBox>
             </VBox>
 
