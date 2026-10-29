@@ -85,8 +85,8 @@ public final class UserMenu extends HBox {
     private void createMenu(User user, String displayName) {
         menuContent.getStyleClass().add("user-menu-popup");
         menuContent.setFocusTraversable(true);
-        menuContent.setPrefWidth(260);
-        menuContent.setMinWidth(260);
+        menuContent.setPrefWidth(300);
+        menuContent.setMinWidth(300);
 
         VBox account = new VBox(5);
         account.getStyleClass().add("user-menu-account");
@@ -98,7 +98,7 @@ public final class UserMenu extends HBox {
                 : email;
         Label accountEmail = new Label(secondary == null ? "" : secondary);
         accountEmail.getStyleClass().add("user-menu-account-secondary");
-        Label role = new Label(user == null ? "" : (user.getRole() == UserRole.SELLER ? "Người bán" : "Người mua"));
+        Label role = new Label(user == null ? "" : user.getRole().getDisplayName());
         role.getStyleClass().add("user-menu-role");
         account.getChildren().addAll(accountName, accountEmail, role);
         menuContent.getChildren().addAll(account, divider());
@@ -114,6 +114,7 @@ public final class UserMenu extends HBox {
             salesMode.setOnAction(event -> navigate(ViewNavigator.Route.PRODUCTS));
             Label note = new Label("Chỉ đổi cách xem, không đổi quyền tài khoản.");
             note.getStyleClass().add("user-menu-note");
+            note.setWrapText(true); note.setMinHeight(Region.USE_PREF_SIZE);
             menuContent.getChildren().addAll(auctionMode, salesMode, note, divider());
         }
 
@@ -190,7 +191,7 @@ public final class UserMenu extends HBox {
             return;
         }
         activeMenu = this;
-        popup.show(owner, bounds.getMaxX() - 260, bounds.getMaxY() + 8);
+        popup.show(owner, bounds.getMaxX() - 300, bounds.getMaxY() + 8);
         Scene popupScene = popup.getScene();
         ViewNavigator.applyAppStylesheet(popupScene);
         popupScene.addEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
