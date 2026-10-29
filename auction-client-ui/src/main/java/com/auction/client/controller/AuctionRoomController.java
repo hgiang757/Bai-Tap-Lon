@@ -17,7 +17,7 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
-import javafx.scene.chart.AreaChart;
+import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Button;
@@ -85,7 +85,7 @@ public class AuctionRoomController {
     @FXML private ScrollPane detailScroll;
     @FXML private VBox pageContent;
 
-    @FXML private AreaChart<Number, Number> priceChart;
+    @FXML private LineChart<Number, Number> priceChart;
     @FXML private NumberAxis xAxisTime;
     @FXML private NumberAxis yAxisPrice;
     @FXML private Label lblNoBids;

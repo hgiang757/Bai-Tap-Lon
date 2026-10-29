@@ -4,7 +4,123 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminController">
- <top><AppHeader spacing="16" styleClass="top-bar"><Label text="Digital Auction — Quản trị" styleClass="view-title"/><Region HBox.hgrow="ALWAYS"/></AppHeader></top>
- <left><VBox spacing="10" prefWidth="260" styleClass="sidebar-card"><padding><Insets top="24" right="16" bottom="24" left="16"/></padding><Label text="Quản trị" styleClass="section-header"/><Button text="Tổng quan" maxWidth="Infinity" onAction="#overview"/><Button text="Quản lý người dùng" maxWidth="Infinity" onAction="#users"/><Button text="Quản lý phiên đấu giá" maxWidth="Infinity" onAction="#auctions"/><Region VBox.vgrow="ALWAYS"/><Button text="Đăng xuất" maxWidth="Infinity" onAction="#logout"/></VBox></left>
- <center><VBox spacing="14" styleClass="dashboard-content"><padding><Insets top="25" right="30" bottom="25" left="30"/></padding><Label fx:id="title" styleClass="page-title"/><Label fx:id="message" styleClass="alert-error" wrapText="true"/><ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/><VBox fx:id="content" spacing="12" VBox.vgrow="ALWAYS"/></VBox></center>
+    <top>
+        <AppHeader spacing="16" styleClass="top-bar">
+            <Label text="Digital Auction — Quản trị" styleClass="view-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+        </AppHeader>
+    </top>
+    <left>
+        <VBox spacing="10" prefWidth="260" styleClass="sidebar-card">
+            <padding>
+                <Insets top="24" right="16" bottom="24" left="16"/>
+            </padding>
+            <Label text="Quản trị" styleClass="section-header"/>
+            <Button text="Tổng quan" maxWidth="Infinity" onAction="#overview"/>
+            <Button text="Quản lý người dùng" maxWidth="Infinity" onAction="#users"/>
+            <Button text="Quản lý phiên đấu giá" maxWidth="Infinity" onAction="#auctions"/>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Button text="Đăng xuất" maxWidth="Infinity" onAction="#logout"/>
+        </VBox>
+    </left>
+    <center>
+        <VBox spacing="14" styleClass="dashboard-content">
+            <padding>
+                <Insets top="25" right="30" bottom="25" left="30"/>
+            </padding>
+            <Label fx:id="title" styleClass="page-title"/>
+            <Label fx:id="message" styleClass="alert-error" wrapText="true"/>
+            <ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/>
+            <VBox fx:id="content" spacing="12" VBox.vgrow="ALWAYS">
+                <VBox fx:id="overviewPane" spacing="12" VBox.vgrow="ALWAYS">
+                    <HBox spacing="16">
+                        <VBox spacing="8" prefWidth="180" maxWidth="Infinity" styleClass="card-panel" HBox.hgrow="ALWAYS">
+                            <Label text="Tổng người dùng" styleClass="field-hint"/>
+                            <Label fx:id="usersCount" styleClass="page-title"/>
+                        </VBox>
+                        <VBox spacing="8" prefWidth="180" maxWidth="Infinity" styleClass="card-panel" HBox.hgrow="ALWAYS">
+                            <Label text="Chờ bắt đầu" styleClass="field-hint"/>
+                            <Label fx:id="openCount" styleClass="page-title"/>
+                        </VBox>
+                        <VBox spacing="8" prefWidth="180" maxWidth="Infinity" styleClass="card-panel" HBox.hgrow="ALWAYS">
+                            <Label text="Đang diễn ra" styleClass="field-hint"/>
+                            <Label fx:id="runningCount" styleClass="page-title"/>
+                        </VBox>
+                        <VBox spacing="8" prefWidth="180" maxWidth="Infinity" styleClass="card-panel" HBox.hgrow="ALWAYS">
+                            <Label text="Đã kết thúc" styleClass="field-hint"/>
+                            <Label fx:id="finishedCount" styleClass="page-title"/>
+                        </VBox>
+                        <VBox spacing="8" prefWidth="180" maxWidth="Infinity" styleClass="card-panel" HBox.hgrow="ALWAYS">
+                            <Label text="Đã hủy" styleClass="field-hint"/>
+                            <Label fx:id="canceledCount" styleClass="page-title"/>
+                        </VBox>
+                    </HBox>
+                    <Label text="Các phiên mới nhất"/>
+                    <TableView fx:id="overviewTable" fixedCellSize="44" VBox.vgrow="ALWAYS">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                        </columnResizePolicy>
+                        <placeholder>
+                            <Label text="Chưa có dữ liệu"/>
+                        </placeholder>
+                        <columns>
+                            <TableColumn fx:id="overviewName" text="Tên" prefWidth="145"/>
+                            <TableColumn fx:id="overviewSeller" text="Người bán" prefWidth="145"/>
+                            <TableColumn fx:id="overviewPrice" text="Giá hiện tại" prefWidth="145"/>
+                            <TableColumn fx:id="overviewBidder" text="Người dẫn đầu" prefWidth="145"/>
+                            <TableColumn fx:id="overviewState" text="Trạng thái" prefWidth="145"/>
+                            <TableColumn fx:id="overviewStart" text="Bắt đầu" prefWidth="145"/>
+                            <TableColumn fx:id="overviewEnd" text="Kết thúc" prefWidth="145"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+                <VBox fx:id="usersPane" spacing="12" visible="false" managed="false" VBox.vgrow="ALWAYS">
+                    <HBox spacing="10">
+                        <TextField fx:id="userSearch" promptText="Tìm tên đăng nhập hoặc email" prefWidth="320" HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="userRole"/>
+                    </HBox>
+                    <TableView fx:id="userTable" fixedCellSize="44" VBox.vgrow="ALWAYS">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                        </columnResizePolicy>
+                        <placeholder>
+                            <Label text="Chưa có dữ liệu"/>
+                        </placeholder>
+                        <columns>
+                            <TableColumn fx:id="userName" text="Tên đăng nhập" prefWidth="145"/>
+                            <TableColumn fx:id="userEmail" text="Email" prefWidth="145"/>
+                            <TableColumn fx:id="userRoleColumn" text="Vai trò" prefWidth="145"/>
+                            <TableColumn fx:id="userState" text="Trạng thái" prefWidth="145"/>
+                            <TableColumn fx:id="userCreated" text="Ngày tạo" prefWidth="145"/>
+                            <TableColumn fx:id="userAction" text="Thao tác" prefWidth="300" minWidth="280"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+                <VBox fx:id="auctionsPane" spacing="12" visible="false" managed="false" VBox.vgrow="ALWAYS">
+                    <HBox spacing="10">
+                        <TextField fx:id="auctionSearch" promptText="Tìm tên phiên"/>
+                        <ComboBox fx:id="auctionStatus"/>
+                    </HBox>
+                    <TableView fx:id="auctionTable" fixedCellSize="44" VBox.vgrow="ALWAYS">
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                        </columnResizePolicy>
+                        <placeholder>
+                            <Label text="Chưa có dữ liệu"/>
+                        </placeholder>
+                        <columns>
+                            <TableColumn fx:id="auctionName" text="Tên" prefWidth="145"/>
+                            <TableColumn fx:id="auctionSeller" text="Người bán" prefWidth="145"/>
+                            <TableColumn fx:id="auctionPrice" text="Giá hiện tại" prefWidth="145"/>
+                            <TableColumn fx:id="auctionBidder" text="Người dẫn đầu" prefWidth="145"/>
+                            <TableColumn fx:id="auctionState" text="Trạng thái" prefWidth="145"/>
+                            <TableColumn fx:id="auctionStart" text="Bắt đầu" prefWidth="145"/>
+                            <TableColumn fx:id="auctionEnd" text="Kết thúc" prefWidth="145"/>
+                            <TableColumn fx:id="auctionAction" text="Thao tác" prefWidth="240" minWidth="230"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </VBox>
+    </center>
 </BorderPane>

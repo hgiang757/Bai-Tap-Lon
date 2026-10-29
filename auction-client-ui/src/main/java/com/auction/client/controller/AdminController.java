@@ -28,7 +28,15 @@ import javafx.scene.layout.VBox;
 
 /** Điều khiển ba màn hình quản trị. */
 public class AdminController {
-    @FXML private VBox content;
+    @FXML private VBox content, overviewPane, usersPane, auctionsPane;
+    @FXML private Label usersCount, openCount, runningCount, finishedCount, canceledCount;
+    @FXML private TextField userSearch, auctionSearch;
+    @FXML private ComboBox<String> userRole, auctionStatus;
+    @FXML private TableView<AdminUser> userTable;
+    @FXML private TableView<Auction> overviewTable, auctionTable;
+    @FXML private TableColumn<AdminUser, String> userName, userEmail, userRoleColumn, userState, userCreated, userAction;
+    @FXML private TableColumn<Auction, String> overviewName, overviewSeller, overviewPrice, overviewBidder, overviewState, overviewStart, overviewEnd;
+    @FXML private TableColumn<Auction, String> auctionName, auctionSeller, auctionPrice, auctionBidder, auctionState, auctionStart, auctionEnd, auctionAction;
     @FXML private Label title;
     @FXML private Label message;
     @FXML private ProgressIndicator progress;
@@ -38,6 +46,7 @@ public class AdminController {
     private String actorId;
     private boolean authorized;
     private long generation;
+    private Runnable userFilter = () -> {}, auctionFilter = () -> {};
 
     /** Kiểm tra vai trò và hiển thị tổng quan. */
     @FXML public void initialize() {
@@ -46,7 +55,13 @@ public class AdminController {
         User user = ServiceRegistry.getService().getCurrentUser();
         authorized = user != null && user.getRole() == UserRole.ADMIN;
         if (!authorized) { message.setText("Chỉ quản trị viên được truy cập trang này."); content.setDisable(true); return; }
-        actorId = user.getId(); overview();
+        actorId = user.getId();
+        configureTables();
+        userSearch.textProperty().addListener((o, a, b) -> userFilter.run());
+        userRole.valueProperty().addListener((o, a, b) -> userFilter.run());
+        auctionSearch.textProperty().addListener((o, a, b) -> auctionFilter.run());
+        auctionStatus.valueProperty().addListener((o, a, b) -> auctionFilter.run());
+        overview();
     }
     private <T> void run(Callable<T> work, Consumer<T> success) {
         if (!authorized) return;
@@ -62,29 +77,35 @@ public class AdminController {
         if (!authorized) return;
         title.setText("Tổng quan");
         run(() -> new Summary(userService.listUsers(), auctionService.listAuctions()), data -> {
-            HBox cards = new HBox(16);
-            cards.getChildren().addAll(card("Tổng người dùng", data.users().size()), card("Chờ bắt đầu", count(data.auctions(), AuctionStatus.OPEN)), card("Đang diễn ra", count(data.auctions(), AuctionStatus.RUNNING)), card("Đã kết thúc", count(data.auctions(), AuctionStatus.FINISHED)), card("Đã hủy", count(data.auctions(), AuctionStatus.CANCELED)));
-            TableView<Auction> table = auctionTable(false);
-            table.setItems(FXCollections.observableArrayList(data.auctions().stream().sorted((a,b) -> b.getStartTime().compareTo(a.getStartTime())).limit(10).toList()));
-            content.getChildren().setAll(cards, new Label("Các phiên mới nhất"), table); VBox.setVgrow(table, Priority.ALWAYS);
+            usersCount.setText(Integer.toString(data.users().size()));
+            openCount.setText(Long.toString(count(data.auctions(), AuctionStatus.OPEN)));
+            runningCount.setText(Long.toString(count(data.auctions(), AuctionStatus.RUNNING)));
+            finishedCount.setText(Long.toString(count(data.auctions(), AuctionStatus.FINISHED)));
+            canceledCount.setText(Long.toString(count(data.auctions(), AuctionStatus.CANCELED)));
+            overviewTable.setItems(FXCollections.observableArrayList(data.auctions().stream().sorted((a,b) -> b.getStartTime().compareTo(a.getStartTime())).limit(10).toList()));
+            showPane(overviewPane);
         });
     }
     private long count(List<Auction> list, AuctionStatus status) { return list.stream().filter(a -> a.getStatus() == status).count(); }
-    private VBox card(String name, long value) { VBox box = new VBox(8, new Label(name), new Label(Long.toString(value))); box.getStyleClass().add("card-panel"); box.setPrefWidth(180); box.getChildren().get(0).getStyleClass().add("field-hint"); box.getChildren().get(1).getStyleClass().add("page-title"); box.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(box, Priority.ALWAYS); return box; }
     @FXML private void users() {
         if (!authorized) return;
         title.setText("Quản lý người dùng");
         run(userService::listUsers, data -> {
-            TextField search = new TextField(); search.setPromptText("Tìm tên đăng nhập hoặc email"); search.setPrefWidth(320); HBox.setHgrow(search, Priority.ALWAYS);
-            ComboBox<String> role = new ComboBox<>(FXCollections.observableArrayList("Tất cả", UserRole.BIDDER.getDisplayName(), UserRole.SELLER.getDisplayName(), UserRole.ADMIN.getDisplayName())); role.getSelectionModel().selectFirst();
-            TableView<AdminUser> table = new TableView<>(); table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); table.setFixedCellSize(44); table.setPlaceholder(new Label("Chưa có dữ liệu"));
-            column(table, "Tên đăng nhập", u -> u.getUser().getUsername());
-            column(table, "Email", u -> u.getUser().getEmail());
-            column(table, "Vai trò", u -> u.getUser().getRole().getDisplayName());
-            column(table, "Trạng thái", u -> u.isLocked() ? "Bị khóa" : "Hoạt động");
-            column(table, "Ngày tạo", u -> u.getCreatedAt().format(formatter));
-            TableColumn<AdminUser, String> action = new TableColumn<>("Thao tác");
-            action.setPrefWidth(300); action.setMinWidth(280);
+            userSearch.clear(); userRole.getSelectionModel().selectFirst();
+            userFilter = () -> userTable.setItems(FXCollections.observableArrayList(data.stream().filter(u -> (u.getUser().getUsername().toLowerCase().contains(userSearch.getText().toLowerCase()) || u.getUser().getEmail().toLowerCase().contains(userSearch.getText().toLowerCase())) && (userRole.getSelectionModel().getSelectedIndex() == 0 || u.getUser().getRole().getDisplayName().equals(userRole.getValue()))).toList()));
+            userFilter.run();
+            showPane(usersPane);
+        });
+    }
+    private void configureTables() {
+        userRole.getItems().setAll("Tất cả", UserRole.BIDDER.getDisplayName(), UserRole.SELLER.getDisplayName(), UserRole.ADMIN.getDisplayName());
+        auctionStatus.getItems().add("Tất cả"); for (AuctionStatus status : AuctionStatus.values()) auctionStatus.getItems().add(status.getDescription());
+        column(userName, u -> u.getUser().getUsername());
+        column(userEmail, u -> u.getUser().getEmail());
+        column(userRoleColumn, u -> u.getUser().getRole().getDisplayName());
+        column(userState, u -> u.isLocked() ? "Bị khóa" : "Hoạt động");
+        column(userCreated, u -> u.getCreatedAt().format(formatter));
+        TableColumn<AdminUser, String> action = userAction;
             action.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getUser().getId()));
             action.setCellFactory(c -> new TableCell<>() {
                 @Override protected void updateItem(String id, boolean empty) {
@@ -101,35 +122,32 @@ public class AdminController {
                     setGraphic(new HBox(5, lock, change, delete));
                 }
             });
-            table.getColumns().add(action);
-            Runnable filter = () -> table.setItems(FXCollections.observableArrayList(data.stream().filter(u -> (u.getUser().getUsername().toLowerCase().contains(search.getText().toLowerCase()) || u.getUser().getEmail().toLowerCase().contains(search.getText().toLowerCase())) && (role.getSelectionModel().getSelectedIndex() == 0 || u.getUser().getRole().getDisplayName().equals(role.getValue()))).toList()));
-            search.textProperty().addListener((o,a,b)->filter.run()); role.valueProperty().addListener((o,a,b)->filter.run()); filter.run();
-            content.getChildren().setAll(new HBox(10, search, role), table); VBox.setVgrow(table, Priority.ALWAYS);
-        });
+        configureAuctionTable(overviewName, overviewSeller, overviewPrice, overviewBidder, overviewState, overviewStart, overviewEnd);
+        configureAuctionTable(auctionName, auctionSeller, auctionPrice, auctionBidder, auctionState, auctionStart, auctionEnd);
+        configureAuctionActions();
+    }
+    private void showPane(VBox selected) {
+        for (VBox pane : List.of(overviewPane, usersPane, auctionsPane)) {
+            pane.setVisible(pane == selected); pane.setManaged(pane == selected);
+        }
     }
     @FXML private void auctions() {
         if (!authorized) return;
         title.setText("Quản lý phiên đấu giá");
         run(auctionService::listAuctions, data -> {
-            TextField search = new TextField(); search.setPromptText("Tìm tên phiên");
-            ComboBox<String> status = new ComboBox<>(); status.getItems().add("Tất cả"); for (AuctionStatus s : AuctionStatus.values()) status.getItems().add(s.getDescription()); status.getSelectionModel().selectFirst();
-            TableView<Auction> table = auctionTable(true);
-            Runnable filter = () -> table.setItems(FXCollections.observableArrayList(data.stream().filter(a -> a.getItemName().toLowerCase().contains(search.getText().toLowerCase()) && (status.getSelectionModel().getSelectedIndex() == 0 || a.getStatus().getDescription().equals(status.getValue()))).toList()));
-            search.textProperty().addListener((o,a,b)->filter.run()); status.valueProperty().addListener((o,a,b)->filter.run()); filter.run();
-            content.getChildren().setAll(new HBox(10, search, status), table); VBox.setVgrow(table, Priority.ALWAYS);
+            auctionSearch.clear(); auctionStatus.getSelectionModel().selectFirst();
+            auctionFilter = () -> auctionTable.setItems(FXCollections.observableArrayList(data.stream().filter(a -> a.getItemName().toLowerCase().contains(auctionSearch.getText().toLowerCase()) && (auctionStatus.getSelectionModel().getSelectedIndex() == 0 || a.getStatus().getDescription().equals(auctionStatus.getValue()))).toList()));
+            auctionFilter.run();
+            showPane(auctionsPane);
         });
     }
-    private TableView<Auction> auctionTable(boolean actions) {
-        TableView<Auction> table = new TableView<>(); table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY); table.setFixedCellSize(44); table.setPlaceholder(new Label("Chưa có dữ liệu"));
-        column(table, "Tên", Auction::getItemName); column(table, "Người bán", Auction::getSellerUsername);
-        column(table, "Giá hiện tại", a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
-        column(table, "Người dẫn đầu", Auction::getHighestBidderUsername);
-        column(table, "Trạng thái", a -> a.getStatus().getDescription());
-        column(table, "Bắt đầu", a -> a.getStartTime().format(formatter));
-        column(table, "Kết thúc", a -> a.getEndTime().format(formatter));
-        if (actions) {
-            TableColumn<Auction, String> action = new TableColumn<>("Thao tác");
-            action.setPrefWidth(240); action.setMinWidth(230);
+    private void configureAuctionTable(TableColumn<Auction, String> name, TableColumn<Auction, String> seller, TableColumn<Auction, String> price, TableColumn<Auction, String> bidder, TableColumn<Auction, String> state, TableColumn<Auction, String> start, TableColumn<Auction, String> end) {
+        column(name, Auction::getItemName); column(seller, Auction::getSellerUsername);
+        column(price, a -> FormatUtil.formatCurrency(a.getCurrentPrice())); column(bidder, Auction::getHighestBidderUsername);
+        column(state, a -> a.getStatus().getDescription()); column(start, a -> a.getStartTime().format(formatter)); column(end, a -> a.getEndTime().format(formatter));
+    }
+    private void configureAuctionActions() {
+            TableColumn<Auction, String> action = auctionAction;
             action.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId()));
             action.setCellFactory(c -> new TableCell<>() {
                 @Override protected void updateItem(String id, boolean empty) {
@@ -147,14 +165,9 @@ public class AdminController {
                     setGraphic(new HBox(5, detail, cancel, delete));
                 }
             });
-            table.getColumns().add(action);
-        }
-        return table;
     }
-    private <T> void column(TableView<T> table, String title, Function<T, String> value) {
-        TableColumn<T, String> c = new TableColumn<>(title);
-        c.setPrefWidth(145);
-        c.setCellValueFactory(row -> new SimpleStringProperty(value.apply(row.getValue()))); table.getColumns().add(c);
+    private <T> void column(TableColumn<T, String> column, Function<T, String> value) {
+        column.setCellValueFactory(row -> new SimpleStringProperty(value.apply(row.getValue())));
     }
     private boolean confirm(String text) { Alert alert = new Alert(Alert.AlertType.CONFIRMATION, text, ButtonType.OK, ButtonType.CANCEL); ViewNavigator.applyAppStylesheet(alert.getDialogPane()); return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK; }
     @FXML private void logout() {

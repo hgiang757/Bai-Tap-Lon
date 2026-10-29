@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.chart.AreaChart?>
+<?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -184,7 +184,7 @@
                        styleClass="chart-subtitle t-small"/>
                 <StackPane fx:id="chartContainer" styleClass="chart-container"
                            prefHeight="320.0" minHeight="240.0" maxHeight="320.0">
-                    <AreaChart fx:id="priceChart" prefHeight="304.0" minHeight="224.0"
+                    <LineChart fx:id="priceChart" prefHeight="304.0" minHeight="224.0"
                                maxHeight="304.0" title="" legendVisible="false"
                                animated="false" createSymbols="true">
                         <xAxis>
@@ -197,7 +197,7 @@
                                         autoRanging="false" forceZeroInRange="false"
                                         minorTickVisible="false" tickMarkVisible="false"/>
                         </yAxis>
-                    </AreaChart>
+                    </LineChart>
                     <Label fx:id="lblNoBids" text="Chưa có lượt đặt giá"
                            styleClass="chart-empty t-small" mouseTransparent="true"
                            visible="false" managed="false"/>

@@ -1,6 +1,5 @@
 package com.auction.client.controller;
 
-import com.auction.client.Main;
 import com.auction.client.ui.AppFooter;
 import com.auction.client.ui.Icons;
 import com.auction.client.ui.UserMenu;
@@ -76,7 +75,7 @@ public class ContactController {
 
         VBox note = new VBox(8);
         note.getStyleClass().addAll("card-panel", "contact-note");
-        Label noteText = new Label("Nếu có sai sót gì trong quá trình sử dụng, xin vui lòng liên hệ với nhóm phát triển qua các email ở trên.");
+        Label noteText = new Label("Nếu có sai sót gì trong quá trình sử dụng, xin vui lòng liên hệ với nhóm phát triển qua email ở trên.");
         noteText.setWrapText(true);
         note.getChildren().add(noteText);
         note.setMaxWidth(Double.MAX_VALUE);
@@ -132,13 +131,9 @@ public class ContactController {
             Clipboard.getSystemClipboard().setContent(clipboardContent);
             showToast("Đã sao chép email");
         });
-        Button emailButton = actionButton("Gửi email", "mail");
-        emailButton.setOnAction(event -> sendEmail(member.email));
         copy.setMaxWidth(Double.MAX_VALUE);
-        emailButton.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(copy, Priority.ALWAYS);
-        HBox.setHgrow(emailButton, Priority.ALWAYS);
-        actions.getChildren().addAll(copy, emailButton);
+        actions.getChildren().add(copy);
         card.getChildren().addAll(identity, actions);
         return card;
     }
@@ -150,17 +145,6 @@ public class ContactController {
         button.setGraphic(icon);
         button.setAccessibleText(text);
         return button;
-    }
-
-    private void sendEmail(String email) {
-        try {
-            if (Main.getHostServicesInstance() == null) {
-                throw new IllegalStateException("HostServices chưa sẵn sàng.");
-            }
-            Main.getHostServicesInstance().showDocument("mailto:" + email);
-        } catch (RuntimeException exception) {
-            showToast("Không mở được ứng dụng thư, hãy sao chép email");
-        }
     }
 
     private void showToast(String message) {
