@@ -12,6 +12,10 @@ import com.auction.client.util.AppInfo;
 import com.auction.client.ui.SmoothScroll;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.ui.Icons;
+import com.auction.client.ui.ProductImages;
+import com.auction.client.ui.RoundedClip;
+import javafx.scene.image.ImageView;
+import javafx.geometry.Rectangle2D;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -253,11 +257,31 @@ public class HomeController {
         // Image placeholder
         VBox imgBox = new VBox();
         imgBox.getStyleClass().add("auction-card-image");
-        imgBox.setPrefHeight(120.0);
+        imgBox.setPrefSize(300, 120);
+        imgBox.setMinSize(300, 120);
+        imgBox.setMaxSize(300, 120);
+        imgBox.setStyle("-fx-min-height: 120px;");
+        RoundedClip.apply(imgBox, 12);
         Label imgLabel = new Label();
         setIcon(imgLabel, getCategoryIconName(auction.getItemCategory()), 64, "icon-on-panel");
         imgBox.getChildren().add(imgLabel);
         imgBox.setAlignment(javafx.geometry.Pos.CENTER);
+        Thread imageLoader = new Thread(() -> {
+            String path = ServiceRegistry.getProductService().getImagePath(auction.getId());
+            if (path == null || path.isBlank()) return;
+            var image = ProductImages.load(path, 0, 0);
+            if (image == null) return;
+            double width = image.getWidth(), height = image.getHeight();
+            double cropWidth = Math.min(width, height * 2.5);
+            double cropHeight = Math.min(height, width / 2.5);
+            Platform.runLater(() -> {
+                ImageView view = new ImageView(image);
+                view.setViewport(new Rectangle2D((width - cropWidth) / 2, (height - cropHeight) / 2, cropWidth, cropHeight));
+                view.setFitWidth(300); view.setFitHeight(120);
+                imgBox.getChildren().setAll(view);
+            });
+        }, "product-card-image");
+        imageLoader.setDaemon(true); imageLoader.start();
 
         // Countdown label
         Label lblCountdown = new Label("--:--:--");
