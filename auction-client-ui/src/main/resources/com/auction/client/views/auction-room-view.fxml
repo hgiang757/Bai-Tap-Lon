@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
@@ -68,7 +69,8 @@
                     </HBox>
 
                     <!-- Placeholder ảnh sản phẩm -->
-                    <StackPane styleClass="product-image-placeholder" prefHeight="200.0">
+                    <StackPane fx:id="productImageContainer" styleClass="product-image-placeholder" prefHeight="200.0">
+                        <ImageView fx:id="productImage" fitWidth="468.0" fitHeight="200.0" preserveRatio="true" visible="false" managed="false"/>
                         <Label fx:id="lblProductImageIcon" text="Hình ảnh sản phẩm"
                                styleClass="product-image-icon"/>
                     </StackPane>
