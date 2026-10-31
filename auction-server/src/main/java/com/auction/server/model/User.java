@@ -32,3 +32,50 @@ public abstract class User extends Entity {
     // Phương thức trừu tượng thể hiện Đa hình (Polymorphism)
     public abstract String getRoleName();
 }
+
+
+// Lớp Người Mua (Đấu giá viên)
+class Bidder extends User {
+    private static final long serialVersionUID = 1L;
+
+    public Bidder(String id, String username, String password) {
+        super(id, username, password);
+    }
+
+    @Override
+    public String getRoleName() {
+        return "BIDDER";
+    }
+}
+
+
+
+// Lớp Người Bán
+class Seller extends User {
+    private static final long serialVersionUID = 1L;
+
+    public Seller(String id, String username, String password) {
+        super(id, username, password);
+    }
+
+    @Override
+    public String getRoleName() {
+        return "SELLER";
+    }
+}
+
+
+
+// Lớp Quản trị viên
+class Admin extends User {
+    private static final long serialVersionUID = 1L;
+
+    public Admin(String id, String username, String password) {
+        super(id, username, password);
+    }
+
+    @Override
+    public String getRoleName() {
+        return "ADMIN";
+    }
+}
