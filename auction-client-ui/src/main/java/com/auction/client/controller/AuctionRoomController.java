@@ -10,6 +10,9 @@ import com.auction.client.service.ServiceRegistry;
 import com.auction.client.util.FormatUtil;
 import com.auction.client.util.AppInfo;
 import com.auction.client.ui.Icons;
+import com.auction.client.ui.ProductImages;
+import com.auction.client.ui.RoundedClip;
+import javafx.scene.image.ImageView;
 import com.auction.client.ui.SmoothScroll;
 import com.auction.client.navigation.ViewNavigator;
 import javafx.animation.KeyFrame;
@@ -66,6 +69,8 @@ public class AuctionRoomController {
     @FXML private Label lblStatusExplanation;
     @FXML private Label lblCountdown;
     @FXML private Label lblProductImageIcon;
+    @FXML private ImageView productImage;
+    @FXML private StackPane productImageContainer;
     @FXML private Label lblAvailableBalance;
     @FXML private VBox autoBidCard;
     @FXML private Label lblAutoTitle, lblAutoMaxFormat, lblAutoStepFormat, lblAutoError, lblAutoReason, lblAutoStatus;
@@ -114,6 +119,7 @@ public class AuctionRoomController {
         setupQuickBidButtons();
         setupAutoBid();
         setupPlaceholder();
+        RoundedClip.apply(productImageContainer, 12);
         checkDevMode();
         hideAlert();
         refreshAvailable();
@@ -204,6 +210,7 @@ public class AuctionRoomController {
         if (currentAuction != null && realtimeBidConsumer != null) {
             auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
         }
+        productImage.setImage(null);
         this.currentAuction = auction;
         txtAutoIncrement.setText(String.format("%.0f", auction.getMinBidStep()));
         refreshAutoBid();
@@ -232,6 +239,12 @@ public class AuctionRoomController {
         lblSeller.setText("Người bán: " + currentAuction.getSellerUsername());
         lblDescription.setText(currentAuction.getItem() != null ? currentAuction.getItem().getDescription() : "");
         setProductImageIcon(currentAuction.getItemCategory());
+        var image = ProductImages.load(ServiceRegistry.getProductService().getImagePath(currentAuction.getId()), 468, 200);
+        productImage.setImage(image);
+        productImage.setVisible(image != null);
+        productImage.setManaged(image != null);
+        lblProductImageIcon.setVisible(image == null);
+        lblProductImageIcon.setManaged(image == null);
         lblStartingPrice.setText(currentAuction.getFormattedStartingPrice());
         lblCurrentPrice.setText(currentAuction.getFormattedCurrentPrice());
         lblHighestBidder.setText(currentAuction.getHighestBidderUsername());

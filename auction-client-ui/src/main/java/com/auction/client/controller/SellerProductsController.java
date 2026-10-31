@@ -9,6 +9,7 @@ import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.service.ProductService;
 import com.auction.client.service.ServiceRegistry;
 import com.auction.client.util.FormatUtil;
+import com.auction.client.ui.ProductImages;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -71,8 +72,9 @@ public class SellerProductsController {
             @Override protected void updateItem(String id, boolean empty) {
                 super.updateItem(id, empty); setGraphic(null);
                 String path = images.get(id);
-                if (!empty && path != null) {
-                    ImageView view = new ImageView(new Image(new File(path).toURI().toString(), 48, 48, true, true, true));
+                Image loaded = empty || path == null || path.isBlank() ? null : ProductImages.load(path, 48, 48);
+                if (loaded != null) {
+                    ImageView view = new ImageView(loaded);
                     setGraphic(view);
                 } else if (!empty && getTableRow().getItem() != null) {
                     var icon = com.auction.client.ui.Icons.icon(com.auction.client.model.ItemCategory.from(getTableRow().getItem().getItemCategory()).getIcon(), 24);
@@ -114,7 +116,8 @@ public class SellerProductsController {
                     Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Xóa sản phẩm " + a.getItemName() + "?", ButtonType.OK, ButtonType.CANCEL);
                     ViewNavigator.applyAppStylesheet(confirm.getDialogPane());
                     if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-                        run(() -> { service.deleteProduct(currentUser.getUsername(), id); return null; }, ignored -> load());
+                        String imagePath = images.get(id);
+                        run(() -> { service.deleteProduct(currentUser.getUsername(), id); ProductImages.deleteImportedImage(imagePath, id); return null; }, ignored -> load());
                     }
                 });
                 setGraphic(new HBox(5, detail, edit, delete));
@@ -185,18 +188,19 @@ public class SellerProductsController {
         CheckBox now = new CheckBox("Bắt đầu ngay");
         ComboBox<String> duration = new ComboBox<>(FXCollections.observableArrayList("30 phút", "1 giờ", "6 giờ", "1 ngày", "3 ngày", "7 ngày", "Tùy chọn")); duration.setValue("Tùy chọn");
         ImageView preview = new ImageView(); preview.setFitWidth(110); preview.setFitHeight(75); preview.setPreserveRatio(true);
-        String savedPath = original == null ? null : images.get(original.getId()); String[] path = {savedPath};
+        String storedPath = original == null ? null : images.get(original.getId());
+        String savedPath = storedPath == null || storedPath.isBlank() ? null : storedPath; String[] path = {savedPath};
         Button choose = new Button("Chọn ảnh"), remove = new Button("Bỏ ảnh"); Label filename = new Label(), imageState = new Label(), imageError = new Label();
         filename.setMaxWidth(220); imageError.getStyleClass().add("field-error"); imageError.setWrapText(true);
         Runnable refreshImage = () -> {
             remove.setVisible(path[0] != null); remove.setManaged(path[0] != null);
             filename.setText(path[0] == null ? "" : new File(path[0]).getName()); filename.setTooltip(path[0] == null ? null : new Tooltip(path[0]));
             imageState.setText(path[0] == null ? "Chưa chọn ảnh" : path[0].equals(savedPath) ? "Đã lưu" : "Đã chọn · chưa lưu");
-            preview.setImage(path[0] == null ? null : new Image(new File(path[0]).toURI().toString(), true));
+            preview.setImage(path[0] == null ? null : ProductImages.load(path[0], 110, 75));
         };
-        choose.setOnAction(e -> { FileChooser chooser = new FileChooser(); chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif")); File file = chooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow()); if (file != null) {
+        choose.setOnAction(e -> { FileChooser chooser = new FileChooser(); chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")); File file = chooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow()); if (file != null) {
             String lower = file.getName().toLowerCase(java.util.Locale.ROOT); Image candidate = new Image(file.toURI().toString());
-            if (!file.isFile() || file.length() >= 5 * 1024 * 1024 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif")) || candidate.isError()) imageError.setText("Ảnh phải là PNG/JPG/GIF và nhỏ hơn 5 MB.");
+            if (!file.isFile() || file.length() >= 5 * 1024 * 1024 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") || lower.endsWith(".bmp")) || candidate.isError()) imageError.setText("Ảnh phải là PNG/JPG/GIF và nhỏ hơn 5 MB.");
             else { imageError.setText(""); path[0] = file.getAbsolutePath(); refreshImage.run(); }
         }});
         remove.setOnAction(e -> { path[0] = null; imageError.setText(""); refreshImage.run(); }); refreshImage.run();
@@ -235,7 +239,13 @@ public class SellerProductsController {
             String id = original == null ? UUID.randomUUID().toString() : original.getId();
             Item item = new Item(original == null ? UUID.randomUUID().toString() : original.getItem().getId(), name.getText().trim(), description.getText().trim(), type.getValue(), Double.parseDouble(price.getText()), currentUser.getUsername());
             Auction auction = new Auction(id, item, currentUser.getUsername(), item.getStartingPrice(), null, AuctionStatus.OPEN, a, b, Double.parseDouble(step.getText()));
-            run(() -> { service.saveProduct(auction, path[0]); return null; }, ignored -> load());
+            run(() -> {
+                String imagePath = path[0];
+                if (imagePath != null && !imagePath.equals(savedPath)) imagePath = ProductImages.importImage(new File(imagePath), id);
+                service.saveProduct(auction, imagePath == null ? "" : imagePath);
+                if (savedPath != null && !savedPath.equals(imagePath)) ProductImages.deleteImportedImage(savedPath, id);
+                return null;
+            }, ignored -> load());
         }
     }
     private boolean positive(String text) { try { double value = Double.parseDouble(text); return Double.isFinite(value) && value > 0; } catch (NumberFormatException e) { return false; } }
