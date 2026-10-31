@@ -1,12 +1,14 @@
+package com.auction.server.network;
+
 import java.io.*;
 import java.net.*;
 
 public class Server {
     public static void main(String[] args) {
         try {
-            // Open port 8888 on Server to accept incoming connections
+            // Open port 8888 on com.auction.server.network.Server to accept incoming connections
             ServerSocket serverSocket = new ServerSocket(8888);
-            System.out.println("[SERVER] Multithreaded Server is running on port 8888...");
+            System.out.println("[SERVER] Multithreaded com.auction.server.network.Server is running on port 8888...");
 
             int clientCount = 0;
 
@@ -60,7 +62,7 @@ class ClientHandler implements Runnable {
                 System.out.println("[CLIENT #" + clientId + "]: " + message);
 
                 // Echo message back to client
-                out.writeUTF("Server received: " + message);
+                out.writeUTF("com.auction.server.network.Server received: " + message);
                 out.flush();
             }
         } catch (EOFException e) {
