@@ -16,7 +16,7 @@ class MockWalletServiceTest {
         wallet.deposit("a", 100_000); wallet.withdraw("a", 20_000);
         assertEquals(80_000, wallet.getBalance("a"));
         assertEquals(80_000, wallet.getTransactions("a").get(0).balanceAfter());
-        assertEquals("Số dư khả dụng không đủ để rút.", assertThrows(WalletException.class, () -> wallet.withdraw("a", 80_001)).getMessage());
+        assertEquals("Số tiền có thể sử dụng không đủ để rút.", assertThrows(WalletException.class, () -> wallet.withdraw("a", 80_001)).getMessage());
     }
     @Test void holdsReleaseAndPaymentAreAtomic() {
         var store = MockDataStore.createForTesting(); var wallet = new MockWalletService(store);

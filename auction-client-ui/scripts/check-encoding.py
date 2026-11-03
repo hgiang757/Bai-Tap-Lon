@@ -5,8 +5,9 @@ import sys
 root = Path(__file__).resolve().parent.parent
 pattern = re.compile(r"[A-Za-z]\?[A-Za-z]|\?{2,}|\ufffd")
 errors = []
-for folder in (root / "src/main", root / "docs/ui"):
-    for path in folder.rglob("*"):
+for folder in (root / "src", root / "docs", root):
+    paths = folder.rglob("*") if folder != root else [root / "README.md"]
+    for path in paths:
         if not path.is_file() or path.suffix not in {".java", ".fxml", ".css", ".properties", ".md"}:
             continue
         try:

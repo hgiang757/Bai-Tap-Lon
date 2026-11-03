@@ -31,6 +31,10 @@ public final class FormatUtil {
     /**
      * Định dạng số tiền theo quy chuẩn Việt Nam: 185.000.000 ₫
      */
+    public static String formatCurrency(long amount) {
+        return CURRENCY_FORMAT.format(amount) + " ₫";
+    }
+
     public static String formatCurrency(double amount) {
         return CURRENCY_FORMAT.format(amount) + " ₫";
     }

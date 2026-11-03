@@ -25,7 +25,7 @@ public final class MockWalletService implements WalletService {
     @Override public void withdraw(String user, long amount) { synchronized (store) {
         if (amount <= 0) throw new WalletException("Số tiền phải là số nguyên dương.");
         store.refreshStatuses();
-        if (store.balance(user) - store.held(user) < amount) throw new WalletException("Số dư khả dụng không đủ để rút.");
+        if (store.balance(user) - store.held(user) < amount) throw new WalletException("Số tiền có thể sử dụng không đủ để rút.");
         store.changeBalance(user, store.balance(user) - amount, TransactionType.WITHDRAW, amount, null);
     } }
     @Override public List<Transaction> getTransactions(String user) { synchronized (store) { store.refreshStatuses(); return store.transactions(user); } }

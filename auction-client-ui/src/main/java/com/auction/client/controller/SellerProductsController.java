@@ -1,5 +1,7 @@
 package com.auction.client.controller;
 
+import com.auction.client.navigation.ViewTasks;
+import com.auction.client.navigation.DisposableView;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.model.Item;
@@ -22,11 +24,9 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -36,7 +36,10 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 /** Điều khiển trang quản lý sản phẩm của người bán. */
-public class SellerProductsController {
+public class SellerProductsController implements DisposableView {
+    private final ViewTasks tasks = new ViewTasks();
+    public boolean isLoading() { return progress.isVisible(); }
+    @Override public void dispose() { tasks.close(); imageScopes.forEach(ViewTasks::close); imageScopes.clear(); }
     @FXML private TextField search;
     @FXML private ComboBox<String> status;
     @FXML private ComboBox<String> category;
@@ -48,6 +51,7 @@ public class SellerProductsController {
     private final ProductService service = ServiceRegistry.getProductService();
     private final ObservableList<Auction> rows = FXCollections.observableArrayList();
     private final Map<String, String> images = new HashMap<>();
+    private final java.util.List<ViewTasks> imageScopes = new java.util.ArrayList<>();
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private User currentUser;
 
@@ -69,18 +73,23 @@ public class SellerProductsController {
 
         image.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId()));
         image.setCellFactory(c -> new TableCell<>() {
+            private final ViewTasks cellImages = ViewTasks.images();
+            {
+                imageScopes.add(cellImages);
+                sceneProperty().addListener((o, oldScene, scene) -> { if (scene == null) cellImages.cancelAll(); });
+            }
             @Override protected void updateItem(String id, boolean empty) {
-                super.updateItem(id, empty); setGraphic(null);
-                String path = images.get(id);
-                Image loaded = empty || path == null || path.isBlank() ? null : ProductImages.load(path, 48, 48);
-                if (loaded != null) {
-                    ImageView view = new ImageView(loaded);
-                    setGraphic(view);
-                } else if (!empty && getTableRow().getItem() != null) {
+                super.updateItem(id, empty);
+                cellImages.cancelAll(); setGraphic(null);
+                if (empty || id == null) return;
+                if (getTableRow().getItem() != null) {
                     var icon = com.auction.client.ui.Icons.icon(com.auction.client.model.ItemCategory.from(getTableRow().getItem().getItemCategory()).getIcon(), 24);
-                    icon.getStyleClass().add("icon-muted");
-                    setGraphic(icon);
+                    icon.getStyleClass().add("icon-muted"); setGraphic(icon);
                 }
+                String path = images.get(id);
+                cellImages.submit("thumbnail", () -> ProductImages.load(path, 48, 48), loaded -> {
+                    if (loaded != null && !isEmpty() && id.equals(getItem())) setGraphic(new ImageView(loaded));
+                }, error -> { /* Giữ icon; lỗi/hàng đợi đầy không khóa bảng. */ });
                 setAlignment(javafx.geometry.Pos.CENTER);
             }
         });
@@ -142,17 +151,26 @@ public class SellerProductsController {
         run(() -> {
             List<Auction> list = service.listProducts(currentUser.getUsername());
             Map<String, String> paths = new HashMap<>();
-            for (Auction a : list) paths.put(a.getId(), service.getImagePath(a.getId()));
+            for (Auction a : list) {
+                String path = service.getImagePath(a.getId()); paths.put(a.getId(), path);
+            }
             return new Products(list, paths);
-        }, result -> { images.clear(); images.putAll(result.paths()); rows.setAll(result.rows()); filter(); table.refresh(); });
+        }, result -> {
+            images.clear(); images.putAll(result.paths());
+            rows.setAll(result.rows()); filter(); table.refresh();
+        });
     }
     private <T> void run(Callable<T> work, Consumer<T> success) {
         progress.setVisible(true); progress.setManaged(true); table.setDisable(true); addButton.setDisable(true); message.setText("");
-        Task<T> task = new Task<>() { @Override protected T call() throws Exception { return work.call(); } };
-        task.setOnSucceeded(e -> Platform.runLater(() -> { progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false); success.accept(task.getValue()); }));
-        task.setOnFailed(e -> Platform.runLater(() -> { progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false); message.setText("Không thể thực hiện: " + task.getException().getMessage()); }));
-        Thread worker = new Thread(task, "seller-service"); worker.setDaemon(true); worker.start();
+        tasks.submit("seller", work, value -> {
+            progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false);
+            success.accept(value);
+        }, error -> {
+            progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false);
+            message.setText("Không thể thực hiện: " + error.getMessage());
+        });
     }
+
     @FXML private void add() { form(null); }
     private void detail(Auction auction) {
         run(() -> service.getBidHistory(auction.getId()), history -> {
@@ -166,15 +184,22 @@ public class SellerProductsController {
     }
     private void form(Auction original) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        var imageTasks = ViewTasks.images();
+        imageScopes.add(imageTasks);
+        dialog.setOnHidden(event -> { imageTasks.close(); imageScopes.remove(imageTasks); });
         dialog.setTitle(original == null ? "Thêm sản phẩm" : "Sửa sản phẩm");
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         ViewNavigator.applyAppStylesheet(dialog.getDialogPane());
         TextField name = new TextField(), price = new TextField(), step = new TextField();
+        name.setId("productName"); price.setId("productPrice"); step.setId("productStep");
         price.setPromptText("VD: 5000000"); step.setPromptText("VD: 5000000");
         TextArea description = new TextArea(); description.setPrefRowCount(3);
+        description.setId("productDescription");
         ComboBox<String> type = new ComboBox<>();
+        type.setId("productCategory");
         for (var c : com.auction.client.model.ItemCategory.values()) type.getItems().add(c.getLabel());
         DatePicker start = new DatePicker(), end = new DatePicker();
+        start.setId("productStart"); end.setId("productEnd");
         DateTimeFormatter dayFormat = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(java.time.format.ResolverStyle.STRICT);
         for (DatePicker day : List.of(start, end)) {
             day.setPromptText("dd/mm/yyyy (VD: 30/10/2026)"); day.setEditable(true);
@@ -184,6 +209,7 @@ public class SellerProductsController {
             });
         }
         TextField startTime = new TextField(), endTime = new TextField();
+        startTime.setId("productStartTime"); endTime.setId("productEndTime");
         startTime.setPromptText("HH:mm (VD: 14:30)"); endTime.setPromptText("HH:mm (VD: 14:30)");
         CheckBox now = new CheckBox("Bắt đầu ngay");
         ComboBox<String> duration = new ComboBox<>(FXCollections.observableArrayList("30 phút", "1 giờ", "6 giờ", "1 ngày", "3 ngày", "7 ngày", "Tùy chọn")); duration.setValue("Tùy chọn");
@@ -196,13 +222,26 @@ public class SellerProductsController {
             remove.setVisible(path[0] != null); remove.setManaged(path[0] != null);
             filename.setText(path[0] == null ? "" : new File(path[0]).getName()); filename.setTooltip(path[0] == null ? null : new Tooltip(path[0]));
             imageState.setText(path[0] == null ? "Chưa chọn ảnh" : path[0].equals(savedPath) ? "Đã lưu" : "Đã chọn · chưa lưu");
-            preview.setImage(path[0] == null ? null : ProductImages.load(path[0], 110, 75));
+            preview.setImage(null);
+            String selectedPath = path[0];
+            imageTasks.submit("preview", () -> ProductImages.load(selectedPath, 110, 75), preview::setImage,
+                    error -> imageError.setText("Không thể nạp ảnh."));
         };
         choose.setOnAction(e -> { FileChooser chooser = new FileChooser(); chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp")); File file = chooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow()); if (file != null) {
-            String lower = file.getName().toLowerCase(java.util.Locale.ROOT); Image candidate = new Image(file.toURI().toString());
-            if (!file.isFile() || file.length() >= 5 * 1024 * 1024 || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") || lower.endsWith(".bmp")) || candidate.isError()) imageError.setText("Ảnh phải là PNG/JPG/GIF và nhỏ hơn 5 MB.");
-            else { imageError.setText(""); path[0] = file.getAbsolutePath(); refreshImage.run(); }
+            imageError.setText("Đang kiểm tra ảnh…");
+            imageTasks.submit("preview", () -> {
+                String lower = file.getName().toLowerCase(java.util.Locale.ROOT);
+                if (!file.isFile() || file.length() >= 5 * 1024 * 1024
+                        || !(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") || lower.endsWith(".bmp"))) {
+                    throw new IOException("Ảnh phải là PNG/JPG/GIF/BMP và nhỏ hơn 5 MB.");
+                }
+                Image candidate = ProductImages.load(file.getAbsolutePath(), 110, 75);
+                if (candidate == null) throw new IOException("Không thể đọc ảnh đã chọn.");
+                return candidate;
+            }, candidate -> { imageError.setText(""); path[0] = file.getAbsolutePath(); refreshImage.run(); },
+                    error -> imageError.setText(error.getMessage()));
         }});
+
         remove.setOnAction(e -> { path[0] = null; imageError.setText(""); refreshImage.run(); }); refreshImage.run();
         if (original != null) {
             name.setText(original.getItemName()); description.setText(original.getItem().getDescription()); type.setValue(original.getItemCategory()); price.setText(String.valueOf(original.getStartingPrice())); step.setText(String.valueOf(original.getMinBidStep()));

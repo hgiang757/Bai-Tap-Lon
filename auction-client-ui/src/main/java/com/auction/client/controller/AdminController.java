@@ -1,5 +1,7 @@
 package com.auction.client.controller;
 
+import com.auction.client.navigation.ViewTasks;
+import com.auction.client.navigation.DisposableView;
 import com.auction.client.model.AdminUser;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
@@ -16,10 +18,8 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
@@ -27,7 +27,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /** Điều khiển ba màn hình quản trị. */
-public class AdminController {
+public class AdminController implements DisposableView {
+    private final ViewTasks tasks = new ViewTasks();
+    @Override public void dispose() { tasks.close(); }
     @FXML private VBox content, overviewPane, usersPane, auctionsPane;
     @FXML private Label usersCount, openCount, runningCount, finishedCount, canceledCount;
     @FXML private TextField userSearch, auctionSearch;
@@ -45,7 +47,6 @@ public class AdminController {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private String actorId;
     private boolean authorized;
-    private long generation;
     private Runnable userFilter = () -> {}, auctionFilter = () -> {};
 
     /** Kiểm tra vai trò và hiển thị tổng quan. */
@@ -65,13 +66,15 @@ public class AdminController {
     }
     private <T> void run(Callable<T> work, Consumer<T> success) {
         if (!authorized) return;
-        long request = ++generation;
         content.setDisable(true); progress.setVisible(true); progress.setManaged(true); message.setText("");
-        Task<T> task = new Task<>() { @Override protected T call() throws Exception { return work.call(); } };
-        task.setOnSucceeded(e -> Platform.runLater(() -> { if (request != generation) return; content.setDisable(false); progress.setVisible(false); progress.setManaged(false); success.accept(task.getValue()); }));
-        task.setOnFailed(e -> Platform.runLater(() -> { if (request != generation) return; content.setDisable(false); progress.setVisible(false); progress.setManaged(false); message.setText("Không thể thực hiện: " + task.getException().getMessage()); }));
-        Thread worker = new Thread(task, "admin-service"); worker.setDaemon(true); worker.start();
+        tasks.submit("admin", work, value -> {
+            content.setDisable(false); progress.setVisible(false); progress.setManaged(false); success.accept(value);
+        }, error -> {
+            content.setDisable(false); progress.setVisible(false); progress.setManaged(false);
+            message.setText("Không thể thực hiện: " + error.getMessage());
+        });
     }
+
     private record Summary(List<AdminUser> users, List<Auction> auctions) { }
     @FXML private void overview() {
         if (!authorized) return;

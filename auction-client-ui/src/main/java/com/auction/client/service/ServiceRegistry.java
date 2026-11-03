@@ -1,54 +1,75 @@
 package com.auction.client.service;
 
-import com.auction.client.service.mock.MockAuctionClientService;
-/**
- * Service Locator / Registry quản lý instance của AuctionClientService.
- * Giúp các Controller hoàn toàn tách rời (loose-coupling) với việc khởi tạo Service,
- * cho phép hoán đổi linh hoạt giữa MockService và SocketService/NetworkService thực tế.
- */
-public class ServiceRegistry {
-    private static AuctionClientService instance;
-    private static AutoBidService autoBidService = new com.auction.client.service.mock.MockAutoBidService(
-            com.auction.client.service.mock.MockDataStore.getInstance(), ServiceRegistry::getService);
-    /** Lấy dịch vụ đặt giá tự động. */
-    public static synchronized AutoBidService getAutoBidService() { return autoBidService; }
-    /** Thay dịch vụ đặt giá tự động. */
-    public static synchronized void setAutoBidService(AutoBidService service) { autoBidService = java.util.Objects.requireNonNull(service); }
-    private static WalletService walletService = new com.auction.client.service.mock.MockWalletService();
-    /** Lấy dịch vụ ví mô phỏng. */
-    public static synchronized WalletService getWalletService() { return walletService; }
-    /** Thay dịch vụ ví. */
-    public static synchronized void setWalletService(WalletService service) { walletService = java.util.Objects.requireNonNull(service); }
-    private static final com.auction.client.service.mock.MockManagementService MANAGEMENT =
-            new com.auction.client.service.mock.MockManagementService();
-    private static ProductService productService = MANAGEMENT;
-    private static UserAdminService userAdminService = MANAGEMENT;
-    private static AuctionAdminService auctionAdminService = MANAGEMENT;
+import com.auction.client.service.mock.*;
+import java.util.Objects;
 
-    /** Lấy dịch vụ sản phẩm. */
-    public static ProductService getProductService() { return productService; }
-    /** Thay dịch vụ sản phẩm khi kết nối Socket. */
-    public static void setProductService(ProductService service) { productService = service; }
-    /** Lấy dịch vụ quản trị người dùng. */
-    public static UserAdminService getUserAdminService() { return userAdminService; }
-    /** Thay dịch vụ quản trị người dùng khi kết nối Socket. */
-    public static void setUserAdminService(UserAdminService service) { userAdminService = service; }
-    /** Lấy dịch vụ quản trị phiên. */
-    public static AuctionAdminService getAuctionAdminService() { return auctionAdminService; }
-    /** Thay dịch vụ quản trị phiên khi kết nối Socket. */
-    public static void setAuctionAdminService(AuctionAdminService service) { auctionAdminService = service; }
+/** Bộ dịch vụ dùng chung. Thay cả bộ khi tích hợp adapter để không trộn mock/server. */
+public final class ServiceRegistry {
+    private static Services services = mockServices();
+    private static BidSubmissionTracker bidSubmissions = new BidSubmissionTracker();
+    private ServiceRegistry() { }
 
-    private ServiceRegistry() {
-    }
-
-    public static synchronized AuctionClientService getService() {
-        if (instance == null) {
-            instance = new MockAuctionClientService();
+    private record Services(AuctionClientService auction, WalletService wallet, AutoBidService autoBid,
+                            ProductService products, UserAdminService users, AuctionAdminService auctions) {
+        Services {
+            Objects.requireNonNull(auction); Objects.requireNonNull(wallet); Objects.requireNonNull(autoBid);
+            Objects.requireNonNull(products); Objects.requireNonNull(users); Objects.requireNonNull(auctions);
+            boolean mock = auction instanceof MockAuctionClientService;
+            if (mock != (wallet instanceof MockWalletService) || mock != (autoBid instanceof MockAutoBidService)
+                    || mock != (products instanceof MockManagementService) || mock != (users instanceof MockManagementService)
+                    || mock != (auctions instanceof MockManagementService)) {
+                throw new IllegalArgumentException("Không được trộn dịch vụ mock với dịch vụ server. Hãy dùng setServices.");
+            }
         }
-        return instance;
     }
 
+    private static Services mockServices() {
+        MockDataStore store = MockDataStore.getInstance();
+        MockManagementService management = new MockManagementService(store);
+        return new Services(new MockAuctionClientService(store), new MockWalletService(store),
+                new MockAutoBidService(store, ServiceRegistry::getService), management, management, management);
+    }
+
+    /** Backend hiện chỉ echo chuỗi; cấu hình khác mock phải báo lỗi, không tự fallback. */
+    public static void validateMode() {
+        String mode = System.getProperty("auction.mode", "mock").trim();
+        if (!"mock".equalsIgnoreCase(mode)) throw new IllegalStateException("Chế độ '" + mode
+                + "' chưa được hỗ trợ: backend hiện chỉ echo chuỗi. Dùng -Dauction.mode=mock.");
+    }
+
+    public static synchronized AuctionClientService getService() { validateMode(); return services.auction(); }
+    public static synchronized WalletService getWalletService() { validateMode(); return services.wallet(); }
+    public static synchronized AutoBidService getAutoBidService() { validateMode(); return services.autoBid(); }
+    public static synchronized ProductService getProductService() { validateMode(); return services.products(); }
+    public static synchronized UserAdminService getUserAdminService() { validateMode(); return services.users(); }
+    public static synchronized AuctionAdminService getAuctionAdminService() { validateMode(); return services.auctions(); }
+    public static synchronized BidSubmissionTracker getBidSubmissions() { return bidSubmissions; }
+
+    /** Điểm cấu hình adapter trong tương lai; không có adapter nghiệp vụ server ở bản hiện tại. */
+    public static synchronized void setServices(AuctionClientService auction, WalletService wallet, AutoBidService autoBid,
+            ProductService products, UserAdminService users, AuctionAdminService auctions) {
+        Services next = new Services(auction, wallet, autoBid, products, users, auctions);
+        if (services.auction() != auction) bidSubmissions = new BidSubmissionTracker();
+        services = next;
+    }
+
+    // Giữ tên public cũ để tương thích nơi tích hợp. Việc thay riêng không được trộn mock/server.
     public static synchronized void setService(AuctionClientService service) {
-        instance = service;
+        setServices(service, services.wallet(), services.autoBid(), services.products(), services.users(), services.auctions());
+    }
+    public static synchronized void setWalletService(WalletService service) {
+        setServices(services.auction(), service, services.autoBid(), services.products(), services.users(), services.auctions());
+    }
+    public static synchronized void setAutoBidService(AutoBidService service) {
+        setServices(services.auction(), services.wallet(), service, services.products(), services.users(), services.auctions());
+    }
+    public static synchronized void setProductService(ProductService service) {
+        setServices(services.auction(), services.wallet(), services.autoBid(), service, services.users(), services.auctions());
+    }
+    public static synchronized void setUserAdminService(UserAdminService service) {
+        setServices(services.auction(), services.wallet(), services.autoBid(), services.products(), service, services.auctions());
+    }
+    public static synchronized void setAuctionAdminService(AuctionAdminService service) {
+        setServices(services.auction(), services.wallet(), services.autoBid(), services.products(), services.users(), service);
     }
 }
