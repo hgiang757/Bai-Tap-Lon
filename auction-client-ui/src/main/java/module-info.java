@@ -8,7 +8,7 @@ module com.auction.client {
 
     opens com.auction.client to javafx.fxml, javafx.graphics;
     opens com.auction.client.controller to javafx.fxml;
-    opens com.auction.client.dev to javafx.fxml;
+    opens com.auction.client.dev to javafx.fxml, javafx.graphics;
     opens com.auction.client.ui to javafx.fxml;
     opens com.auction.client.util to javafx.fxml;
     opens com.auction.client.model to javafx.base;

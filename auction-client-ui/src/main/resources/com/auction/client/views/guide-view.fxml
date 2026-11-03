@@ -14,7 +14,7 @@
     <top>
         <AppHeader alignment="CENTER_LEFT" spacing="14.0" styleClass="top-bar">
             <Button text="← Quay lại" onAction="#handleBack"/>
-            <Label text="Hướng dẫn sử dụng" styleClass="view-title t-h3"/>
+            <Label text="Hướng dẫn sử dụng" styleClass="view-title, t-h3"/>
             <Region HBox.hgrow="ALWAYS"/>
             
             
@@ -28,8 +28,8 @@
                 <VBox fx:id="pageContent" spacing="24.0" maxWidth="1200.0" styleClass="page-content">
                     <padding><Insets top="32.0" right="32.0" bottom="0.0" left="32.0"/></padding>
                     <VBox styleClass="page-intro">
-                        <Label text="Hướng dẫn sử dụng" styleClass="page-title t-display"/>
-                        <Label text="Tìm hiểu cách tham gia phiên đấu giá và quản lý sản phẩm." styleClass="page-subtitle t-body"/>
+                        <Label text="Hướng dẫn sử dụng" styleClass="page-title, t-display"/>
+                        <Label text="Tìm hiểu cách tham gia phiên đấu giá và quản lý sản phẩm." styleClass="page-subtitle, t-body"/>
                     </VBox>
                 </VBox>
                 </StackPane>

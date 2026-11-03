@@ -1,6 +1,5 @@
-# Image Credits
+# Nguồn tài nguyên hình ảnh
 
-| File | Description | Source / Author | Purpose |
-|---|---|---|---|
-| `src/main/resources/com/auction/client/images/login-bg.jpg` | Ảnh khuôn viên trường | TODO: điền nguồn | Chỉ dùng trong bài tập lớn học tập, không thương mại |
-| `src/main/resources/com/auction/client/images/app-bg.jpg` | Ảnh mặt trống đồng trên nền sáng xanh nhạt, kích thước 1024×768 | TODO điền (có thể là khung hình từ video/kho ảnh) | Chỉ dùng học tập |
+Giao diện hiện tại dùng nền màu CSS. Ảnh sản phẩm vẫn do `ProductImages` đọc từ đường dẫn người dùng chọn hoặc nguồn dịch vụ mock; việc bỏ trang trí không thay đổi luồng chọn, import hoặc tải ảnh.
+
+Các ảnh ở `docs/ui/screenshots/` và tài liệu `docs/ui/DESIGN-apple.md` được giữ làm tham khảo lịch sử, không phải ảnh của lần kiểm thử mới. Ảnh mới và tình trạng kiểm tra nằm ở [UI_REFRESH.md](UI_REFRESH.md).

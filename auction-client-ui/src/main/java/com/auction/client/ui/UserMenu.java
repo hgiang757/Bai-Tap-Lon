@@ -1,5 +1,6 @@
 package com.auction.client.ui;
 
+import com.auction.client.navigation.ViewTasks;
 import com.auction.client.model.User;
 import com.auction.client.model.UserRole;
 import com.auction.client.service.AuctionClientService;
@@ -295,13 +296,21 @@ public final class UserMenu extends HBox {
 
     private void logout() {
         closeMenu();
-        service.logout();
-        ViewNavigator.clearHistory();
-        try {
-            ViewNavigator.loadView(ViewNavigator.Route.AUTH.getPath(), ViewNavigator.Route.AUTH.getTitle(), false);
-        } catch (IOException exception) {
-            showNavigationError(exception);
-        }
+        trigger.setDisable(true);
+        var tasks = new ViewTasks();
+        tasks.submit("logout", () -> { service.logout(); return null; }, ignored -> {
+            tasks.close();
+            ViewNavigator.clearHistory();
+            try {
+                ViewNavigator.loadView(ViewNavigator.Route.AUTH.getPath(), ViewNavigator.Route.AUTH.getTitle(), false);
+            } catch (IOException exception) {
+                trigger.setDisable(false);
+                showNavigationError(exception);
+            }
+        }, error -> {
+            tasks.close(); trigger.setDisable(false);
+            showNavigationError(new IOException("Không thể đăng xuất", error));
+        });
     }
 
     private void showNavigationError(IOException exception) {

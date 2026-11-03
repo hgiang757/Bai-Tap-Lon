@@ -1,5 +1,7 @@
 package com.auction.client.controller;
 
+import com.auction.client.navigation.ViewTasks;
+import com.auction.client.navigation.DisposableView;
 import com.auction.client.model.UserRole;
 import com.auction.client.service.AuctionClientService;
 import com.auction.client.service.ServiceRegistry;
@@ -9,10 +11,7 @@ import com.auction.client.util.AppInfo;
 import com.auction.client.util.Validators;
 import com.auction.client.ui.Icons;
 import com.auction.client.ui.PasswordFieldWithToggle;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -24,11 +23,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Rectangle;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.net.URL;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import java.util.logging.Level;
@@ -40,18 +36,16 @@ import java.util.logging.Logger;
  * - Chế độ đăng ký: cho phép chọn vai trò Người đấu giá hoặc Người bán (không có Admin).
  * - Ô mật khẩu luôn để trống ban đầu, không gán giá trị mặc định.
  */
-public class AuthController {
+public class AuthController implements DisposableView {
+    private final ViewTasks tasks = new ViewTasks();
+    private boolean busy;
+    @Override public void dispose() {
+        tasks.close();
+    }
 
     private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
     private static final String REMEMBERED_USERNAME_KEY = "rememberedUsername";
-    private static Image cachedBackgroundImage;
-    private static boolean backgroundLoadStarted;
-    private static boolean backgroundFailureLogged;
-    private static WeakReference<AuthController> activeAuthController = new WeakReference<>(null);
-
     @FXML private StackPane authRoot;
-    @FXML private ImageView backgroundImage;
-    @FXML private Region imageOverlay;
     @FXML private VBox authContent;
     @FXML private Label lblFormTitle;
     @FXML private Label lblFormSubtitle;
@@ -94,12 +88,9 @@ public class AuthController {
         SmoothScroll.apply(authScroll, 3.0);
         lblBrandName.setText(AppInfo.NAME);
         setIcon(lblBrandIcon, "trophy", 28, "icon-on-panel");
-        setIcon(lblBenefitRealtime, "bolt", 18, "icon-on-primary");
-        setIcon(lblBenefitTransparent, "book", 18, "icon-on-primary");
-        setIcon(lblBenefitSafe, "lock", 18, "icon-on-primary");
-        configureBackground();
-        authRoot.widthProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
-        authRoot.heightProperty().addListener((observable, oldValue, newValue) -> updateBackgroundCover());
+        setIcon(lblBenefitRealtime, "bolt", 18, "icon-primary");
+        setIcon(lblBenefitTransparent, "book", 18, "icon-primary");
+        setIcon(lblBenefitSafe, "lock", 18, "icon-primary");
         authRoot.widthProperty().addListener((observable, oldValue, newValue) -> updateFeatureVisibility(newValue.doubleValue()));
         updateFeatureVisibility(authRoot.getWidth());
         loadRememberedUsername();
@@ -122,95 +113,10 @@ public class AuthController {
         }
     }
 
-    private void configureBackground() {
-        activeAuthController = new WeakReference<>(this);
-        Rectangle clip = new Rectangle();
-        clip.widthProperty().bind(authRoot.widthProperty());
-        clip.heightProperty().bind(authRoot.heightProperty());
-        authRoot.setClip(clip);
-
-        if (!backgroundLoadStarted) {
-            backgroundLoadStarted = true;
-            URL resource = AuthController.class.getResource("/com/auction/client/images/login-bg.jpg");
-            if (resource == null) {
-                showBackgroundFallback("Không tìm thấy ảnh nền /com/auction/client/images/login-bg.jpg.", null);
-            } else {
-                cachedBackgroundImage = new Image(resource.toExternalForm(), 1600, 0, true, true, true);
-                cachedBackgroundImage.errorProperty().addListener((observable, wasError, isError) -> {
-                    if (isError) {
-                        Platform.runLater(() -> {
-                            AuthController controller = activeAuthController.get();
-                            if (controller != null) {
-                                showBackgroundFallback("Không thể nạp ảnh nền đăng nhập.",
-                                        cachedBackgroundImage.getException());
-                            }
-                        });
-                    }
-                });
-                cachedBackgroundImage.widthProperty().addListener((observable, oldValue, newValue) ->
-                        refreshActiveBackgroundCover());
-                cachedBackgroundImage.heightProperty().addListener((observable, oldValue, newValue) ->
-                        refreshActiveBackgroundCover());
-                if (cachedBackgroundImage.isError()) {
-                    showBackgroundFallback("Không thể nạp ảnh nền đăng nhập.",
-                            cachedBackgroundImage.getException());
-                }
-            }
-        }
-
-        if (cachedBackgroundImage != null && !cachedBackgroundImage.isError()) {
-            backgroundImage.setImage(cachedBackgroundImage);
-            updateBackgroundCover();
-        } else {
-            showBackgroundFallback("Ảnh nền đăng nhập không khả dụng.", null);
-        }
-    }
-
-    private static void refreshActiveBackgroundCover() {
-        AuthController controller = activeAuthController.get();
-        if (controller != null) {
-            controller.updateBackgroundCover();
-        }
-    }
-
-    private void updateBackgroundCover() {
-        if (backgroundImage.getImage() == null || authRoot.getWidth() <= 0 || authRoot.getHeight() <= 0) {
-            return;
-        }
-        Image image = backgroundImage.getImage();
-        double imageWidth = image.getWidth();
-        double imageHeight = image.getHeight();
-        if (imageWidth <= 0 || imageHeight <= 0) {
-            return;
-        }
-        double width = Math.max(authRoot.getWidth(), authRoot.getHeight() * imageWidth / imageHeight);
-        double height = width * imageHeight / imageWidth;
-        backgroundImage.setFitWidth(width);
-        backgroundImage.setFitHeight(0);
-        backgroundImage.relocate((authRoot.getWidth() - width) / 2,
-                (authRoot.getHeight() - height) / 2);
-    }
-
     private void updateFeatureVisibility(double width) {
         boolean showFeatures = width >= authFeatureRow.prefWidth(-1) + 32;
         authFeatureRow.setVisible(showFeatures);
         authFeatureRow.setManaged(showFeatures);
-    }
-
-    private static void showBackgroundFallback(String message, Exception exception) {
-        if (!backgroundFailureLogged) {
-            backgroundFailureLogged = true;
-            if (exception == null) {
-                LOGGER.warning(message + " Đang dùng nền phẳng dự phòng.");
-            } else {
-                LOGGER.log(Level.WARNING, message + " Đang dùng nền phẳng dự phòng.", exception);
-            }
-        }
-        AuthController controller = activeAuthController.get();
-        if (controller != null) {
-            controller.backgroundImage.setVisible(false);
-            controller.imageOverlay.setVisible(false);
-        }
     }
 
     private void setIcon(Label label, String name, double size, String colorClass) {
@@ -228,13 +134,13 @@ public class AuthController {
         txtConfirm.clear();
         rbBidder.setSelected(true);
         if (!isRegisterMode) loadRememberedUsername();
-        Platform.runLater(txtUsername::requestFocus);
+        tasks.dispatch(txtUsername::requestFocus);
         touchedUsername = touchedEmail = touchedPassword = touchedConfirm = false;
         confirmBox.setVisible(isRegisterMode); confirmBox.setManaged(isRegisterMode);
         validateFields();
         if (isRegisterMode) {
             lblFormTitle.setText("Đăng ký tài khoản");
-            lblFormSubtitle.setText("Tham gia " + AppInfo.NAME + " ngay hôm nay!");
+            lblFormSubtitle.setText("Tạo tài khoản mô phỏng trên " + AppInfo.NAME + ".");
             btnSubmit.setText("Tạo tài khoản");
             btnSwitchMode.setText("Đã có tài khoản? Đăng nhập tại đây");
             registerFieldsBox.setVisible(true);
@@ -245,7 +151,7 @@ public class AuthController {
             rememberBox.setManaged(false);
         } else {
             lblFormTitle.setText("Đăng nhập");
-            lblFormSubtitle.setText("Chào mừng trở lại!");
+            lblFormSubtitle.setText("Chế độ mô phỏng · Chưa kết nối nghiệp vụ server.");
             btnSubmit.setText("Đăng nhập");
             btnSwitchMode.setText("Chưa có tài khoản? Đăng ký ngay");
             registerFieldsBox.setVisible(false);
@@ -259,6 +165,7 @@ public class AuthController {
 
     @FXML
     private void handleSwitchMode() {
+        if (busy) return;
         isRegisterMode = !isRegisterMode;
         updateModeUI();
     }
@@ -275,6 +182,7 @@ public class AuthController {
 
     @FXML
     private void handleSubmit() {
+        if (busy || tasks.isClosed()) return;
         hideAlert();
         String username = Validators.normalizeUsername(txtUsername.getText());
         String password = txtPassword.getText();
@@ -296,26 +204,37 @@ public class AuthController {
             }
             String email = txtEmail.getText();
             UserRole selectedRole = rbSeller.isSelected() ? UserRole.SELLER : UserRole.BIDDER;
-            boolean ok = auctionService.register(username.trim(), password, username.trim(),
-                    email.trim(), selectedRole);
-            if (ok) {
-                showAlert("Đăng ký thành công. Đang vào sàn đấu giá...", false);
-                navigateToHome();
-            } else {
-                showAlert("Tên đăng nhập hoặc email đã được sử dụng.", true);
-            }
+            authenticate(() -> auctionService.register(username.trim(), password, username.trim(),
+                    email.trim(), selectedRole), username, true);
         } else {
-            // Đăng nhập: không gửi vai trò, vai trò do server trả về
-            boolean ok = auctionService.login(username.trim(), password, null);
-            if (ok) {
-                saveRememberedUsername(username.trim());
-                showAlert("Đăng nhập thành công. Đang chuyển trang...", false);
-                navigateToHome();
-            } else {
-                showAlert("Sai tên đăng nhập hoặc mật khẩu, hoặc tài khoản đã bị khóa.", true);
-            }
-
+            authenticate(() -> auctionService.login(username.trim(), password, null), username, false);
         }
+    }
+
+    private void authenticate(java.util.concurrent.Callable<Boolean> operation, String username, boolean register) {
+        busy = true;
+        btnSubmit.setDisable(true); btnSwitchMode.setDisable(true);
+        authContent.setDisable(true);
+        btnSubmit.setText("Đang xử lý…");
+        tasks.submit("auth", operation, ok -> {
+            finishAuthentication(register);
+            if (ok) {
+                if (!register) saveRememberedUsername(username.trim());
+                ViewNavigator.clearHistory();
+                navigateToHome();
+            } else showAlert(register ? "Tên đăng nhập hoặc email đã được sử dụng."
+                    : "Sai tên đăng nhập hoặc mật khẩu, hoặc tài khoản đã bị khóa.", true);
+        }, error -> {
+            finishAuthentication(register);
+            showAlert("Không thể xác thực: " + error.getMessage(), true);
+        });
+    }
+
+    private void finishAuthentication(boolean register) {
+        busy = false;
+        authContent.setDisable(false);
+        btnSubmit.setDisable(false); btnSwitchMode.setDisable(false);
+        btnSubmit.setText(register ? "Tạo tài khoản" : "Đăng nhập");
     }
 
     private void watchField(TextField field, Runnable touch) {

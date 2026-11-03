@@ -9,17 +9,13 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.control.ToggleGroup?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <StackPane fx:id="authRoot" xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.auction.client.controller.AuthController"
            prefHeight="680.0" prefWidth="960.0" styleClass="auth-root">
-    <ImageView fx:id="backgroundImage" mouseTransparent="true" smooth="true" preserveRatio="true" managed="false"/>
-    <Region fx:id="imageOverlay" styleClass="auth-image-overlay" mouseTransparent="true"/>
     <ScrollPane fx:id="authScroll" fitToWidth="true" fitToHeight="true"
                 hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="auth-scroll">
         <StackPane alignment="CENTER" minWidth="0.0" maxWidth="Infinity">
@@ -31,14 +27,14 @@
                     <StackPane styleClass="auth-brand-icon-circle">
                         <Label fx:id="lblBrandIcon"/>
                     </StackPane>
-                    <Label fx:id="lblBrandName" styleClass="login-brand t-h1"/>
+                    <Label fx:id="lblBrandName" styleClass="login-brand, t-h1"/>
                     <Label text="Sàn đấu giá trực tuyến theo thời gian thực" styleClass="login-slogan"
                            wrapText="true" textAlignment="CENTER"/>
                 </VBox>
                 <VBox spacing="14.0" styleClass="auth-form-card" maxWidth="420.0">
                     <VBox alignment="CENTER" spacing="4.0">
-                        <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="auth-form-title t-h2"/>
-                        <Label fx:id="lblFormSubtitle" text="Chào mừng trở lại!" styleClass="auth-form-subtitle t-small"/>
+                        <Label fx:id="lblFormTitle" text="Đăng nhập" styleClass="auth-form-title, t-h2"/>
+                        <Label fx:id="lblFormSubtitle" text="Chào mừng trở lại!" styleClass="auth-form-subtitle, t-small"/>
                     </VBox>
                     <VBox spacing="6.0">
                         <Label text="Tên đăng nhập" styleClass="form-label"/>

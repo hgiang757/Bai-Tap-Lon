@@ -1,10 +1,13 @@
 package com.auction.client.controller;
 
+import com.auction.client.navigation.ViewTasks;
+import com.auction.client.navigation.DisposableView;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.model.Bid;
 import com.auction.client.service.AuctionClientService;
-import com.auction.client.service.BidResult;
+import com.auction.client.service.BidSubmissionTracker;
+import com.auction.client.service.BidSubmissionTracker.Phase;
 import com.auction.client.service.mock.MockAuctionClientService;
 import com.auction.client.service.ServiceRegistry;
 import com.auction.client.util.FormatUtil;
@@ -17,7 +20,6 @@ import com.auction.client.ui.SmoothScroll;
 import com.auction.client.navigation.ViewNavigator;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
@@ -53,7 +55,15 @@ import java.util.function.Consumer;
  * Quản lý biểu đồ biến động giá, kiểm soát khóa nhập khi phiên kết thúc,
  * và hiển thị dữ liệu thời gian thực thông qua Observer pattern.
  */
-public class AuctionRoomController {
+public class AuctionRoomController implements DisposableView {
+    private ViewTasks tasks = new ViewTasks();
+    private ViewTasks imageTasks = ViewTasks.images();
+    private final BidSubmissionTracker submissions = ServiceRegistry.getBidSubmissions();
+    private BidSubmissionTracker.Key bidKey;
+    private boolean disposed, bidBusy, refreshing, refreshAgain, auctionReady;
+    private String requestedAuctionId;
+    public boolean isReady() { return auctionReady && !refreshing; }
+    private final java.util.Set<String> notifiedBids = new java.util.HashSet<>();
 
     @FXML private Label lblItemName;
     @FXML private Label lblBrandName;
@@ -71,7 +81,7 @@ public class AuctionRoomController {
     @FXML private Label lblProductImageIcon;
     @FXML private ImageView productImage;
     @FXML private StackPane productImageContainer;
-    @FXML private Label lblAvailableBalance;
+    @FXML private Label lblAvailableBalance, lblBidState;
     @FXML private VBox autoBidCard;
     @FXML private Label lblAutoTitle, lblAutoMaxFormat, lblAutoStepFormat, lblAutoError, lblAutoReason, lblAutoStatus;
     @FXML private TextField txtAutoMax, txtAutoIncrement;
@@ -105,7 +115,6 @@ public class AuctionRoomController {
     private Timeline countdownTimer;
     private com.auction.client.model.AutoBid myAutoBid;
     private boolean autoBusy;
-    private long autoReadVersion;
 
     @FXML
     public void initialize() {
@@ -114,9 +123,10 @@ public class AuctionRoomController {
                 () -> detailScroll.getViewportBounds().getHeight(), detailScroll.viewportBoundsProperty()));
         SmoothScroll.apply(detailScroll, 3.0);
         com.auction.client.ui.AppFooter.install(detailScroll, pageContent);
-        Platform.runLater(detailScroll::requestFocus);
+        tasks.dispatch(detailScroll::requestFocus);
         setupChart();
         setupQuickBidButtons();
+        txtBidAmount.setOnAction(event -> handlePlaceBid());
         setupAutoBid();
         setupPlaceholder();
         RoundedClip.apply(productImageContainer, 12);
@@ -127,10 +137,10 @@ public class AuctionRoomController {
 
     private void refreshAvailable() {
         var user = auctionService.getCurrentUser();
-        if (user == null) { lblAvailableBalance.setText("Số dư khả dụng: vui lòng đăng nhập."); return; }
-        javafx.concurrent.Task<Long> task = new javafx.concurrent.Task<>() { protected Long call() { return ServiceRegistry.getWalletService().getAvailable(user.getUsername()); } };
-        task.setOnSucceeded(e -> lblAvailableBalance.setText("Số dư khả dụng: " + FormatUtil.formatCurrency(task.getValue())));
-        Thread thread = new Thread(task, "wallet-room"); thread.setDaemon(true); thread.start();
+        if (user == null) { lblAvailableBalance.setText("Số tiền có thể sử dụng: vui lòng đăng nhập."); return; }
+        tasks.submit("balance", () -> ServiceRegistry.getWalletService().getAvailable(user.getUsername()),
+                balance -> lblAvailableBalance.setText("Số tiền có thể sử dụng: " + FormatUtil.formatCurrency(balance)),
+                error -> lblAvailableBalance.setText("Không thể tải số tiền có thể sử dụng."));
     }
 
     private void setupChart() {
@@ -207,20 +217,98 @@ public class AuctionRoomController {
      * Nạp dữ liệu phiên đấu giá vào màn hình
      */
     public void setAuction(Auction auction) {
-        if (currentAuction != null && realtimeBidConsumer != null) {
-            auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
-        }
-        productImage.setImage(null);
-        this.currentAuction = auction;
-        txtAutoIncrement.setText(String.format("%.0f", auction.getMinBidStep()));
-        refreshAutoBid();
-        ViewNavigator.setCurrentAuctionId(auction.getId());
-        renderAuctionDetails();
-        loadBidHistory();
-        registerRealtimeObserver();
-        startCountdown();
-        updateCountdown();
+        java.util.Objects.requireNonNull(auction, "auction");
+        beginAuction(auction.getId(), auction);
     }
+
+    /** Khôi phục phiên theo ID từ lịch sử điều hướng, tải service trên luồng nền. */
+    public void loadAuction(String id) { beginAuction(id, null); }
+
+    private void beginAuction(String id, Auction auction) {
+        if (disposed) return;
+        detachAuction();
+        tasks.close(); imageTasks.close();
+        tasks = new ViewTasks(); imageTasks = ViewTasks.images();
+        requestedAuctionId = java.util.Objects.requireNonNull(id);
+        var user = auctionService.getCurrentUser();
+        bidKey = new BidSubmissionTracker.Key(user == null ? "" : user.getUsername(), id);
+        currentAuction = auction;
+        bidBusy = autoBusy = refreshing = refreshAgain = auctionReady = false;
+        myAutoBid = null;
+        notifiedBids.clear();
+        productImage.setImage(null);
+        productImage.setVisible(false); productImage.setManaged(false);
+        lblProductImageIcon.setVisible(true); lblProductImageIcon.setManaged(true);
+        lblCountdown.getStyleClass().remove("countdown-label-urgent");
+        if (!lblCountdown.getStyleClass().contains("countdown-label")) lblCountdown.getStyleClass().add("countdown-label");
+        priceSeries.getData().clear(); lvRecentBids.getItems().clear();
+        ViewNavigator.setCurrentAuctionId(id);
+        renderAuctionDetails();
+        showAlert("Đang tải dữ liệu phiên…", false);
+        registerRealtimeObserver();
+        refreshAuction();
+        imageTasks.submit("image", () -> ProductImages.load(ServiceRegistry.getProductService().getImagePath(id), 468, 200), image -> {
+            productImage.setImage(image);
+            productImage.setVisible(image != null); productImage.setManaged(image != null);
+            lblProductImageIcon.setVisible(image == null); lblProductImageIcon.setManaged(image == null);
+        }, error -> { /* Giữ icon thay ảnh. */ });
+        refreshAvailable();
+        startCountdown();
+    }
+
+    private record RoomData(Auction auction, List<Bid> history) { }
+
+    private void refreshAuction() {
+        if (disposed || requestedAuctionId == null) return;
+        if (refreshing) { refreshAgain = true; return; }
+        refreshing = true;
+        renderAuctionDetails();
+        String id = requestedAuctionId;
+        var stamp = submissions.reading(bidKey);
+        tasks.submit("room", () -> {
+            Auction auction = auctionService.getAuctionById(id);
+            if (auction == null || !id.equals(auction.getId())) throw new IllegalStateException("Không tìm thấy đúng phiên đấu giá " + id);
+            return new RoomData(auction, auctionService.getBidHistory(id));
+        }, data -> {
+            if (!id.equals(requestedAuctionId)) return;
+            // Lệnh hoặc phản hồi đã đổi trong lúc đọc: bỏ snapshot cũ và đọc lại sau đó.
+            if (!submissions.isCurrent(stamp)) { refreshing = false; refreshAgain = false; refreshAuction(); return; }
+            currentAuction = data.auction(); auctionReady = true;
+            loadBidHistory(data.history());
+            updateCountdown();
+            submissions.refreshed(stamp);
+            refreshing = false;
+            renderAuctionDetails();
+            if ("Đang tải dữ liệu phiên…".equals(lblAlertMessage.getText())) hideAlert();
+            refreshAutoBid();
+            if (refreshAgain) { refreshAgain = false; refreshAuction(); }
+        }, error -> {
+            if (!id.equals(requestedAuctionId)) return;
+            if (!submissions.isCurrent(stamp)) { refreshing = false; refreshAgain = false; refreshAuction(); return; }
+            refreshing = false; refreshAgain = false; auctionReady = false;
+            renderAuctionDetails();
+            showAlert("Không thể tải phiên: " + error.getMessage() + ". Bấm Tải lại để thử lại; các thao tác giá vẫn khóa.", true);
+        });
+    }
+
+    private Phase bidPhase() { return bidKey == null ? Phase.READY : submissions.phase(bidKey); }
+
+    private boolean canChangePrice() {
+        return !disposed && auctionReady && !refreshing && !bidBusy && !autoBusy && bidPhase() == Phase.READY;
+    }
+
+    private String priceLockReason() {
+        return switch (bidPhase()) {
+            case SENDING -> autoBusy ? "Đang cập nhật auto-bid; vui lòng chờ phản hồi." : "Đang gửi lệnh đặt giá; vui lòng chờ phản hồi.";
+            case AWAITING_REFRESH -> "Đã nhận phản hồi đặt giá; cần tải lại dữ liệu sau phản hồi trước khi đặt tiếp.";
+            case UNKNOWN -> "Kết quả lượt đặt giá trước chưa xác định. Tải lại chỉ cập nhật lịch sử, không chứng minh lệnh đã hoàn tất. Chưa có API tra trạng thái lệnh nên thao tác giá tiếp tục khóa.";
+            case READY -> refreshing ? "Đang tải lại dữ liệu phiên…"
+                    : !auctionReady ? "Chưa có dữ liệu mới. Bấm Tải lại để thử lại."
+                    : autoBusy ? "Đang cập nhật auto-bid…" : "";
+        };
+    }
+
+    @FXML private void handleReload() { refreshAuction(); refreshAvailable(); }
 
     private void setProductImageIcon(String category) {
         String iconName = com.auction.client.model.ItemCategory.from(category).getIcon();
@@ -231,7 +319,15 @@ public class AuctionRoomController {
     }
 
     private void renderAuctionDetails() {
-        if (currentAuction == null) return;
+        if (currentAuction == null) {
+            txtBidAmount.setDisable(true); btnPlaceBid.setDisable(true);
+            btnQuickAdd1.setDisable(true); btnQuickAdd2.setDisable(true); btnQuickAdd3.setDisable(true);
+            devModeBox.setDisable(true);
+            txtAutoMax.setDisable(true); txtAutoIncrement.setDisable(true); btnAutoBid.setDisable(true);
+            lblBidState.setText(priceLockReason());
+            lblBidState.setVisible(true); lblBidState.setManaged(true);
+            return;
+        }
 
         lblItemName.setText(currentAuction.getItemName());
         lblItemName.setWrapText(true);
@@ -239,12 +335,6 @@ public class AuctionRoomController {
         lblSeller.setText("Người bán: " + currentAuction.getSellerUsername());
         lblDescription.setText(currentAuction.getItem() != null ? currentAuction.getItem().getDescription() : "");
         setProductImageIcon(currentAuction.getItemCategory());
-        var image = ProductImages.load(ServiceRegistry.getProductService().getImagePath(currentAuction.getId()), 468, 200);
-        productImage.setImage(image);
-        productImage.setVisible(image != null);
-        productImage.setManaged(image != null);
-        lblProductImageIcon.setVisible(image == null);
-        lblProductImageIcon.setManaged(image == null);
         lblStartingPrice.setText(currentAuction.getFormattedStartingPrice());
         lblCurrentPrice.setText(currentAuction.getFormattedCurrentPrice());
         lblHighestBidder.setText(currentAuction.getHighestBidderUsername());
@@ -264,24 +354,33 @@ public class AuctionRoomController {
             lblStatus.getStyleClass().add(currentAuction.getStatus() == AuctionStatus.OPEN ? "badge-open" : "badge-finished");
             if (currentAuction.getStatus() == AuctionStatus.FINISHED) {
                 lblStatusExplanation.setText("Phiên đấu giá đã kết thúc. Không thể đặt thêm giá.");
+            } else if (currentAuction.getStatus() == AuctionStatus.CANCELED) {
+                lblStatusExplanation.setText("Phiên đấu giá đã bị hủy. Không thể đặt thêm giá.");
+            } else if (currentAuction.getStatus() == AuctionStatus.PAID) {
+                lblStatusExplanation.setText("Phiên đã kết thúc và đã thanh toán mô phỏng.");
             } else {
                 lblStatusExplanation.setText("Phiên đấu giá chưa mở. Vui lòng chờ đến giờ bắt đầu.");
             }
-            lblStatusExplanation.getStyleClass().add("notice-disabled");
+            if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) lblStatusExplanation.getStyleClass().add("notice-disabled");
         }
 
         var user = auctionService.getCurrentUser();
         boolean seller = user != null && user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername());
-        boolean canBid = isRunning && user != null && !seller;
+        boolean canBid = canChangePrice() && isRunning && user != null && !seller
+                && currentAuction.getEndTime() != null && LocalDateTime.now().isBefore(currentAuction.getEndTime());
         if (isRunning && user == null) {
             lblStatusExplanation.setText("Vui lòng đăng nhập để đặt giá.");
-            lblStatusExplanation.getStyleClass().add("notice-disabled");
+            if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) lblStatusExplanation.getStyleClass().add("notice-disabled");
         } else if (isRunning && seller) {
             lblStatusExplanation.setText("Bạn không thể đặt giá cho sản phẩm của mình.");
-            lblStatusExplanation.getStyleClass().add("notice-disabled");
+            if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) lblStatusExplanation.getStyleClass().add("notice-disabled");
         }
         txtBidAmount.setDisable(!canBid);
         btnPlaceBid.setDisable(!canBid);
+        btnPlaceBid.setText(bidPhase() == Phase.SENDING ? "Đang gửi giá…" : "Đặt giá");
+        devModeBox.setDisable(!canBid);
+        lblBidState.setText(priceLockReason());
+        lblBidState.setVisible(!lblBidState.getText().isEmpty()); lblBidState.setManaged(lblBidState.isVisible());
         btnQuickAdd1.setDisable(!canBid);
         btnQuickAdd2.setDisable(!canBid);
         btnQuickAdd3.setDisable(!canBid);
@@ -291,11 +390,10 @@ public class AuctionRoomController {
         txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
     }
 
-    private void loadBidHistory() {
+    private void loadBidHistory(List<Bid> bids) {
         priceSeries.getData().clear();
         lvRecentBids.getItems().clear();
 
-        List<Bid> bids = auctionService.getBidHistory(currentAuction.getId());
         if (bids.isEmpty()) {
             LocalDateTime startTime = currentAuction.getStartTime() == null
                     ? LocalDateTime.now() : currentAuction.getStartTime();
@@ -324,11 +422,9 @@ public class AuctionRoomController {
     }
 
     private void registerRealtimeObserver() {
-        if (currentAuction == null) return;
-
-        realtimeBidConsumer = this::onBidReceived;
-
-        auctionService.registerBidListener(currentAuction.getId(), realtimeBidConsumer);
+        var scope = tasks;
+        realtimeBidConsumer = bid -> scope.dispatch(() -> applyBidNotification(bid));
+        auctionService.registerBidListener(requestedAuctionId, realtimeBidConsumer);
     }
 
     // ======= Countdown Timer =======
@@ -349,28 +445,28 @@ public class AuctionRoomController {
     private void updateCountdown() {
         if (currentAuction == null || currentAuction.getEndTime() == null) return;
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime end = currentAuction.getEndTime();
-        if (!now.isBefore(end)) {
-            lblCountdown.setText("Đã kết thúc");
-            auctionService.getAuctionById(currentAuction.getId());
+        if (currentAuction.getStatus() != AuctionStatus.RUNNING && currentAuction.getStatus() != AuctionStatus.OPEN) {
+            lblCountdown.setText(currentAuction.getStatus().getDescription());
             countdownTimer.stop();
-            renderAuctionDetails();
             return;
         }
-        if (currentAuction.getStatus() == AuctionStatus.OPEN
-                && currentAuction.getStartTime() != null
-                && !now.isBefore(currentAuction.getStartTime())) {
-            auctionService.getAuctionById(currentAuction.getId());
-            renderAuctionDetails();
+        boolean upcoming = currentAuction.getStatus() == AuctionStatus.OPEN;
+        LocalDateTime end = upcoming && currentAuction.getStartTime() != null
+                ? currentAuction.getStartTime() : currentAuction.getEndTime();
+        if (!now.isBefore(end)) {
+            lblCountdown.setText("Đang cập nhật trạng thái…");
+            txtBidAmount.setDisable(true); btnPlaceBid.setDisable(true);
+            if (!refreshing) refreshAuction();
+            return;
         }
         long seconds = ChronoUnit.SECONDS.between(now, end);
         long hours = seconds / 3600;
         long mins = (seconds % 3600) / 60;
         long secs = seconds % 60;
         String text = String.format("%02d:%02d:%02d", hours, mins, secs);
-        lblCountdown.setText(text);
+        lblCountdown.setText(upcoming ? "Mở sau " + text : text);
         // Màu đỏ khi còn < 5 phút
-        if (seconds < 300) {
+        if (!upcoming && seconds < 300) {
             lblCountdown.getStyleClass().removeAll("countdown-label");
             if (!lblCountdown.getStyleClass().contains("countdown-label-urgent")) {
                 lblCountdown.getStyleClass().add("countdown-label-urgent");
@@ -458,37 +554,21 @@ public class AuctionRoomController {
         yAxisPrice.setTickUnit((upperBound - lowerBound) / 4);
     }
 
-    /**
-     * API entry point for realtime bid events from socket/server.
-     * Member 1 (Server Integration) should call this method when a new bid arrives.
-     * Must be safe to call from non-JavaFX threads.
-     */
-    public void onBidReceived(Bid bid) {
-        if (bid == null || currentAuction == null || !currentAuction.getId().equals(bid.getAuctionId())) {
-            return;
-        }
-        Platform.runLater(() -> {
-            addPricePoint(bid.getTimestamp() == null ? LocalDateTime.now() : bid.getTimestamp(),
-                    bid.getAmount(), bid.getBidderUsername(), bid.isAuto());
-            lblNoBids.setVisible(false);
-            lblNoBids.setManaged(false);
-            lblCurrentPrice.setText(FormatUtil.formatCurrency(bid.getAmount()));
-            lblHighestBidder.setText(bid.getBidderUsername());
-            lblMinNextBid.setText(FormatUtil.formatCurrency(bid.getAmount() + currentAuction.getMinBidStep()));
-            txtBidAmount.setText(String.format("%.0f", bid.getAmount() + currentAuction.getMinBidStep()));
-            lvRecentBids.getItems().add(0, formatBid(bid));
-            refreshAvailable();
-            refreshAutoBid();
-            var user = auctionService.getCurrentUser();
-            String notification = bid.isAuto() && user != null && user.getUsername().equalsIgnoreCase(bid.getBidderUsername())
-                    ? "Auto-bid của bạn vừa đặt " + FormatUtil.formatCurrency(bid.getAmount())
-                    : "Lượt trả giá mới: " + bid.getBidderUsername() + " vừa đặt " + FormatUtil.formatCurrency(bid.getAmount());
-            showAlert(notification, false);
-        });
+    /** Observer của service có thể gọi từ luồng nền; callback cũ bị chặn sau dispose. */
+    public void onBidReceived(Bid bid) { tasks.dispatch(() -> applyBidNotification(bid)); }
+
+    private void applyBidNotification(Bid bid) {
+        if (disposed || bid == null || !java.util.Objects.equals(requestedAuctionId, bid.getAuctionId())) return;
+        if (bid.getId() != null && !notifiedBids.add(bid.getId())) return;
+        refreshAuction();
+        refreshAvailable();
+        if (bidPhase() != Phase.UNKNOWN) showAlert("Lượt trả giá mới: " + FormatUtil.maskUsername(bid.getBidderUsername())
+                + " vừa đặt " + FormatUtil.formatCurrency(bid.getAmount()), false);
     }
 
     @FXML
     private void handlePlaceBid() {
+        if (!canChangePrice()) return;
         hideAlert();
 
         if (currentAuction == null) {
@@ -532,16 +612,32 @@ public class AuctionRoomController {
         }
 
         String id = currentAuction.getId();
-        btnPlaceBid.setDisable(true);
-        javafx.concurrent.Task<BidResult> task = new javafx.concurrent.Task<>() { protected BidResult call() { return auctionService.placeBid(id, bidAmount); } };
-        task.setOnSucceeded(e -> {
-            renderAuctionDetails(); refreshAvailable();
-            BidResult result = task.getValue();
+        var ticket = submissions.begin(bidKey);
+        bidBusy = true;
+        renderAuctionDetails();
+        boolean accepted = tasks.submit("bid", () -> {
+            // Theo dõi kết quả ngoài callback UI: đóng màn hình không làm quên lệnh đang gửi.
+            try {
+                var result = java.util.Objects.requireNonNull(auctionService.placeBid(id, bidAmount), "Thiếu phản hồi đặt giá");
+                submissions.answered(ticket);
+                return result;
+            } catch (Exception error) { submissions.uncertain(ticket); throw error; }
+        }, result -> {
+            bidBusy = false;
+            refreshAuction(); refreshAvailable();
             if (result.isSuccess()) showAlert("Đặt giá thành công: " + FormatUtil.formatCurrency((double) bidAmount), false);
             else showAlert(result.getMessage(), true);
+        }, error -> {
+            bidBusy = false;
+            if (error instanceof ViewTasks.NotSubmittedException) {
+                submissions.notSubmitted(ticket); renderAuctionDetails(); showAlert(error.getMessage(), true);
+            } else {
+                refreshAuction();
+                showAlert("Kết quả đặt giá chưa xác định; lệnh không được tự gửi lại. Đọc lại lịch sử không thay thế việc tra trạng thái lệnh.", true);
+            }
         });
-        task.setOnFailed(e -> { renderAuctionDetails(); showAlert("Không thể đặt giá. Vui lòng thử lại.", true); });
-        Thread thread = new Thread(task, "place-bid"); thread.setDaemon(true); thread.start();
+        // Rejection xảy ra trước khi work chạy, kể cả callback bị chặn sau khi rời màn hình.
+        if (!accepted) { submissions.notSubmitted(ticket); bidBusy = false; renderAuctionDetails(); }
     }
 
     private void setupAutoBid() {
@@ -562,20 +658,18 @@ public class AuctionRoomController {
         String reason = currentAuction.getStatus() != AuctionStatus.RUNNING ? "Phiên chưa diễn ra hoặc đã kết thúc."
                 : user == null ? "Vui lòng đăng nhập để đặt giá."
                 : user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername()) ? "Bạn không thể đặt giá cho sản phẩm của mình." : "";
+        if (reason.isEmpty() && !canChangePrice()) reason = priceLockReason();
         lblAutoReason.setText(reason);
-        boolean disabled = !reason.isEmpty() || autoBusy;
+        boolean disabled = !reason.isEmpty() || !canChangePrice();
         txtAutoMax.setDisable(disabled); txtAutoIncrement.setDisable(disabled); btnAutoBid.setDisable(disabled);
     }
 
     private void refreshAutoBid() {
         if (currentAuction == null || auctionService.getCurrentUser() == null) { myAutoBid = null; updateAutoAvailability(); return; }
         String id = currentAuction.getId();
-        long version = ++autoReadVersion;
-        javafx.concurrent.Task<com.auction.client.model.AutoBid> task = new javafx.concurrent.Task<>() {
-            protected com.auction.client.model.AutoBid call() { return ServiceRegistry.getAutoBidService().getMyAutoBid(id); }
-        };
-        task.setOnSucceeded(e -> { if (currentAuction == null || !id.equals(currentAuction.getId()) || version != autoReadVersion) return; myAutoBid=task.getValue(); renderAutoBid(); });
-        Thread thread = new Thread(task, "auto-bid-read"); thread.setDaemon(true); thread.start();
+        tasks.submit("auto-read", () -> ServiceRegistry.getAutoBidService().getMyAutoBid(id), value -> {
+            myAutoBid = value; renderAutoBid();
+        }, error -> { lblAutoError.setText("Không thể tải cấu hình auto-bid: " + error.getMessage()); });
     }
 
     private void renderAutoBid() {
@@ -594,7 +688,7 @@ public class AuctionRoomController {
     }
 
     @FXML private void handleAutoBid() {
-        if (currentAuction == null || autoBusy) return;
+        if (currentAuction == null || !canChangePrice()) return;
         String id=currentAuction.getId(); boolean cancel=myAutoBid != null && myAutoBid.isActive();
         long max=0, step=0;
         if (!cancel) {
@@ -605,15 +699,32 @@ public class AuctionRoomController {
             } catch (RuntimeException ex) { lblAutoError.setText("Giá và bước giá phải là số nguyên dương."); return; }
         }
         final long maxValue=max, stepValue=step;
-        autoBusy=true; updateAutoAvailability(); lblAutoError.setText("");
-        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() { protected Void call() {
-            if (cancel) ServiceRegistry.getAutoBidService().cancelAutoBid(id);
-            else ServiceRegistry.getAutoBidService().registerAutoBid(id, maxValue, stepValue);
-            return null;
-        } };
-        task.setOnSucceeded(e -> { autoBusy=false; refreshAutoBid(); refreshAvailable(); });
-        task.setOnFailed(e -> { autoBusy=false; lblAutoError.setText(task.getException().getMessage()); updateAutoAvailability(); });
-        Thread thread = new Thread(task, "auto-bid-update"); thread.setDaemon(true); thread.start();
+        var ticket = submissions.begin(bidKey);
+        var autoService = ServiceRegistry.getAutoBidService();
+        autoBusy=true; renderAuctionDetails(); lblAutoError.setText("");
+        boolean accepted = tasks.submit("auto-write", () -> {
+            try {
+                if (cancel) autoService.cancelAutoBid(id);
+                else autoService.registerAutoBid(id, maxValue, stepValue);
+                submissions.answered(ticket);
+                return null;
+            } catch (Exception error) {
+                // Implementation mock hiện có kiểm tra cấu hình trước khi sửa quy tắc/đặt giá.
+                if (autoService.getClass() == com.auction.client.service.mock.MockAutoBidService.class
+                        && error instanceof com.auction.client.service.AutoBidException) submissions.answered(ticket);
+                else submissions.uncertain(ticket);
+                throw error;
+            }
+        }, ignored -> {
+            autoBusy = false; refreshAutoBid(); refreshAvailable(); refreshAuction();
+        }, error -> {
+            autoBusy = false;
+            if (error instanceof ViewTasks.NotSubmittedException) submissions.notSubmitted(ticket);
+            lblAutoError.setText(error.getMessage());
+            renderAuctionDetails();
+            if (!(error instanceof ViewTasks.NotSubmittedException)) refreshAuction();
+        });
+        if (!accepted) { submissions.notSubmitted(ticket); autoBusy = false; renderAuctionDetails(); }
     }
 
     private void setupQuickBidButtons() {
@@ -623,6 +734,7 @@ public class AuctionRoomController {
     }
 
     private void addQuickBid(double delta) {
+        if (currentAuction == null || !canChangePrice()) return;
         try {
             long current = Long.parseLong(txtBidAmount.getText().trim().replaceAll("[,.]", ""));
             txtBidAmount.setText(String.format("%.0f", current + delta));
@@ -633,17 +745,24 @@ public class AuctionRoomController {
 
     @FXML
     private void handleSimulateIncomingBid() {
-        if (currentAuction == null) return;
-        double simulatedPrice = currentAuction.getCurrentPrice() + currentAuction.getMinBidStep();
-        auctionService.placeBid(currentAuction.getId(), simulatedPrice);
+        if (!(auctionService instanceof MockAuctionClientService) || currentAuction == null || !canChangePrice()) return;
+        txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
+        handlePlaceBid();
     }
 
-    public void dispose() {
+    private void detachAuction() {
         if (countdownTimer != null) countdownTimer.stop();
-        if (currentAuction != null && realtimeBidConsumer != null) {
-            auctionService.unregisterBidListener(currentAuction.getId(), realtimeBidConsumer);
+        if (requestedAuctionId != null && realtimeBidConsumer != null) {
+            auctionService.unregisterBidListener(requestedAuctionId, realtimeBidConsumer);
             realtimeBidConsumer = null;
         }
+    }
+
+    @Override public void dispose() {
+        if (disposed) return;
+        disposed = true;
+        tasks.close(); imageTasks.close();
+        detachAuction();
     }
 
     @FXML

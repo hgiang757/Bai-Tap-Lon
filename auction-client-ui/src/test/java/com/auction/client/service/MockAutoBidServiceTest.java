@@ -61,7 +61,7 @@ class MockAutoBidServiceTest {
         var t=setup(); String id=t.auction.getId();
         assertEquals("Giá tối đa phải lớn hơn giá hiện tại ít nhất một bước giá.", assertThrows(AutoBidException.class, () -> t.autoAlice.registerAutoBid(id, 1000, 100)).getMessage());
         assertEquals("Bước giá phải từ 100 ₫ trở lên.", assertThrows(AutoBidException.class, () -> t.autoAlice.registerAutoBid(id, 2000, 10)).getMessage());
-        assertEquals("Số dư khả dụng không đủ cho giá tối đa.", assertThrows(AutoBidException.class, () -> t.autoAlice.registerAutoBid(id, 60_000_000, 100)).getMessage());
+        assertEquals("Số tiền có thể sử dụng không đủ cho giá tối đa.", assertThrows(AutoBidException.class, () -> t.autoAlice.registerAutoBid(id, 60_000_000, 100)).getMessage());
         t.autoAlice.registerAutoBid(id, 2000, 100); t.autoAlice.cancelAutoBid(id);
         assertFalse(t.autoAlice.getMyAutoBid(id).isActive());
         t.auction.setEndTime(java.time.LocalDateTime.now().minusSeconds(1));

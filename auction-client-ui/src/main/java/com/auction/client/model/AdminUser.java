@@ -2,7 +2,7 @@ package com.auction.client.model;
 
 import java.time.LocalDateTime;
 
-/** DTO tạm cho quản trị người dùng; TODO thay bằng model auction-common khi thành viên 2 hoàn thành. */
+/** DTO quản trị phía client; adapter sẽ ánh xạ dữ liệu khi backend có hợp đồng nghiệp vụ. */
 public class AdminUser {
     private final User user;
     private final LocalDateTime createdAt;

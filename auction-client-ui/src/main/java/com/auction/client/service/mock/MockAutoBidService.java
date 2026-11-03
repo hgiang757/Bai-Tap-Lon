@@ -30,7 +30,7 @@ public final class MockAutoBidService implements AutoBidService {
         if (increment <= 0 || increment < auction.getMinBidStep()) throw new AutoBidException("Bước giá phải từ " + FormatUtil.formatCurrency(auction.getMinBidStep()).replace(" ₫", "") + " ₫ trở lên.");
         MockDataStore.Hold hold=store.holds.get(id);
         long own=hold != null && hold.username().equals(user) ? hold.amount() : 0;
-        if (store.balance(user)-store.held(user)+own < maxBid) throw new AutoBidException("Số dư khả dụng không đủ cho giá tối đa.");
+        if (store.balance(user)-store.held(user)+own < maxBid) throw new AutoBidException("Số tiền có thể sử dụng không đủ cho giá tối đa.");
         var queue=store.autoQueue(id);
         queue.removeIf(a -> a.getUsername().equalsIgnoreCase(user));
         AutoBid rule=new AutoBid(UUID.randomUUID().toString(), id, user, maxBid, increment, store.nextAutoRegistration());

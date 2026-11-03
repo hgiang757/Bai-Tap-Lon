@@ -8,7 +8,6 @@ import com.auction.client.model.Item;
 import com.auction.client.model.User;
 import com.auction.client.model.UserRole;
 import com.auction.client.service.BidResult;
-import com.auction.client.service.ServiceRegistry;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public class MockAuctionClientService implements AuctionClientService {
     private static final String BIDDER_USERNAME = "bidder_hieu";
     private static final String SELLER_USERNAME = "seller_hieu";
     private static final String ADMIN_USERNAME = "admin_hieu";
-    private User currentUser;
+    private volatile User currentUser;
     private final MockDataStore store;
     private final List<Auction> auctions;
     private final List<Item> items;
@@ -51,7 +50,7 @@ public class MockAuctionClientService implements AuctionClientService {
 
 
     @Override
-    public boolean login(String username, String password, UserRole role) {
+    public boolean login(String username, String password, UserRole role) { synchronized (store) {
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
             return false;
         }
@@ -66,7 +65,10 @@ public class MockAuctionClientService implements AuctionClientService {
             if (registeredPassword == null || !registeredPassword.equals(password)) {
                 return false;
             }
-            currentUser = registeredUser;
+            com.auction.client.model.AdminUser managed = store.users.stream()
+                    .filter(u -> u.getUser().getId().equals(registeredUser.getId())).findFirst().orElse(null);
+            if (managed == null || managed.isLocked()) return false;
+            currentUser = managed.getUser();
             store.attachUser(currentUser);
             return true;
         }
@@ -96,8 +98,7 @@ public class MockAuctionClientService implements AuctionClientService {
         }
         // Tài khoản mẫu dùng chung trạng thái và vai trò với màn hình quản trị mock.
         final String demoUsername = canonicalUsername;
-        com.auction.client.model.AdminUser managed = ServiceRegistry.getUserAdminService()
-                .listUsers().stream().filter(u -> u.getUser().getUsername().equals(demoUsername))
+        com.auction.client.model.AdminUser managed = store.users.stream().filter(u -> u.getUser().getUsername().equals(demoUsername))
                 .findFirst().orElse(null);
         if (managed == null || managed.isLocked()) {
             return false;
@@ -107,10 +108,10 @@ public class MockAuctionClientService implements AuctionClientService {
                 fullName, email, actualRole, 100_000_000.0);
         store.attachUser(currentUser);
         return true;
-    }
+    }}
 
     @Override
-    public boolean register(String username, String password, String fullName, String email, UserRole role) {
+    public boolean register(String username, String password, String fullName, String email, UserRole role) { synchronized (store) {
         if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()
                 || fullName == null || fullName.trim().isEmpty() || email == null || email.trim().isEmpty()
                 || role == null) {
@@ -126,14 +127,15 @@ public class MockAuctionClientService implements AuctionClientService {
                 || registeredUsers.values().stream().anyMatch(user -> user.getEmail().equalsIgnoreCase(email.trim()))) {
             return false;
         }
-        User user = new User("U-" + System.currentTimeMillis() % 1000, canonicalUsername,
+        User user = new User("U-" + java.util.UUID.randomUUID(), canonicalUsername,
                 fullName.trim(), email.trim(), role, 50_000_000.0);
         registeredUsers.put(accountKey, user);
         registeredPasswords.put(accountKey, password);
+        store.users.add(new com.auction.client.model.AdminUser(user, LocalDateTime.now()));
         this.currentUser = user;
         store.attachUser(user);
         return true;
-    }
+    }}
 
     @Override
     public User getCurrentUser() {
@@ -198,7 +200,7 @@ public class MockAuctionClientService implements AuctionClientService {
         String username = currentUser.getUsername();
 
         if (amount > Long.MAX_VALUE || !store.holdBid(auctionId, username, (long) amount)) {
-            return BidResult.fail("Số dư khả dụng không đủ. Hãy nạp thêm tiền trong mục Ví.");
+            return BidResult.fail("Số tiền có thể sử dụng không đủ. Hãy nạp thêm tiền trong mục Ví.");
         }
 
         // Cập nhật giá và người đấu cao nhất

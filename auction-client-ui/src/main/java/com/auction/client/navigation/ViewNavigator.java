@@ -2,15 +2,12 @@ package com.auction.client.navigation;
 
 import com.auction.client.ui.UserMenu;
 import com.auction.client.controller.AuctionRoomController;
-import com.auction.client.service.ServiceRegistry;
-import com.auction.client.ui.AppBackground;
 import com.auction.client.util.AppInfo;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.DialogPane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -78,49 +75,45 @@ public final class ViewNavigator {
     }
 
     public static <T> T loadView(String fxmlPath, String windowTitle, boolean recordHistory) throws IOException {
-        FXMLLoader loader = new FXMLLoader(ViewNavigator.class.getResource(fxmlPath));
+        java.net.URL resource = ViewNavigator.class.getResource(fxmlPath);
+        if (resource == null) throw new IOException("Không tìm thấy giao diện: " + fxmlPath);
+        FXMLLoader loader = new FXMLLoader(resource);
         Parent root;
         loadingPath = fxmlPath;
         try {
             root = loader.load();
+        } catch (IOException | RuntimeException error) {
+            if (loader.getController() instanceof DisposableView view) view.dispose();
+            throw error;
         } finally {
             loadingPath = null;
         }
 
         UserMenu.closeActive();
-        if (currentController instanceof AuctionRoomController) {
-            ((AuctionRoomController) currentController).dispose();
-        }
+        disposeCurrentView();
         if (recordHistory && currentView != null
                 && (!currentView.path.equals(fxmlPath) || !currentView.title.equals(windowTitle))) {
             history.addLast(currentView);
-        }
-
-        Parent sceneRoot = root;
-        if (!Route.AUTH.getPath().equals(fxmlPath)) {
-            StackPane appRoot = new StackPane(new AppBackground(), root);
-            appRoot.getStyleClass().add("root");
-            sceneRoot = appRoot;
         }
 
         if (Route.PRODUCTS.path.equals(fxmlPath)) sellingMode = true;
         else if (Route.DASHBOARD.path.equals(fxmlPath)) sellingMode = false;
         Scene scene = primaryStage.getScene();
         if (scene == null) {
-            scene = new Scene(sceneRoot, 1024, 680);
+            scene = new Scene(root, 1024, 680);
             primaryStage.setScene(scene);
         } else {
-            scene.setRoot(sceneRoot);
+            scene.setRoot(root);
         }
 
         currentView = new View(fxmlPath, windowTitle, null);
         currentController = loader.getController();
         applyAppStylesheet(scene);
-        primaryStage.setTitle(AppInfo.NAME + " - " + windowTitle);
+        primaryStage.setTitle(AppInfo.NAME + " [MOCK] - " + windowTitle);
         primaryStage.show();
-        sceneRoot.setFocusTraversable(true);
-        Parent focusRoot = sceneRoot;
-        Platform.runLater(focusRoot::requestFocus);
+        root.setFocusTraversable(true);
+        Parent focusRoot = root;
+        Platform.runLater(() -> { if (primaryStage.getScene().getRoot() == focusRoot) focusRoot.requestFocus(); });
         return loader.getController();
     }
 
@@ -186,9 +179,7 @@ public final class ViewNavigator {
         try {
             Object controller = loadView(previous.path, previous.title, false);
             if (previous.auctionId != null && controller instanceof AuctionRoomController) {
-                com.auction.client.model.Auction auction = ServiceRegistry.getService().getAuctionById(previous.auctionId);
-                if (auction == null) throw new IOException("Không tìm thấy phiên đấu giá " + previous.auctionId);
-                ((AuctionRoomController) controller).setAuction(auction);
+                ((AuctionRoomController) controller).loadAuction(previous.auctionId);
                 setCurrentAuctionId(previous.auctionId);
             }
         } catch (IOException ex) { history.addLast(previous); throw ex; }
@@ -197,6 +188,11 @@ public final class ViewNavigator {
 
     public static void setCurrentAuctionId(String auctionId) {
         if (currentView != null) currentView = new View(currentView.path, currentView.title, auctionId);
+    }
+
+    public static void disposeCurrentView() {
+        if (currentController instanceof DisposableView view) view.dispose();
+        currentController = null;
     }
 
     public static void clearHistory() {

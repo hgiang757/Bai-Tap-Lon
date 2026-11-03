@@ -14,6 +14,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
+            com.auction.client.service.ServiceRegistry.validateMode();
             String fontFamily = Font.getFamilies().contains("Segoe UI") ? "Segoe UI" : "System";
             LOGGER.info("Phông chữ giao diện đang dùng: " + fontFamily);
             // Đăng ký primaryStage vào tiện ích ViewNavigator để chuyển đổi màn hình linh hoạt
@@ -29,8 +30,13 @@ public class Main extends Application {
         } catch (Exception e) {
             System.err.println("Không thể khởi động ứng dụng JavaFX:");
             e.printStackTrace();
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR,
+                    "Không thể khởi động: " + e.getMessage()).showAndWait();
+            javafx.application.Platform.exit();
         }
     }
+
+    @Override public void stop() { ViewNavigator.disposeCurrentView(); }
 
     public static void main(String[] args) {
         launch(args);

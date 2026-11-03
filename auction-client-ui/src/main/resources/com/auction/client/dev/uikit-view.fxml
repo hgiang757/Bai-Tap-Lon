@@ -96,7 +96,7 @@
                             <Label text="Đang diễn ra" styleClass="badge-status, badge-running"/>
                             <Label text="Sắp diễn ra" styleClass="badge-status, badge-open"/>
                             <Label text="Đã kết thúc" styleClass="badge-status, badge-finished"/>
-                            <Label text="Trực tiếp" styleClass="live-pill t-caption"/>
+                            <Label text="Trực tiếp" styleClass="live-pill, t-caption"/>
                             <Label text="CHẾ ĐỘ DEV" styleClass="badge-dev"/>
                         </FlowPane>
 

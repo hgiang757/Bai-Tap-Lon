@@ -1,5 +1,7 @@
 package com.auction.client.controller;
 
+import com.auction.client.navigation.ViewTasks;
+import com.auction.client.navigation.DisposableView;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.model.ItemCategory;
@@ -17,19 +19,15 @@ import com.auction.client.ui.RoundedClip;
 import javafx.scene.image.ImageView;
 import javafx.geometry.Rectangle2D;
 import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
-import javafx.animation.Interpolator;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.input.MouseEvent;
@@ -46,13 +44,18 @@ import java.util.stream.Collectors;
  * Điều khiển trang chủ với danh sách phiên đấu giá dạng thẻ.
  * Thay thế TableView cũ bằng FlowPane card động với countdown timer thời gian thực.
  */
-public class HomeController {
+public class HomeController implements DisposableView {
+    private final ViewTasks tasks = new ViewTasks();
+    private final ViewTasks imageTasks = ViewTasks.images();
+    private boolean loading;
+    private boolean loadFailed;
+    private long cardsVersion;
+    public boolean isLoading() { return loading; }
 
     /* ======= FXML Bindings ======= */
     @FXML private TextField txtSearch;
     @FXML private ScrollPane dashboardScroll;
     @FXML private VBox pageContent;
-    @FXML private VBox mainColumn;
     @FXML private Label lblLogoIcon;
     @FXML private Label lblBrandName;
     @FXML private Label lblSearchIcon;
@@ -62,7 +65,6 @@ public class HomeController {
     @FXML private Button chipCar;
     @FXML private Button chipLaptop;
     @FXML private Button chipOther;
-    @FXML private Label lblFeaturedHeader;
     @FXML private Label lblRunningHeader;
     @FXML private Label lblStepsHeader;
     @FXML private Label lblUpcomingHeader;
@@ -70,16 +72,12 @@ public class HomeController {
     @FXML private Label lblStepOneIcon;
     @FXML private Label lblStepTwoIcon;
     @FXML private Label lblStepThreeIcon;
-    @FXML private VBox featuredPane;
-    @FXML private ScrollPane featuredCarouselScroll;
-    @FXML private HBox featuredCarouselTrack;
-    @FXML private Button btnCarouselPrevious;
-    @FXML private Button btnCarouselNext;
 
     // Grid & sidebar
     @FXML private FlowPane auctionGrid;
     @FXML private FlowPane upcomingGrid;
     @FXML private Label lblNoResults;
+    @FXML private Label lblUpcomingEmpty;
 
     // Category chips
     @FXML private Button chipAll;
@@ -87,10 +85,8 @@ public class HomeController {
     /* ======= Internal state ======= */
     private final AuctionClientService auctionService = ServiceRegistry.getService();
     private List<Auction> allAuctions = new ArrayList<>();
-    private List<Auction> featuredAuctions = new ArrayList<>();
     private String activeCategory = "all";
     private Timeline masterCountdownTimer;
-    private Timeline carouselAnimation;
     private final List<CountdownEntry> countdownEntries = new ArrayList<>();
 
     /* ======= Initialization ======= */
@@ -108,13 +104,11 @@ public class HomeController {
                 () -> dashboardScroll.getViewportBounds().getHeight(), dashboardScroll.viewportBoundsProperty()));
         SmoothScroll.apply(dashboardScroll, 3.0);
         com.auction.client.ui.AppFooter.install(dashboardScroll, pageContent);
-        auctionGrid.prefWrapLengthProperty().bind(mainColumn.widthProperty());
-        upcomingGrid.prefWrapLengthProperty().bind(mainColumn.widthProperty());
+        auctionGrid.prefWrapLengthProperty().bind(auctionGrid.widthProperty());
+        upcomingGrid.prefWrapLengthProperty().bind(upcomingGrid.widthProperty());
         setIcon(lblLogoIcon, "trophy", 22, "icon-primary");
         lblBrandName.setText(AppInfo.NAME);
         setIcon(lblSearchIcon, "search", 16, "icon-muted");
-        setButtonIcon(btnCarouselPrevious, "arrow-left");
-        setButtonIcon(btnCarouselNext, "arrow-right");
         setIcon(lblStepOneIcon, "user", 28, "icon-primary");
         setIcon(lblStepTwoIcon, "gavel", 28, "icon-primary");
         setIcon(lblStepThreeIcon, "bag", 28, "icon-primary");
@@ -125,9 +119,6 @@ public class HomeController {
         setButtonIcon(chipCar, "car");
         setButtonIcon(chipLaptop, "laptop");
         setButtonIcon(chipOther, "tag");
-        featuredCarouselScroll.hvalueProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
-        featuredCarouselScroll.viewportBoundsProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
-        featuredCarouselTrack.widthProperty().addListener((observable, oldValue, newValue) -> updateCarouselButtons());
     }
 
     private void setIcon(Label label, String name, double size, String colorClass) {
@@ -154,140 +145,116 @@ public class HomeController {
 
     @FXML
     public void loadAuctions() {
-        List<Auction> loaded = auctionService.getAuctions(null);
-        allAuctions = loaded != null ? loaded : new ArrayList<>();
+        if (loading || tasks.isClosed()) return;
+        loading = true;
+        loadFailed = false;
         applyFilters();
+        tasks.submit("auctions", () -> auctionService.getAuctions(null), loaded -> {
+            loading = false;
+            // Mỗi ID phiên chỉ có một card, kể cả khi nguồn dữ liệu trả lặp.
+            var unique = new java.util.LinkedHashMap<String, Auction>();
+            if (loaded != null) for (Auction auction : loaded) unique.putIfAbsent(auction.getId(), auction);
+            allAuctions = new ArrayList<>(unique.values());
+            applyFilters();
+        }, error -> {
+            loading = false;
+            loadFailed = true;
+            applyFilters();
+        });
     }
 
     private void applyFilters() {
-        String search = txtSearch.getText() != null ? txtSearch.getText().toLowerCase().trim() : "";
+        if (tasks.isClosed()) return;
+        cardsVersion++;
+        imageTasks.cancelAll();
+        String search = txtSearch.getText() != null ? txtSearch.getText().toLowerCase(java.util.Locale.ROOT).trim() : "";
 
         List<Auction> filtered = allAuctions.stream()
                 .filter(a -> {
                     boolean categoryMatch = "all".equals(activeCategory)
                             || ItemCategory.from(a.getItemCategory()) == ItemCategory.from(activeCategory);
                     boolean searchMatch = search.isEmpty()
-                            || a.getItemName().toLowerCase().contains(search)
-                            || a.getItemCategory().toLowerCase().contains(search)
-                            || a.getSellerUsername().toLowerCase().contains(search);
+                            || a.getItemName().toLowerCase(java.util.Locale.ROOT).contains(search)
+                            || a.getItemCategory().toLowerCase(java.util.Locale.ROOT).contains(search)
+                            || a.getSellerUsername().toLowerCase(java.util.Locale.ROOT).contains(search);
                     return categoryMatch && searchMatch;
                 })
                 .collect(Collectors.toList());
 
         countdownEntries.clear();
-        renderFeatured(filtered);
-        renderAuctionGrid(filtered);
-        renderUpcomingGrid(filtered);
-    }
-
-    /* ======= Featured Section ======= */
-
-    private void renderFeatured(List<Auction> auctions) {
-        featuredAuctions = auctions.stream()
-                .filter(auction -> auction.getStatus() == AuctionStatus.RUNNING)
-                .limit(6)
-                .collect(Collectors.toList());
-        if (carouselAnimation != null) {
-            carouselAnimation.stop();
-        }
-        featuredCarouselTrack.getChildren().clear();
-        if (featuredAuctions.isEmpty()) {
-            featuredPane.setVisible(false);
-            featuredPane.setManaged(false);
-            updateCarouselButtons();
-            return;
-        }
-
-        featuredPane.setVisible(true);
-        featuredPane.setManaged(true);
-        for (Auction auction : featuredAuctions) {
-            featuredCarouselTrack.getChildren().add(buildAuctionCard(auction));
-        }
-        featuredCarouselScroll.setHvalue(0);
-        Platform.runLater(this::updateCarouselButtons);
+        renderGroup(filtered, AuctionStatus.RUNNING, auctionGrid, lblNoResults);
+        renderGroup(filtered, AuctionStatus.OPEN, upcomingGrid, lblUpcomingEmpty);
     }
 
     /* ======= Auction Card Grid ======= */
 
-    private void renderAuctionGrid(List<Auction> auctions) {
-        auctionGrid.getChildren().clear();
-        List<Auction> running = auctions.stream()
-                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
-                .filter(a -> featuredAuctions.stream().noneMatch(featured -> featured.getId().equals(a.getId())))
-                .collect(Collectors.toList());
-
-        boolean noResults = running.isEmpty();
-        if (lblNoResults != null) {
-            lblNoResults.setText(featuredAuctions.isEmpty() ? "Không có phiên đấu giá nào phù hợp."
-                    : "Tất cả phiên đang diễn ra đã hiển thị ở mục Nổi bật.");
-            lblNoResults.setWrapText(true);
-            lblNoResults.setVisible(noResults);
-            lblNoResults.setManaged(noResults);
+    private void renderGroup(List<Auction> filtered, AuctionStatus status, FlowPane grid, Label empty) {
+        grid.getChildren().clear();
+        if (!loading && !loadFailed) {
+            for (Auction auction : filtered) {
+                if (auction.getStatus() == status) grid.getChildren().add(buildAuctionCard(auction, grid));
+            }
         }
-
-        for (Auction auction : running) {
-            VBox card = buildAuctionCard(auction);
-            auctionGrid.getChildren().add(card);
-        }
+        boolean hasCards = !grid.getChildren().isEmpty();
+        if (loading) empty.setText("Đang tải phiên đấu giá…");
+        else if (loadFailed) empty.setText("Không thể tải phiên đấu giá. Bấm Làm mới để thử lại.");
+        else if (allAuctions.stream().noneMatch(a -> a.getStatus() == status)) {
+            empty.setText(status == AuctionStatus.RUNNING
+                    ? "Chưa có phiên đấu giá đang diễn ra." : "Chưa có phiên đấu giá sắp diễn ra.");
+        } else empty.setText("Không có kết quả phù hợp với tìm kiếm hoặc danh mục đã chọn.");
+        empty.setVisible(!hasCards);
+        empty.setManaged(!hasCards);
     }
 
-    private void renderUpcomingGrid(List<Auction> auctions) {
-        upcomingGrid.getChildren().clear();
-        List<Auction> upcoming = auctions.stream()
-                .filter(auction -> auction.getStatus() == AuctionStatus.OPEN)
-                .collect(Collectors.toList());
-        for (Auction auction : upcoming) {
-            upcomingGrid.getChildren().add(buildAuctionCard(auction));
-        }
-        if (upcoming.isEmpty()) {
-            Label empty = new Label("Chưa có phiên nào được lên lịch.");
-            empty.getStyleClass().add("empty-placeholder");
-            upcomingGrid.getChildren().add(empty);
-        }
-    }
-
-    private VBox buildAuctionCard(Auction auction) {
+    private VBox buildAuctionCard(Auction auction, FlowPane grid) {
         VBox card = new VBox(8.0);
         card.getStyleClass().add("auction-card");
-        card.setPrefWidth(300.0);
-        card.setMinWidth(300.0);
-        card.setMaxWidth(300.0);
-        card.setPrefHeight(340.0);
+        card.setUserData(auction.getId());
+        card.setMinWidth(0);
+        card.setMinHeight(Region.USE_PREF_SIZE);
+        card.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+            double width = Math.max(0, grid.getWidth());
+            int columns = Math.max(1, (int) ((width + grid.getHgap()) / (300 + grid.getHgap())));
+            // Chừa 1 px cho làm tròn ở màn hình Windows có tỉ lệ hiển thị khác 100%.
+            return Math.max(0, Math.floor((width - (columns - 1) * grid.getHgap()) / columns) - 1);
+        }, grid.widthProperty(), grid.hgapProperty()));
+        card.maxWidthProperty().bind(card.prefWidthProperty());
 
         // Image placeholder
         VBox imgBox = new VBox();
         imgBox.getStyleClass().add("auction-card-image");
-        imgBox.setPrefSize(300, 120);
-        imgBox.setMinSize(300, 120);
-        imgBox.setMaxSize(300, 120);
-        imgBox.setStyle("-fx-min-height: 120px;");
+        imgBox.setMinSize(0, 120);
+        imgBox.setPrefHeight(120);
+        imgBox.setMaxHeight(120);
         RoundedClip.apply(imgBox, 12);
         Label imgLabel = new Label();
         setIcon(imgLabel, getCategoryIconName(auction.getItemCategory()), 64, "icon-on-panel");
         imgBox.getChildren().add(imgLabel);
         imgBox.setAlignment(javafx.geometry.Pos.CENTER);
-        Thread imageLoader = new Thread(() -> {
+        long version = cardsVersion;
+        imageTasks.submit("image-" + auction.getId(), () -> {
             String path = ServiceRegistry.getProductService().getImagePath(auction.getId());
-            if (path == null || path.isBlank()) return;
-            var image = ProductImages.load(path, 0, 0);
-            if (image == null) return;
+            return ProductImages.load(path, 600, 240);
+        }, image -> {
+            if (image == null || version != cardsVersion) return;
             double width = image.getWidth(), height = image.getHeight();
             double cropWidth = Math.min(width, height * 2.5);
             double cropHeight = Math.min(height, width / 2.5);
-            Platform.runLater(() -> {
-                ImageView view = new ImageView(image);
-                view.setViewport(new Rectangle2D((width - cropWidth) / 2, (height - cropHeight) / 2, cropWidth, cropHeight));
-                view.setFitWidth(300); view.setFitHeight(120);
-                imgBox.getChildren().setAll(view);
-            });
-        }, "product-card-image");
-        imageLoader.setDaemon(true); imageLoader.start();
+            ImageView view = new ImageView(image);
+            view.setViewport(new Rectangle2D((width - cropWidth) / 2, (height - cropHeight) / 2, cropWidth, cropHeight));
+            view.fitWidthProperty().bind(imgBox.widthProperty()); view.setFitHeight(120);
+            imgBox.getChildren().setAll(view);
+        }, error -> { /* Giữ icon khi ảnh không khả dụng. */ });
 
         // Countdown label
         Label lblCountdown = new Label("--:--:--");
         lblCountdown.getStyleClass().add("countdown-label");
+        lblCountdown.setMinHeight(Region.USE_PREF_SIZE);
+        lblCountdown.setWrapText(true);
         // Register countdown entry
         countdownEntries.add(new CountdownEntry(auction, lblCountdown));
+        LocalDateTime target = countdownTarget(auction);
+        if (target != null) lblCountdown.setText(formatCountdown(LocalDateTime.now(), target, auction.getStatus()));
 
         // Status badge
         Label statusBadge = new Label(auction.getStatus().getDescription());
@@ -322,6 +289,9 @@ public class HomeController {
         Label lblPrice = new Label(FormatUtil.formatCurrency(auction.getCurrentPrice()));
         lblPrice.getStyleClass().add("auction-card-price");
         lblPrice.getStyleClass().add("t-h3");
+        lblPrice.setWrapText(true);
+        lblPrice.setMinHeight(Region.USE_PREF_SIZE);
+        lblPrice.setTooltip(new javafx.scene.control.Tooltip(lblPrice.getText()));
 
         // Nút đặt giá
         Button btnBid = new Button(auction.getStatus() == AuctionStatus.OPEN ? "Xem phiên" : "Đặt giá");
@@ -332,7 +302,7 @@ public class HomeController {
         btnBid.addEventFilter(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
 
         // HBox top: badge + countdown
-        HBox topRow = new HBox(6.0);
+        FlowPane topRow = new FlowPane(6.0, 6.0);
         topRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         topRow.getStyleClass().add("auction-card-meta");
         topRow.getChildren().addAll(statusBadge, lblCountdown);
@@ -371,23 +341,18 @@ public class HomeController {
 
     private void tickCountdowns() {
         LocalDateTime now = LocalDateTime.now();
-        java.util.Map<String, AuctionStatus> before = new java.util.HashMap<>();
-        for (Auction auction : allAuctions) before.put(auction.getId(), auction.getStatus());
-        List<Auction> refreshed = auctionService.getAuctions(null);
-        if (refreshed.size() != allAuctions.size() || refreshed.stream().anyMatch(a -> before.get(a.getId()) != a.getStatus())) {
-            allAuctions = refreshed;
-            applyFilters();
-            return;
-        }
+        // Chỉ tải nền khi một phiên đi qua mốc bắt đầu/kết thúc.
+        boolean boundary = allAuctions.stream().anyMatch(a ->
+                a.getStatus() == AuctionStatus.OPEN && a.getStartTime() != null && !now.isBefore(a.getStartTime())
+                || a.getStatus() == AuctionStatus.RUNNING && a.getEndTime() != null && !now.isBefore(a.getEndTime()));
+        if (boundary && !loading) loadAuctions();
 
         for (CountdownEntry entry : countdownEntries) {
             LocalDateTime target = countdownTarget(entry.auction);
             if (target == null) continue;
             String cd = formatCountdown(now, target, entry.auction.getStatus());
-            Platform.runLater(() -> {
-                entry.label.setText(cd);
-                updateCountdownStyle(entry.label, now, target);
-            });
+            entry.label.setText(cd);
+            updateCountdownStyle(entry.label, now, target);
         }
     }
 
@@ -439,47 +404,6 @@ public class HomeController {
         source.getStyleClass().add("btn-primary");
 
         applyFilters();
-    }
-
-    @FXML
-    private void handleCarouselPrevious() {
-        scrollCarousel(-1);
-    }
-
-    @FXML
-    private void handleCarouselNext() {
-        scrollCarousel(1);
-    }
-
-    private void scrollCarousel(int direction) {
-        double scrollableWidth = featuredCarouselTrack.getBoundsInLocal().getWidth()
-                - featuredCarouselScroll.getViewportBounds().getWidth();
-        if (scrollableWidth <= 0) {
-            updateCarouselButtons();
-            return;
-        }
-
-        double currentOffset = featuredCarouselScroll.getHvalue() * scrollableWidth;
-        double targetOffset = Math.max(0, Math.min(scrollableWidth, currentOffset + direction * 316));
-        double targetValue = targetOffset / scrollableWidth;
-        if (carouselAnimation != null) {
-            carouselAnimation.stop();
-        }
-        carouselAnimation = new Timeline(new KeyFrame(Duration.millis(250),
-                new KeyValue(featuredCarouselScroll.hvalueProperty(), targetValue, Interpolator.EASE_BOTH)));
-        carouselAnimation.setOnFinished(event -> updateCarouselButtons());
-        carouselAnimation.play();
-    }
-
-    private void updateCarouselButtons() {
-        if (btnCarouselPrevious == null || btnCarouselNext == null) {
-            return;
-        }
-        double scrollableWidth = featuredCarouselTrack.getBoundsInLocal().getWidth()
-                - featuredCarouselScroll.getViewportBounds().getWidth();
-        double currentOffset = featuredCarouselScroll.getHvalue() * Math.max(0, scrollableWidth);
-        btnCarouselPrevious.setDisable(scrollableWidth <= 1 || currentOffset <= 1);
-        btnCarouselNext.setDisable(scrollableWidth <= 1 || currentOffset >= scrollableWidth - 1);
     }
 
     @FXML
@@ -550,6 +474,13 @@ public class HomeController {
         alert.setHeaderText("Không thể chuyển màn hình");
         alert.setContentText("Vui lòng thử lại. Nếu sự cố tiếp tục, hãy khởi động lại ứng dụng.");
         alert.showAndWait();
+    }
+
+    @Override public void dispose() {
+        tasks.close();
+        imageTasks.close();
+        if (masterCountdownTimer != null) masterCountdownTimer.stop();
+        countdownEntries.clear();
     }
 
     /* ======= Inner helper ======= */

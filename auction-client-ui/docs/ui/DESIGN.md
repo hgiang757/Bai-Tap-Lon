@@ -1,31 +1,54 @@
-# Digital Auction Client UI - Design System
+﻿# Thiết kế giao diện client JavaFX
 
-Giao diện dùng chung FXML và stylesheet `src/main/resources/com/auction/client/css/app.css` với một bảng màu sáng thống nhất.
+Ứng dụng dùng một theme sáng trong `src/main/resources/com/auction/client/css/app.css`. Java điều khiển hành vi; FXML định nghĩa bố cục; màu được gán qua looked-up colors. `styleClass` trong FXML là danh sách phân cách bằng dấu phẩy, ví dụ `styleClass="page-title, t-display"`.
 
-## Bảng màu
+## Bảng màu đang dùng
 
-| Token | Giá trị | Công dụng |
+| Token | Giá trị | Vai trò |
 |---|---|---|
-| `-c-bg` | `#F5F5F7` | Nền ứng dụng |
-| `-c-surface` | `#FFFFFF` | Card, input, bảng |
-| `-c-surface-2` | `#F5F5F7` | Bề mặt phụ |
-| `-c-text` | `#1D1D1F` | Nội dung chính |
-| `-c-muted` | `#6E6E73` | Nội dung phụ |
-| `-c-primary` | `#0066CC` | Nút và thành phần nhấn |
-| `-c-primary-hover` | `#004FA3` | Trạng thái hover |
-| `-c-on-primary` | `#FFFFFF` | Nội dung trên màu nhấn |
-| `-c-border` | `#D2D2D7` | Viền |
-| `-c-border-input` | `#86868B` | Viền trường nhập |
-| `-c-success` | `#1D7F3A` | Thành công/đang diễn ra |
-| `-c-warning` | `#B64400` | Cảnh báo |
-| `-c-danger` | `#D70015` | Lỗi/đếm ngược |
+| `-c-bg` | `#F7F6F2` | Nền trang |
+| `-c-surface` | `#FFFFFF` | Card, bảng, form, dialog, tooltip |
+| `-c-surface-2` | `#EEF4F2` | Hover, badge, vùng ảnh sản phẩm |
+| `-c-text` | `#18332F` | Chữ chính |
+| `-c-muted` | `#52645E` | Chữ phụ, gợi ý nhập liệu |
+| `-c-primary` | `#0F766E` | Nút chính, liên kết, focus, trạng thái chọn |
+| `-c-primary-hover` | `#115E59` | Hover nút chính |
+| `-c-on-primary` | `#FFFFFF` | Chữ trên nút chính/ô chọn |
+| `-c-border`, `-c-hairline` | `#D6DFDA` | Viền phân cách trang trí |
+| `-c-border-input` | `#7A8B84` | Viền control cần nhận diện, thanh cuộn |
+| `-c-accent` | `#946200` | Điểm nhấn đồng: biểu tượng thương hiệu, badge mô phỏng/đã thanh toán |
+| `-c-success` | `#166534` | Thành công, đang diễn ra |
+| `-c-warning` | `#92400E` | Cảnh báo |
+| `-c-danger` | `#B91C1C` | Lỗi, nguy hiểm, đếm ngược khẩn cấp |
 
-Màu được khai báo bằng looked-up color trong `app.css`; không đặt màu inline trong controller. Card bo góc lớn, button pill, chữ dùng Segoe UI để hỗ trợ tiếng Việt.
+Không đặt mã màu trong controller/FXML. Bo góc nhẹ và bóng nhẹ; ảnh sản phẩm và SVG vẫn được giữ. Không thêm lớp theme hoặc lớp Java chỉ để bọc node.
 
-Màn Đăng nhập/Đăng ký dùng ảnh nền phủ kín cửa sổ với lớp phủ tối và thẻ form sáng. Ảnh nền không bị làm mờ; thông tin nguồn được quản lý tại [IMAGE_CREDITS.md](../IMAGE_CREDITS.md).
+## Tương phản
 
-## Thành phần và tương tác
+Chạy `python scripts/check-contrast.py` để tính độ sáng tuyến tính sRGB và tỷ lệ `(L_sáng + 0.05) / (L_tối + 0.05)` trực tiếp từ token CSS. Script đo 30 cặp đang dùng; quyết định đạt/ngưỡng dựa trên số chưa làm tròn.
 
-- Định nghĩa button, badge/chip, form field, alert, toast, skeleton, card, bảng và biểu đồ trong `app.css`.
-- `AuctionClientService` là cổng giao tiếp giữa MVC controller và backend/mock.
-- Cập nhật bid từ listener phải được điều phối trên JavaFX Application Thread.
+| Cặp màu thực tế | Tỷ lệ |
+|---|---|
+| Chữ chính trên nền/card/bề mặt phụ | 12.140–13.519:1 |
+| Chữ phụ trên ba nền sáng | 5.641–6.281:1 |
+| Màu tương tác trên ba nền sáng | 4.915–5.473:1 |
+| Màu đồng trên ba nền sáng (cặp chữ thấp nhất) | 4.707–5.242:1 |
+| Chữ trắng trên nút chính / hover | 5.473 / 7.584:1 |
+| Viền input trên ba nền sáng | 3.222–3.587:1 |
+| Focus / dấu chọn xanh ngọc trên ba nền sáng | 4.915–5.473:1 |
+
+Tất cả cặp chữ được đo đạt 4.5:1, kể cả tiêu đề lớn; input/focus đạt 3:1. Viền phân cách `-c-border` chỉ dùng để tổ chức nội dung, không thay viền input hoặc dấu focus. Trạng thái còn có chữ: Đang diễn ra, Sắp diễn ra, Đã thanh toán, Đã hủy, lỗi nhập liệu và trạng thái lệnh. Focus bàn phím dùng viền 2 px; hàng bảng và tab được chọn có đường viền xanh.
+
+Tham khảo: [Carbon — color roles/tokens](https://v10.carbondesignsystem.com/guidelines/color/overview/) và [W3C — contrast minimum](https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html). Phép đo palette không thay thế một cuộc đánh giá khả năng tiếp cận toàn ứng dụng.
+
+## Bố cục và hành vi
+
+- Nền trang là màu CSS; form xác thực căn giữa, cuộn được khi nhỏ hoặc đăng ký dài. Chữ thương hiệu, slogan và lợi ích dùng màu đọc được trên nền sáng.
+- Trang chủ chia trực tiếp RUNNING vào Đang diễn ra, OPEN vào Sắp diễn ra sau tìm kiếm/danh mục. Khử trùng ID một lần khi tải. Mỗi nhóm có thông báo riêng cho đang tải, tải thất bại, chưa có phiên và không khớp bộ lọc. Hướng dẫn, CTA người bán và footer được giữ.
+- Card chia đều chiều rộng theo số cột vừa vùng hiển thị, làm tròn xuống và chừa 1 px cho DPI Windows để tránh một cột bị đẩy xuống hàng. Chiều cao theo nội dung; tên dài xuống dòng; badge/countdown có thể xuống hàng; nút có khoảng đệm. Timer dùng chung; tác vụ ảnh cũ vẫn bị hủy khi lọc hoặc rời trang.
+- Ví hiển thị Tổng số dư, Có thể sử dụng, Tiền tạm giữ cho đấu giá; tối đa ba cột, tự giảm số cột khi hẹp. Nhãn và số được xuống dòng, tooltip và accessible text chứa đúng toàn bộ số. Định dạng long không đổi sang double.
+- Tiền tạm giữ là khoản của lượt dẫn đầu, không phải một khoản đặt cọc riêng. Mock giải phóng khi bị vượt giá hoặc hủy phiên. Khi xử lý kết thúc phiên, mock trừ khoản tạm giữ của người thắng khỏi tổng số dư và chuyển trạng thái PAID; giữ/giải phóng không đổi tổng số dư. Nhãn giao dịch dùng Tạm giữ cho đấu giá và Giải phóng tiền tạm giữ.
+- Bộ lọc trang sản phẩm xuống hàng, bảng giữ chiều rộng cột và cho cuộn ngang trên cửa sổ nhỏ. Popup, dialog, tooltip, badge, bảng và chart kế thừa cùng palette.
+- Khóa gửi giá, UNKNOWN, callback cũ, listener và pool tác vụ nền giữ nguyên. Tất cả dữ liệu nghiệp vụ vẫn là mock.
+
+Ảnh hiện hành và báo cáo tại [UI_REFRESH.md](../UI_REFRESH.md). Ảnh trong `docs/ui/screenshots/`, yêu cầu cũ `PROMPT_FIX_UI_1.md` và tham khảo `DESIGN-apple.md` giữ nguyên lịch sử.

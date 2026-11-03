@@ -1,147 +1,132 @@
 package com.auction.client.dev;
 
-import com.auction.client.controller.AuthController;
-import com.auction.client.controller.AuctionRoomController;
-import com.auction.client.model.Auction;
-import com.auction.client.service.AuctionClientService;
-import com.auction.client.service.ServiceRegistry;
+import com.auction.client.controller.*;
 import com.auction.client.navigation.ViewNavigator;
+import com.auction.client.service.ServiceRegistry;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.WritableImage;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
-
 import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
+/** Công cụ chụp giao diện bằng mock; chờ dữ liệu nền và dùng vòng đời điều hướng thật. */
 public class SnapshotApp extends Application {
-
     private static final File OUTPUT_DIR = new File(System.getProperty("snapshot.outputDir",
-            System.getenv().getOrDefault("SNAPSHOT_OUTPUT_DIR", "docs/ui/screenshots")));
+            System.getenv().getOrDefault("SNAPSHOT_OUTPUT_DIR", "target/snapshots")));
 
-    @Override
-    public void start(Stage stage) throws Exception {
+    @Override public void start(Stage stage) {
+        Platform.setImplicitExit(false);
         ViewNavigator.setPrimaryStage(stage);
-        OUTPUT_DIR.mkdirs();
-        stage.setWidth(1080);
-        stage.setHeight(720);
-
-        try {
-            // 1. Auth Login
-            capture(stage, "/com/auction/client/views/auth-view.fxml", "01_auth_login.png", null);
-
-            // 2. Auth Register
-            FXMLLoader authLoader = new FXMLLoader(getClass().getResource("/com/auction/client/views/auth-view.fxml"));
-            Parent authRoot = authLoader.load();
-            AuthController authController = authLoader.getController();
-            Method switchMethod = AuthController.class.getDeclaredMethod("handleSwitchMode");
-            switchMethod.setAccessible(true);
-            switchMethod.invoke(authController);
-            renderAndSave(stage, authRoot, "02_auth_register.png");
-
-            // 3. Trang chủ
-            capture(stage, "/com/auction/client/views/home-view.fxml", "03_dashboard.png", null);
-
-            // 4. Live Auction (RUNNING)
-            AuctionClientService service = ServiceRegistry.getService();
-            Auction runningAuction = service.getAuctionById("AUC-101");
-            FXMLLoader liveLoader = new FXMLLoader(getClass().getResource("/com/auction/client/views/auction-room-view.fxml"));
-            Parent liveRoot = liveLoader.load();
-            AuctionRoomController liveController = liveLoader.getController();
-            liveController.setAuction(runningAuction);
-            renderAndSave(stage, liveRoot, "04_realtime_bidding_running.png");
-
-            // 5. Live Auction (FINISHED - Locked inputs)
-            Auction finishedAuction = service.getAuctionById("AUC-104");
-            FXMLLoader finLoader = new FXMLLoader(getClass().getResource("/com/auction/client/views/auction-room-view.fxml"));
-            Parent finRoot = finLoader.load();
-            AuctionRoomController finController = finLoader.getController();
-            finController.setAuction(finishedAuction);
-            renderAndSave(stage, finRoot, "05_realtime_bidding_finished.png");
-
-            // 6. Product Management
-            capture(stage, "/com/auction/client/views/seller-products-view.fxml", "06_product_management.png", null);
-
-            // 7. UI Kit and icon gallery
-            capture(stage, "/com/auction/client/dev/uikit-view.fxml", "07_uikit_showcase.png", null);
-            captureIconGallery(stage);
-            capture(stage, "/com/auction/client/views/guide-view.fxml", "09_guide.png", null);
-            capture(stage, "/com/auction/client/views/contact-view.fxml", "10_contact.png", null);
-
-            System.out.println("SNAPSHOTS_SUCCESS");
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            stage.close();
-            Platform.exit();
-            System.exit(0);
-        }
-    }
-
-    private void captureIconGallery(Stage stage) throws IOException {
-        Parent root = stage.getScene().getRoot();
-        root.applyCss();
-        root.layout();
-        Node gallery = root.lookup("#iconGallery");
-        if (gallery == null) {
-            throw new IllegalStateException("Icon gallery is missing from the UI Kit.");
-        }
-
-        saveSnapshot(gallery.snapshot(null, null), "08_icon_gallery.png");
-    }
-
-    private void capture(Stage stage, String fxml, String filename, java.util.function.Consumer<Object> init) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
-        Parent root = loader.load();
-        if (init != null) {
-            init.accept(loader.getController());
-        }
-        renderAndSave(stage, root, filename);
-    }
-
-    private void renderAndSave(Stage stage, Parent root, String filename) throws IOException {
-        Scene scene = stage.getScene();
-        if (scene == null) {
-            scene = new Scene(root, 1080, 720);
-            stage.setScene(scene);
-        } else {
-            scene.setRoot(root);
-        }
-        ViewNavigator.applyAppStylesheet(scene);
+        int width = Integer.parseInt(System.getProperty("snapshot.width",
+                System.getenv().getOrDefault("SNAPSHOT_WIDTH", "1200")));
+        stage.setScene(new Scene(new StackPane(), width, 800));
         stage.show();
-        root.applyCss();
-        root.layout();
-
-        WritableImage img = root.snapshot(null, null);
-        saveSnapshot(img, filename);
+        new Thread(() -> runSnapshots(stage), "snapshot-sequence").start();
     }
 
-    private void saveSnapshot(WritableImage img, String filename) throws IOException {
-        int w = (int) img.getWidth();
-        int h = (int) img.getHeight();
-        BufferedImage bi = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-        PixelReader pr = img.getPixelReader();
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                bi.setRGB(x, y, pr.getArgb(x, y));
+    private void runSnapshots(Stage stage) {
+        int exitCode = 0;
+        try {
+            ServiceRegistry.validateMode();
+            if (!OUTPUT_DIR.isDirectory() && !OUTPUT_DIR.mkdirs()) throw new java.io.IOException("Không thể tạo " + OUTPUT_DIR);
+            capture(stage, ViewNavigator.Route.AUTH.getPath(), "01_auth_login.png", null);
+            capture(stage, ViewNavigator.Route.AUTH.getPath(), "02_auth_register.png", controller -> {
+                try {
+                    Method method = AuthController.class.getDeclaredMethod("handleSwitchMode");
+                    method.setAccessible(true); method.invoke(controller);
+                } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+            });
+            if (!ServiceRegistry.getService().login("bidder_hieu", "123456", null)) throw new IllegalStateException("Mock login failed");
+            capture(stage, ViewNavigator.Route.DASHBOARD.getPath(), "03_dashboard.png", null);
+            capture(stage, "/com/auction/client/views/auction-room-view.fxml", "04_realtime_bidding_running.png",
+                    controller -> ((AuctionRoomController) controller).loadAuction("AUC-103"));
+            capture(stage, "/com/auction/client/views/auction-room-view.fxml", "05_realtime_bidding_finished.png",
+                    controller -> ((AuctionRoomController) controller).loadAuction("AUC-104"));
+            if (!ServiceRegistry.getService().login("seller_hieu", "123456", null)) throw new IllegalStateException("Mock seller login failed");
+            capture(stage, ViewNavigator.Route.PRODUCTS.getPath(), "06_product_management.png", null);
+            capture(stage, "/com/auction/client/dev/uikit-view.fxml", "07_uikit_showcase.png", null);
+            fx(() -> {
+                Node gallery = stage.getScene().getRoot().lookup("#iconGallery");
+                if (gallery == null) throw new IllegalStateException("Icon gallery is missing");
+                saveSnapshot(gallery, "08_icon_gallery.png"); return null;
+            });
+            if (!ServiceRegistry.getService().register("snapshot_wallet", "Testpass123", "Ví kiểm thử",
+                    "snapshot_wallet@example.com", com.auction.client.model.UserRole.BIDDER)) {
+                throw new IllegalStateException("Mock wallet registration failed");
             }
+            ServiceRegistry.getWalletService().deposit("snapshot_wallet", 9_123_456_739_012_345L);
+            capture(stage, ViewNavigator.Route.WALLET.getPath(), "11_wallet_long_amount.png", null);
+            capture(stage, ViewNavigator.Route.GUIDE.getPath(), "09_guide.png", null);
+            capture(stage, ViewNavigator.Route.CONTACT.getPath(), "10_contact.png", null);
+            System.out.println("SNAPSHOTS_SUCCESS (mock only)");
+        } catch (Exception error) {
+            exitCode = 1; error.printStackTrace();
+        } finally {
+            try { fx(() -> { ViewNavigator.disposeCurrentView(); stage.close(); return null; }); }
+            catch (Exception error) { exitCode = 1; error.printStackTrace(); }
+            Platform.exit();
+            System.exit(exitCode);
         }
-        File dest = new File(OUTPUT_DIR, filename);
-        if (!ImageIO.write(bi, "PNG", dest)) {
-            throw new IOException("No PNG writer is available for " + dest.getName());
-        }
-        System.out.println("SAVED: " + dest.getName() + " (" + w + "x" + h + ")");
     }
 
-    public static void main(String[] args) {
-        launch(args);
+    private void capture(Stage stage, String fxml, String filename, Consumer<Object> init) throws Exception {
+        Object controller = fx(() -> {
+            Object loaded = ViewNavigator.loadView(fxml, filename, false);
+            if (init != null) init.accept(loaded);
+            return loaded;
+        });
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!fx(() -> ready(controller))) {
+            if (System.nanoTime() > deadline) throw new IllegalStateException("Chưa tải xong: " + fxml);
+            Thread.sleep(30);
+        }
+        CompletableFuture<Void> layoutReady = new CompletableFuture<>();
+        fx(() -> {
+            var pulse = new javafx.animation.AnimationTimer() {
+                private int frames;
+                @Override public void handle(long now) {
+                    if (++frames >= 3) { stop(); layoutReady.complete(null); }
+                }
+            };
+            pulse.start(); return null;
+        });
+        layoutReady.get(10, TimeUnit.SECONDS);
+        fx(() -> { saveSnapshot(stage.getScene().getRoot(), filename); return null; });
     }
+
+    private boolean ready(Object controller) {
+        if (controller instanceof HomeController home) return !home.isLoading();
+        if (controller instanceof AuctionRoomController room) return room.isReady();
+        if (controller instanceof SellerProductsController seller) return !seller.isLoading();
+        if (controller instanceof WalletController wallet) return !wallet.isLoading();
+        return true;
+    }
+
+    private static <T> T fx(Callable<T> work) throws Exception {
+        FutureTask<T> task = new FutureTask<>(work);
+        Platform.runLater(task);
+        return task.get(15, TimeUnit.SECONDS);
+    }
+
+    private void saveSnapshot(Node node, String filename) throws java.io.IOException {
+        node.applyCss();
+        if (node instanceof javafx.scene.Parent parent) parent.layout();
+        File file = new File(OUTPUT_DIR, filename);
+        if (!ImageIO.write(SwingFXUtils.fromFXImage(node.snapshot(null, null), null), "PNG", file)) {
+            throw new java.io.IOException("No PNG writer for " + filename);
+        }
+        System.out.println("SAVED: " + file);
+    }
+
+    public static void main(String[] args) { launch(args); }
 }
