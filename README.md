@@ -26,6 +26,15 @@ mvn -B test
 python scripts/check-encoding.py
 ```
 
+## Kiểm thử server
+
+```bash
+cd auction-server
+mvn -B test
+```
+
+Các kiểm thử server gồm: xử lý đặt giá và ngoại lệ (`BidProcessorTest`), đấu giá tự động (`AutoBidEngineTest`), chống bắn tỉa (`AntiSnipingPolicyTest`) và lưu trữ dữ liệu (`FileDaoTest`, `UserDAOTest`, `ItemDAOTest`). GitHub Actions chạy cả kiểm thử client và server mỗi khi push.
+
 ## Phân công
 
 - Thành viên 1: Hệ thống & Mạng

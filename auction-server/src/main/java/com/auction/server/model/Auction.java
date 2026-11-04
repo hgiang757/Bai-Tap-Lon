@@ -3,6 +3,7 @@ package com.auction.server.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Auction implements Serializable {
@@ -53,6 +54,40 @@ public class Auction implements Serializable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getAuctionId() {
+        return auctionId;
+    }
+
+    public Item getItem() {
+        return item;
+    }
+
+    public double getStartingPrice() {
+        return startingPrice;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    // Dùng cho anti-sniping (gia hạn phiên)
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public Bidder getCurrentHighestBidder() {
+        return currentHighestBidder;
+    }
+
+    // Trả về bản chỉ đọc để bên ngoài không sửa trực tiếp lịch sử
+    public List<Bid> getBidHistory() {
+        return Collections.unmodifiableList(bidHistory);
     }
 
     // Hành động thêm lượt đặt giá mới vào lịch sử
