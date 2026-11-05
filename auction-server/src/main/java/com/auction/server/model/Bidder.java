@@ -5,31 +5,14 @@ public class Bidder extends User {
 
     public Bidder() {
         super();
-        setRole("BIDDER");
-    }
-
-    public Bidder(String id, String name) {
-        super(id, name, "", "BIDDER");
-    }
-
-    public Bidder(Long id, String name) {
-        super(id, name, "", "BIDDER");
     }
 
     public Bidder(String id, String name, String password) {
-        super(id, name, password, "BIDDER");
+        super(id, name, password);
     }
 
     public Bidder(Long id, String name, String password) {
-        super(id, name, password, "BIDDER");
-    }
-
-    public Bidder(String id, String name, String password, String email) {
-        super(id, name, password, email, "BIDDER");
-    }
-
-    public Bidder(Long id, String name, String password, String email) {
-        super(id, name, password, email, "BIDDER");
+        super(id, name, password);
     }
 
     @Override
