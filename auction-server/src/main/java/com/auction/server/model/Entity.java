@@ -3,7 +3,7 @@ package com.auction.server.model;
 import java.io.Serializable;
 import java.time.Instant;
 
-/**Sửa lại
+/**
  * Abstract base class cho tất cả entities trong hệ thống đấu giá.
  * Chứa các thuộc tính chung: id, name, createdAt, updatedAt
  */
@@ -23,16 +23,31 @@ public abstract class Entity implements Serializable {
         this.updatedAt = Instant.now();
     }
 
-    // Constructor 1 tham số id
+    // Constructor 1 tham số String id
     public Entity(String id) {
         this.id = id;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
-    // Constructor 2 tham số (id, name) - BẮT BUỘC ĐỂ KHỚP VỚI User.java VÀ Item.java
+    // Constructor 1 tham số Long id (Tự động convert sang String để tương thích cả Long và String)
+    public Entity(Long id) {
+        this.id = id != null ? String.valueOf(id) : null;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    // Constructor 2 tham số (String id, String name)
     public Entity(String id, String name) {
         this.id = id;
+        this.name = name;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    // Constructor 2 tham số (Long id, String name)
+    public Entity(Long id, String name) {
+        this.id = id != null ? String.valueOf(id) : null;
         this.name = name;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -52,6 +67,11 @@ public abstract class Entity implements Serializable {
 
     public void setId(String id) {
         this.id = id;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setId(Long id) {
+        this.id = id != null ? String.valueOf(id) : null;
         this.updatedAt = Instant.now();
     }
 
