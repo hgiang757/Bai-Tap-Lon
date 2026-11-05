@@ -6,35 +6,23 @@ public class Electronics extends Item {
     private String brand;
     private int warrantyMonths;
 
-    public Electronics() {
-        super();
-    }
-
-    public Electronics(Long id, String name, String description, double basePrice,
-                       String brand, int warrantyMonths) {
-        super(id, name, description, basePrice);
+    public Electronics(String id, String name, String description, Seller seller, String brand, int warrantyMonths) {
+        super(id, name, description, seller);
         this.brand = brand;
         this.warrantyMonths = warrantyMonths;
+    }
+
+    @Override
+    public double calculateInsuranceFee(double currentPrice) {
+        // Phí bảo hiểm đồ điện tử: 2% giá trị hiện tại
+        return currentPrice * 0.02;
     }
 
     public String getBrand() {
         return brand;
     }
 
-    public void setBrand(String brand) {
-        this.brand = brand;
-    }
-
     public int getWarrantyMonths() {
         return warrantyMonths;
-    }
-
-    public void setWarrantyMonths(int warrantyMonths) {
-        this.warrantyMonths = warrantyMonths;
-    }
-
-    @Override
-    public String getCategory() {
-        return "ELECTRONICS";
     }
 }
