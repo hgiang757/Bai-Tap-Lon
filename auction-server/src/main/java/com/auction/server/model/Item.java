@@ -1,15 +1,41 @@
 package com.auction.server.model;
 
-public abstract class Item extends Entity {
+import java.time.Instant;
+
+public class Item extends Entity {
     private static final long serialVersionUID = 1L;
 
+    private String name;
     private String description;
-    private Seller owner; // Quan hệ "Has-A" (Aggregation): Item được sở hữu bởi 1 Seller
+    private double basePrice;
+    private Long sellerId;
 
-    public Item(String id, String name, String description, Seller owner) {
-        super(id, name); // Gán ID và Tên sản phẩm
+    public Item() {
+        super();
+    }
+
+    public Item(Long id, String name, String description, double basePrice) {
+        super(id);
+        this.name = name;
         this.description = description;
-        this.owner = owner;
+        this.basePrice = basePrice;
+    }
+
+    public Item(Long id, String name, String description, double basePrice, Long sellerId) {
+        super(id);
+        this.name = name;
+        this.description = description;
+        this.basePrice = basePrice;
+        this.sellerId = sellerId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        setUpdatedAt(Instant.now());
     }
 
     public String getDescription() {
@@ -18,44 +44,47 @@ public abstract class Item extends Entity {
 
     public void setDescription(String description) {
         this.description = description;
+        setUpdatedAt(Instant.now());
     }
 
-    public Seller getOwner() {
-        return owner;
+    public double getBasePrice() {
+        return basePrice;
     }
 
-    // Phương thức đa hình: Mỗi loại sản phẩm có thể có phí kiểm định/bảo hiểm khác nhau
-    public abstract double calculateInsuranceFee(double currentPrice);
-}
+    public void setBasePrice(double basePrice) {
+        this.basePrice = basePrice;
+        setUpdatedAt(Instant.now());
+    }
 
+    public double getStartingPrice() {
+        return basePrice;
+    }
 
+    public void setStartingPrice(double startingPrice) {
+        this.basePrice = startingPrice;
+        setUpdatedAt(Instant.now());
+    }
 
-class ElectronicsItem extends Item {
-    private static final long serialVersionUID = 1L;
-    private int warrantyMonths; // Thuộc tính riêng: Số tháng bảo hành
+    public Long getSellerId() {
+        return sellerId;
+    }
 
-    public ElectronicsItem(String id, String name, String description, Seller owner, int warrantyMonths) {
-        super(id, name, description, owner);
-        this.warrantyMonths = warrantyMonths;
+    public void setSellerId(Long sellerId) {
+        this.sellerId = sellerId;
+        setUpdatedAt(Instant.now());
+    }
+
+    public String getCategory() {
+        return "GENERAL";
     }
 
     @Override
-    public double calculateInsuranceFee(double currentPrice) {
-        return currentPrice * 0.05; // Phí bảo hiểm 5% cho hàng điện tử
-    }
-}
-
-class ArtItem extends Item {
-    private static final long serialVersionUID = 1L;
-    private String artist; // Thuộc tính riêng: Tên tác giả/họa sĩ
-
-    public ArtItem(String id, String name, String description, Seller owner, String artist) {
-        super(id, name, description, owner);
-        this.artist = artist;
-    }
-
-    @Override
-    public double calculateInsuranceFee(double currentPrice) {
-        return currentPrice * 0.10; // Phí bảo quản nghệ thuật 10%
+    public String toString() {
+        return "Item{" +
+                "id=" + getId() +
+                ", name='" + name + '\'' +
+                ", basePrice=" + basePrice +
+                ", category='" + getCategory() + '\'' +
+                '}';
     }
 }
