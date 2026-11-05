@@ -1,16 +1,24 @@
 package com.auction.server.model;
 
-// Tính Kế thừa (Inheritance): User kế thừa Entity để lấy id và name (name ở đây dùng làm username/fullName)
+import java.time.Instant;
+
 public abstract class User extends Entity {
     private static final long serialVersionUID = 1L;
 
-    private String password;
-    private double balance; // Số dư ví (Dành cho chức năng đặt cọc / thanh toán)
+    protected String password;
 
-    public User(String id, String username, String password) {
-        super(id, username); // Gọi constructor của lớp cha Entity
+    public User() {
+        super();
+    }
+
+    public User(String id, String name, String password) {
+        super(id, name);
         this.password = password;
-        this.balance = 0.0;
+    }
+
+    public User(Long id, String name, String password) {
+        super(id, name);
+        this.password = password;
     }
 
     public String getPassword() {
@@ -19,16 +27,9 @@ public abstract class User extends Entity {
 
     public void setPassword(String password) {
         this.password = password;
+        setUpdatedAt(Instant.now());
     }
 
-    public double getBalance() {
-        return balance;
-    }
-
-    public void setBalance(double balance) {
-        this.balance = balance;
-    }
-
-    // Phương thức trừu tượng thể hiện Đa hình (Polymorphism)
+    // Bắt buộc cho UserDAOTest: assertEquals("BIDDER", loaded.get(0).getRoleName());
     public abstract String getRoleName();
 }
