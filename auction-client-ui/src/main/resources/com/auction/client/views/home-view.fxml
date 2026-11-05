@@ -65,10 +65,15 @@
                             <FlowPane fx:id="upcomingGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT" prefWrapLength="720.0"/>
                             <Label fx:id="lblUpcomingEmpty" wrapText="true" minHeight="-Infinity" styleClass="empty-placeholder" visible="false" managed="false"/>
                         </VBox>
+                        <VBox spacing="16.0" styleClass="home-panel, home-panel-white">
+                            <Label text="Kết quả các phiên" styleClass="section-header, t-h2"/>
+                            <FlowPane fx:id="finishedGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT"/>
+                            <Label fx:id="lblFinishedEmpty" wrapText="true" styleClass="empty-placeholder"/>
+                        </VBox>
                         <VBox spacing="16.0" styleClass="home-panel, home-panel-alt"><Label fx:id="lblStepsHeader" text="Cách hoạt động" wrapText="true" minWidth="0" minHeight="-Infinity" styleClass="section-header, t-h2"/>
                             <Label text="Bắt đầu chỉ với ba bước đơn giản." styleClass="text-secondary"/>
                             <HBox spacing="16.0" alignment="CENTER" fillHeight="true">
-                                <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="1"/></StackPane><Label fx:id="lblStepOneIcon"/><Label text="Đăng ký" styleClass="step-title"/><Label text="Tạo tài khoản mô phỏng để thử giao diện đấu giá" styleClass="step-desc" wrapText="true"/></VBox>
+                                <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="1"/></StackPane><Label fx:id="lblStepOneIcon"/><Label text="Đăng ký" styleClass="step-title"/><Label text="Tạo tài khoản để tham gia đấu giá" styleClass="step-desc" wrapText="true"/></VBox>
                                 <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="2"/></StackPane><Label fx:id="lblStepTwoIcon"/><Label text="Đấu giá" styleClass="step-title"/><Label text="Tìm phiên yêu thích, đặt giá và theo dõi kết quả thời gian thực" styleClass="step-desc" wrapText="true"/></VBox>
                                 <VBox styleClass="step-card" alignment="CENTER" spacing="10.0" maxWidth="Infinity" HBox.hgrow="ALWAYS"><StackPane styleClass="step-number"><Label text="3"/></StackPane><Label fx:id="lblStepThreeIcon"/><Label text="Kết quả" styleClass="step-title"/><Label text="Xem kết quả và giao dịch ví mô phỏng sau khi phiên kết thúc" styleClass="step-desc" wrapText="true"/></VBox>
                             </HBox>

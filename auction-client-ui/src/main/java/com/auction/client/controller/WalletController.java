@@ -26,7 +26,8 @@ import java.util.function.Consumer;
 /** Điều khiển trang ví mô phỏng. */
 public class WalletController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
-    @Override public void dispose() { tasks.close(); }
+    private final Consumer<String> serverChanges = type -> tasks.dispatch(() -> { if (type.equals("WALLET_CHANGED") || type.equals("RECONNECTED")) reload(); });
+    @Override public void dispose() { ServiceRegistry.getService().removeChangeListener(serverChanges); tasks.close(); }
     @FXML private ScrollPane scroll;
     @FXML private VBox pageContent;
     @FXML private FlowPane statistics;
@@ -36,7 +37,7 @@ public class WalletController implements DisposableView {
     private final WalletService wallet = ServiceRegistry.getWalletService();
     private List<Transaction> transactions = List.of();
     private String username;
-    private boolean loading;
+    private boolean loading, reloadAgain;
     public boolean isLoading() { return loading; }
     private long balance;
     private final Label[] values = new Label[6];
@@ -48,6 +49,7 @@ public class WalletController implements DisposableView {
         var user = ServiceRegistry.getService().getCurrentUser();
         if (user == null) { table.setPlaceholder(new Label("Vui lòng đăng nhập để xem ví.")); return; }
         username = user.getUsername();
+        ServiceRegistry.getService().addChangeListener(serverChanges);
         String[] headings = {"Tổng số dư", "Có thể sử dụng", "Tiền tạm giữ cho đấu giá", "Tổng đã nạp", "Tổng đã rút", "Số giao dịch"};
         for (int i = 0; i < headings.length; i++) {
             Label heading = new Label(headings[i]);
@@ -81,21 +83,21 @@ public class WalletController implements DisposableView {
         column("Thời gian", t -> t.timestamp().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
         var type = column("Loại", t -> t.type().getLabel());
         type.setCellFactory(c -> new TableCell<>() { @Override protected void updateItem(String v, boolean empty) { super.updateItem(v, empty); setText(null); setGraphic(null); if (!empty && v != null) { Label badge = new Label(v); badge.getStyleClass().add("badge-status"); setGraphic(badge); } } });
-        var amount = column("Số tiền", t -> (incoming(t.type()) ? "+" : "−") + FormatUtil.formatCurrency(t.amount()));
+        var amount = column("Số tiền", t -> (t.type() == TransactionType.BID_HOLD || t.type() == TransactionType.BID_RELEASE ? "↔ " : incoming(t.type()) ? "+" : "−") + FormatUtil.formatCurrency(t.amount()));
         amount.setCellFactory(c -> new TableCell<>() { @Override protected void updateItem(String v, boolean empty) { super.updateItem(v, empty); setText(empty ? null : v); getStyleClass().removeAll("field-success", "field-error"); if (!empty && v != null) getStyleClass().add(v.startsWith("+") ? "field-success" : "field-error"); } });
         column("Tổng số dư sau", t -> FormatUtil.formatCurrency(t.balanceAfter()));
         column("Ghi chú/phiên", t -> (t.note() == null ? "" : t.note()) + (t.auctionId() == null ? "" : t.auctionId()));
         reload();
     }
-    private boolean incoming(TransactionType type) { return type == TransactionType.DEPOSIT || type == TransactionType.BID_RELEASE || type == TransactionType.REFUND; }
+    private boolean incoming(TransactionType type) { return type == TransactionType.SALE || type == TransactionType.DEPOSIT || type == TransactionType.BID_RELEASE || type == TransactionType.REFUND; }
     private TableColumn<Transaction,String> column(String name, java.util.function.Function<Transaction,String> f) {
         TableColumn<Transaction,String> c = new TableColumn<>(name); c.setCellValueFactory(v -> new SimpleStringProperty(f.apply(v.getValue()))); table.getColumns().add(c); return c;
     }
-    private record Snapshot(long balance, long held, long available, List<Transaction> transactions) { }
     private void reload() {
         if (username == null) return;
+        if (loading) { reloadAgain = true; return; }
         loading = true;
-        run(() -> new Snapshot(wallet.getBalance(username), wallet.getHeldAmount(username), wallet.getAvailable(username), wallet.getTransactions(username)), data -> {
+        run(() -> wallet.getSnapshot(username), data -> {
             loading = false;
             balance = data.balance(); transactions = data.transactions();
             long deposited = transactions.stream().filter(t -> t.type() == TransactionType.DEPOSIT).mapToLong(Transaction::amount).sum();
@@ -103,7 +105,8 @@ public class WalletController implements DisposableView {
             long[] numbers = {balance, data.available(), data.held(), deposited, withdrawn};
             for (int i = 0; i < numbers.length; i++) values[i].setText(FormatUtil.formatCurrency(numbers[i]));
             values[5].setText(Integer.toString(transactions.size())); filter();
-        }, error -> { loading = false; showError(error.getMessage()); });
+            if (reloadAgain) { reloadAgain = false; reload(); }
+        }, error -> { loading = false; reloadAgain = false; showError(error.getMessage()); });
     }
     private void filter() {
         String q = search.getText().trim().toLowerCase(Locale.ROOT);

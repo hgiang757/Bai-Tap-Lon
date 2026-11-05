@@ -48,6 +48,8 @@ public class HomeController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
     private final ViewTasks imageTasks = ViewTasks.images();
     private boolean loading;
+    private boolean loadAgain;
+    private final java.util.function.Consumer<String> serverChanges = type -> tasks.dispatch(this::loadAuctions);
     private boolean loadFailed;
     private long cardsVersion;
     public boolean isLoading() { return loading; }
@@ -76,6 +78,8 @@ public class HomeController implements DisposableView {
     // Grid & sidebar
     @FXML private FlowPane auctionGrid;
     @FXML private FlowPane upcomingGrid;
+    @FXML private FlowPane finishedGrid;
+    @FXML private Label lblFinishedEmpty;
     @FXML private Label lblNoResults;
     @FXML private Label lblUpcomingEmpty;
 
@@ -93,6 +97,7 @@ public class HomeController implements DisposableView {
 
     @FXML
     public void initialize() {
+        auctionService.addChangeListener(serverChanges);
         configureVisuals();
         setupSearchListener();
         loadAuctions();
@@ -145,7 +150,8 @@ public class HomeController implements DisposableView {
 
     @FXML
     public void loadAuctions() {
-        if (loading || tasks.isClosed()) return;
+        if (tasks.isClosed()) return;
+        if (loading) { loadAgain = true; return; }
         loading = true;
         loadFailed = false;
         applyFilters();
@@ -156,6 +162,7 @@ public class HomeController implements DisposableView {
             if (loaded != null) for (Auction auction : loaded) unique.putIfAbsent(auction.getId(), auction);
             allAuctions = new ArrayList<>(unique.values());
             applyFilters();
+            if (loadAgain) { loadAgain = false; loadAuctions(); }
         }, error -> {
             loading = false;
             loadFailed = true;
@@ -184,6 +191,7 @@ public class HomeController implements DisposableView {
         countdownEntries.clear();
         renderGroup(filtered, AuctionStatus.RUNNING, auctionGrid, lblNoResults);
         renderGroup(filtered, AuctionStatus.OPEN, upcomingGrid, lblUpcomingEmpty);
+        renderGroup(filtered, AuctionStatus.FINISHED, finishedGrid, lblFinishedEmpty);
     }
 
     /* ======= Auction Card Grid ======= */
@@ -192,19 +200,21 @@ public class HomeController implements DisposableView {
         grid.getChildren().clear();
         if (!loading && !loadFailed) {
             for (Auction auction : filtered) {
-                if (auction.getStatus() == status) grid.getChildren().add(buildAuctionCard(auction, grid));
+                if (inGroup(auction, status)) grid.getChildren().add(buildAuctionCard(auction, grid));
             }
         }
         boolean hasCards = !grid.getChildren().isEmpty();
         if (loading) empty.setText("Đang tải phiên đấu giá…");
         else if (loadFailed) empty.setText("Không thể tải phiên đấu giá. Bấm Làm mới để thử lại.");
-        else if (allAuctions.stream().noneMatch(a -> a.getStatus() == status)) {
+        else if (allAuctions.stream().noneMatch(a -> inGroup(a, status))) {
             empty.setText(status == AuctionStatus.RUNNING
-                    ? "Chưa có phiên đấu giá đang diễn ra." : "Chưa có phiên đấu giá sắp diễn ra.");
+                    ? "Chưa có phiên đấu giá đang diễn ra." : status == AuctionStatus.OPEN ? "Chưa có phiên đấu giá sắp diễn ra." : "Chưa có phiên kết thúc hoặc bị hủy.");
         } else empty.setText("Không có kết quả phù hợp với tìm kiếm hoặc danh mục đã chọn.");
         empty.setVisible(!hasCards);
         empty.setManaged(!hasCards);
     }
+
+    private boolean inGroup(Auction a, AuctionStatus status) { return status == AuctionStatus.FINISHED ? a.getStatus() != AuctionStatus.RUNNING && a.getStatus() != AuctionStatus.OPEN : a.getStatus() == status; }
 
     private VBox buildAuctionCard(Auction auction, FlowPane grid) {
         VBox card = new VBox(8.0);
@@ -252,9 +262,10 @@ public class HomeController implements DisposableView {
         lblCountdown.setMinHeight(Region.USE_PREF_SIZE);
         lblCountdown.setWrapText(true);
         // Register countdown entry
-        countdownEntries.add(new CountdownEntry(auction, lblCountdown));
+        if (auction.getStatus() == AuctionStatus.OPEN || auction.getStatus() == AuctionStatus.RUNNING)
+            countdownEntries.add(new CountdownEntry(auction, lblCountdown));
         LocalDateTime target = countdownTarget(auction);
-        if (target != null) lblCountdown.setText(formatCountdown(LocalDateTime.now(), target, auction.getStatus()));
+        if (target != null) lblCountdown.setText(formatCountdown(auctionService.serverNow(), target, auction.getStatus()));
 
         // Status badge
         Label statusBadge = new Label(auction.getStatus().getDescription());
@@ -294,7 +305,7 @@ public class HomeController implements DisposableView {
         lblPrice.setTooltip(new javafx.scene.control.Tooltip(lblPrice.getText()));
 
         // Nút đặt giá
-        Button btnBid = new Button(auction.getStatus() == AuctionStatus.OPEN ? "Xem phiên" : "Đặt giá");
+        Button btnBid = new Button(auction.getStatus() == AuctionStatus.OPEN ? "Xem phiên" : auction.getStatus() == AuctionStatus.RUNNING ? "Đặt giá" : "Xem kết quả");
         btnBid.getStyleClass().add("btn-primary");
         btnBid.setMaxWidth(Double.MAX_VALUE);
         setButtonIcon(btnBid, "arrow-right");
@@ -340,7 +351,7 @@ public class HomeController implements DisposableView {
     }
 
     private void tickCountdowns() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = auctionService.serverNow();
         // Chỉ tải nền khi một phiên đi qua mốc bắt đầu/kết thúc.
         boolean boundary = allAuctions.stream().anyMatch(a ->
                 a.getStatus() == AuctionStatus.OPEN && a.getStartTime() != null && !now.isBefore(a.getStartTime())
@@ -477,6 +488,7 @@ public class HomeController implements DisposableView {
     }
 
     @Override public void dispose() {
+        auctionService.removeChangeListener(serverChanges);
         tasks.close();
         imageTasks.close();
         if (masterCountdownTimer != null) masterCountdownTimer.stop();

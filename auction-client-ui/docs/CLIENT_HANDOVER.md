@@ -1,4 +1,6 @@
-# Bàn giao phần client JavaFX
+# Lịch sử bàn giao phần client JavaFX
+
+> Cập nhật 05/11/2026: tài liệu dưới đây ghi trạng thái trước tích hợp. Hiện `service/server` đã nối 6 dịch vụ vào backend thật; xem [PROTOCOL](../../auction-server/PROTOCOL.md) và [README](../../README.md) để chạy bản hiện hành. Các giới hạn chỉ sửa client/không sửa backend bên dưới là phạm vi của đợt bàn giao cũ.
 
 Giao diện hiện tại dùng nền CSS trắng ngà, màu xanh ngọc, hai nhóm RUNNING/OPEN và thuật ngữ ví mới; xem [UI_REFRESH](UI_REFRESH.md). Bản mô tả tổng quan và bảng chức năng đầy đủ hiện ở [README](../README.md) và [CODE_MAP](CODE_MAP.md). Đợt sửa tiếp ngày 03/11/2026 thêm `BidSubmissionTracker`, tách hàng đợi ảnh và cập nhật xử lý kết quả chưa rõ. Phần đối chiếu backend bên dưới vẫn áp dụng; kết quả kiểm tra mới được tách riêng trong [VALIDATION](VALIDATION.md).
 

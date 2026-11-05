@@ -6,4 +6,5 @@ target/
 nbactions.xml
 nb-configuration.xml
 *.log
+data/
 .maven-repository/

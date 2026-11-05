@@ -30,12 +30,18 @@ public final class ServiceRegistry {
                 new MockAutoBidService(store, ServiceRegistry::getService), management, management, management);
     }
 
-    /** Backend hiện chỉ echo chuỗi; cấu hình khác mock phải báo lỗi, không tự fallback. */
-    public static void validateMode() {
+    public static synchronized void validateMode() {
         String mode = System.getProperty("auction.mode", "mock").trim();
-        if (!"mock".equalsIgnoreCase(mode)) throw new IllegalStateException("Chế độ '" + mode
-                + "' chưa được hỗ trợ: backend hiện chỉ echo chuỗi. Dùng -Dauction.mode=mock.");
+        if (!"mock".equalsIgnoreCase(mode) && !"server".equalsIgnoreCase(mode)) throw new IllegalStateException("Chế độ không hợp lệ: " + mode);
+        if ("server".equalsIgnoreCase(mode) && !(services.auction() instanceof com.auction.client.service.server.ServerServices)) {
+            var adapter = new com.auction.client.service.server.ServerServices();
+            services = new Services(adapter, adapter, adapter, adapter, adapter, adapter); bidSubmissions = new BidSubmissionTracker();
+        } else if ("mock".equalsIgnoreCase(mode) && services.auction() instanceof com.auction.client.service.server.ServerServices adapter) {
+            adapter.close(); services = mockServices(); bidSubmissions = new BidSubmissionTracker();
+        }
     }
+    public static synchronized void close() { if (services.auction() instanceof com.auction.client.service.server.ServerServices adapter) adapter.close(); }
+    public static String modeLabel() { return "server".equalsIgnoreCase(System.getProperty("auction.mode", "mock")) ? "SERVER" : "MOCK"; }
 
     public static synchronized AuctionClientService getService() { validateMode(); return services.auction(); }
     public static synchronized WalletService getWalletService() { validateMode(); return services.wallet(); }
@@ -45,7 +51,7 @@ public final class ServiceRegistry {
     public static synchronized AuctionAdminService getAuctionAdminService() { validateMode(); return services.auctions(); }
     public static synchronized BidSubmissionTracker getBidSubmissions() { return bidSubmissions; }
 
-    /** Điểm cấu hình adapter trong tương lai; không có adapter nghiệp vụ server ở bản hiện tại. */
+    /** Thay nguyên bộ dịch vụ, dùng cho cấu hình kết nối và kiểm thử tích hợp. */
     public static synchronized void setServices(AuctionClientService auction, WalletService wallet, AutoBidService autoBid,
             ProductService products, UserAdminService users, AuctionAdminService auctions) {
         Services next = new Services(auction, wallet, autoBid, products, users, auctions);

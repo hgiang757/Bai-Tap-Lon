@@ -50,18 +50,18 @@ public class GuideController implements DisposableView {
         sections.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(sections, Priority.ALWAYS);
         addSection("Bắt đầu", "guide-start",
-                "Hiện mọi nghiệp vụ dùng mock trong bộ nhớ, chưa kết nối server thật. Đăng ký tài khoản và chọn Người đấu giá hoặc Người bán. Vai trò đăng nhập do dịch vụ mock xác định.",
+                "Đăng ký tài khoản và chọn Người đấu giá hoặc Người bán. Chế độ SERVER kết nối máy chủ và lưu dữ liệu; chế độ MOCK dùng thử độc lập. Vai trò đăng nhập do dịch vụ xác thực trả về.",
         "Ứng dụng dùng một bảng màu sáng thống nhất trên mọi màn hình.",
                 "Để đăng xuất, mở menu tài khoản ở góc trên và chọn Đăng xuất.");
         addSection("Dành cho người đấu giá", "guide-bidder",
                 "Trang chủ hiển thị các phiên đấu giá; có thể tìm theo tên, danh mục hoặc người bán và lọc nhanh theo danh mục. Ứng dụng không có bộ lọc trạng thái riêng.",
                 "Sắp diễn ra là phiên chưa tới giờ bắt đầu; Đang diễn ra là phiên có thể nhận giá; Đã kết thúc là phiên hết thời gian.",
                 "Mở phòng đấu giá, nhập giá rồi bấm Đặt giá. Giá phải là số nguyên dương và lớn hơn hoặc bằng giá hiện tại cộng bước giá tối thiểu của phiên.",
-                "Phòng đấu giá hiển thị đồng hồ đếm ngược, lịch sử đặt giá và biểu đồ biến động giá. Dịch vụ xác nhận lượt đặt giá (hiện là mock); khi hết giờ ứng dụng khóa lượt đặt mới. Ví mô phỏng thanh toán lượt thắng khi phiên kết thúc.");
+                "Phòng đấu giá hiển thị đồng hồ đếm ngược, lịch sử đặt giá và biểu đồ biến động giá. Máy chủ xác nhận giá và quyết định thời điểm kết thúc. Ví giả lập thanh toán cho người bán khi chốt phiên; bid trong 30 giây cuối có thể gia hạn thêm 60 giây.");
         addSection("Dành cho người bán", "guide-seller",
                 "Mở menu tài khoản và chọn Chế độ bán hàng để vào Quản lý sản phẩm. Đây chỉ là điều hướng; vai trò và quyền tài khoản không thay đổi.",
                 "Tạo sản phẩm bằng cách điền tên, danh mục, mô tả, giá khởi điểm, thời lượng và bước giá. Ảnh là tùy chọn. Dịch vụ hiện tạo phiên đấu giá cùng sản phẩm.",
-                "Có thể sửa thông tin sản phẩm hoặc xóa sản phẩm. Dịch vụ từ chối xóa sản phẩm đang thuộc phiên đấu giá diễn ra. Lưu sửa cập nhật các trường sản phẩm, không cập nhật thời lượng hoặc bước giá của phiên hiện có.");
+                "Chỉ sửa hoặc xóa phiên sắp diễn ra (OPEN) chưa có bid. Có thể sửa thông tin sản phẩm, lịch và bước giá trước khi mở phiên. Ảnh được tải lên máy chủ trong chế độ SERVER.");
         addSection("Đặt giá tự động", "guide-auto-bid",
                 "Trong phòng đấu giá, nhập giá tối đa và bước giá để bật đặt giá tự động. Hệ thống tự đặt khi có người trả cao hơn và không vượt giá tối đa.",
                 "Bạn có thể tắt bất cứ lúc nào; số tiền có thể sử dụng phải đủ cho giá tối đa.");
@@ -70,8 +70,8 @@ public class GuideController implements DisposableView {
                 "Tiền tạm giữ cho đấu giá dành cho các phiên bạn đang dẫn đầu; được giải phóng khi bị vượt giá hoặc phiên bị hủy. Khi xử lý kết thúc phiên, mock tự trừ khoản tạm giữ của người thắng khỏi tổng số dư để thanh toán.");
         addSection("Câu hỏi thường gặp", "guide-faq",
                 "Vì sao đặt giá bị từ chối? Phiên có thể chưa diễn ra/đã kết thúc, giá không phải số nguyên dương hoặc thấp hơn giá tối thiểu (giá hiện tại cộng bước giá).",
-                "Vì sao không thấy Chế độ bán hàng? Mục này chỉ xuất hiện với tài khoản có vai trò Người bán do dịch vụ xác thực trả về (hiện là mock).",
-                "Hiện toàn bộ nghiệp vụ chạy bằng mock trong bộ nhớ, chưa kết nối server thật. Dữ liệu mất khi tắt ứng dụng. Client không tự gửi lại lệnh đặt giá; khi chưa rõ kết quả, thao tác giá bị khóa. Tải lại cập nhật lịch sử nhưng chưa đủ xác nhận lệnh; hiện chưa có API tra trạng thái lệnh để mở khóa trường hợp này.");
+                "Vì sao không thấy Chế độ bán hàng? Mục này chỉ xuất hiện với tài khoản có vai trò Người bán do dịch vụ xác thực trả về .",
+                "Trong chế độ SERVER dữ liệu được lưu trên máy chủ. Nếu mất phản hồi, ứng dụng giữ mã lệnh để gửi lại an toàn và đối soát kết quả; bấm Tải lại trong phòng để mở khóa sau đối soát. Trong chế độ MOCK dữ liệu mất khi tắt ứng dụng.");
 
         int index = 0;
         for (javafx.scene.Node node : sections.getChildren()) {

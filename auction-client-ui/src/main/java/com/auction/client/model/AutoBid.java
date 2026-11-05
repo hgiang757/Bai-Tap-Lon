@@ -17,6 +17,11 @@ public final class AutoBid {
     }
     /** Sao chép trạng thái để trả về cho giao diện. */
     public AutoBid copy() { AutoBid a = new AutoBid(id, auctionId, username, maxBid, increment, createdAt); a.active=active; a.limitReached=limitReached; a.autoCount=autoCount; return a; }
+    /** Restore the authoritative state returned by the server. */
+    public void restoreState(boolean active, boolean limitReached, int autoCount) {
+        if (autoCount < 0) throw new IllegalArgumentException("Invalid count");
+        this.active = active; this.limitReached = limitReached; this.autoCount = autoCount;
+    }
     /** Mã thiết lập. */ public String getId() { return id; }
     /** Mã phiên. */ public String getAuctionId() { return auctionId; }
     /** Tên người dùng. */ public String getUsername() { return username; }

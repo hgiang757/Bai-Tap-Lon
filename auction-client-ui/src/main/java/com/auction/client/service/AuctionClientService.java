@@ -37,4 +37,12 @@ public interface AuctionClientService {
     // === Observer / Realtime Listener Pattern ===
     void registerBidListener(String auctionId, Consumer<Bid> listener);
     void unregisterBidListener(String auctionId, Consumer<Bid> listener);
+
+    /** General state/connection events; callbacks may run on a background thread. */
+    default void addChangeListener(Consumer<String> listener) { }
+    default void removeChangeListener(Consumer<String> listener) { }
+    /** Resolve durable pending commands before accepting another price operation. */
+    default boolean recoverPendingCommands() { return false; }
+    default java.time.LocalDateTime serverNow() { return java.time.LocalDateTime.now(); }
+    default AuctionRoomSnapshot getRoomSnapshot(String id) { return new AuctionRoomSnapshot(getAuctionById(id), getBidHistory(id)); }
 }
