@@ -1,3 +1,5 @@
+> Bản frontend-only chạy mock độc lập. Backend do thành viên backend tích hợp.
+
 # Bàn giao phần client JavaFX
 
 Giao diện hiện tại dùng nền CSS trắng ngà, màu xanh ngọc, hai nhóm RUNNING/OPEN và thuật ngữ ví mới; xem [UI_REFRESH](UI_REFRESH.md). Bản mô tả tổng quan và bảng chức năng đầy đủ hiện ở [README](../README.md) và [CODE_MAP](CODE_MAP.md). Đợt sửa tiếp ngày 03/11/2026 thêm `BidSubmissionTracker`, tách hàng đợi ảnh và cập nhật xử lý kết quả chưa rõ. Phần đối chiếu backend bên dưới vẫn áp dụng; kết quả kiểm tra mới được tách riêng trong [VALIDATION](VALIDATION.md).

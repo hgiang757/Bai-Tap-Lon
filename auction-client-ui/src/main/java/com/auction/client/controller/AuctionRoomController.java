@@ -115,6 +115,7 @@ public class AuctionRoomController implements DisposableView {
     private Timeline countdownTimer;
     private com.auction.client.model.AutoBid myAutoBid;
     private boolean autoBusy;
+    private final Consumer<String> serverChanges = type -> tasks.dispatch(() -> { if (!"BID_PLACED".equals(type) && requestedAuctionId != null) { refreshAuction(); refreshAvailable(); } });
 
     @FXML
     public void initialize() {
@@ -124,6 +125,7 @@ public class AuctionRoomController implements DisposableView {
         SmoothScroll.apply(detailScroll, 3.0);
         com.auction.client.ui.AppFooter.install(detailScroll, pageContent);
         tasks.dispatch(detailScroll::requestFocus);
+        auctionService.addChangeListener(serverChanges);
         setupChart();
         setupQuickBidButtons();
         txtBidAmount.setOnAction(event -> handlePlaceBid());
@@ -168,11 +170,8 @@ public class AuctionRoomController implements DisposableView {
                 if (value == null || priceSeries == null || priceSeries.getData().isEmpty()) {
                     return "";
                 }
-                int index = Math.max(0, Math.min(priceSeries.getData().size() - 1,
-                        (int) Math.round(value.doubleValue())));
-                Object time = priceSeries.getData().get(index).getExtraValue();
-                return time instanceof LocalDateTime
-                        ? FormatUtil.formatChartTime((LocalDateTime) time) : "";
+                return FormatUtil.formatChartTime(java.time.LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochMilli(value.longValue()), java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
             }
 
             @Override
@@ -256,7 +255,7 @@ public class AuctionRoomController implements DisposableView {
         startCountdown();
     }
 
-    private record RoomData(Auction auction, List<Bid> history) { }
+    private record RoomData(Auction auction, List<Bid> history, BidSubmissionTracker.ReadStamp stamp) { }
 
     private void refreshAuction() {
         if (disposed || requestedAuctionId == null) return;
@@ -266,17 +265,20 @@ public class AuctionRoomController implements DisposableView {
         String id = requestedAuctionId;
         var stamp = submissions.reading(bidKey);
         tasks.submit("room", () -> {
-            Auction auction = auctionService.getAuctionById(id);
+            if (submissions.phase(bidKey) == Phase.UNKNOWN && auctionService.recoverPendingCommands()) submissions.reconciled(bidKey);
+            var readStamp = submissions.reading(bidKey);
+            var snapshot = auctionService.getRoomSnapshot(id);
+            Auction auction = snapshot.auction();
             if (auction == null || !id.equals(auction.getId())) throw new IllegalStateException("Không tìm thấy đúng phiên đấu giá " + id);
-            return new RoomData(auction, auctionService.getBidHistory(id));
+            return new RoomData(auction, snapshot.history(), readStamp);
         }, data -> {
             if (!id.equals(requestedAuctionId)) return;
             // Lệnh hoặc phản hồi đã đổi trong lúc đọc: bỏ snapshot cũ và đọc lại sau đó.
-            if (!submissions.isCurrent(stamp)) { refreshing = false; refreshAgain = false; refreshAuction(); return; }
+            if (!submissions.isCurrent(data.stamp())) { refreshing = false; refreshAgain = false; refreshAuction(); return; }
             currentAuction = data.auction(); auctionReady = true;
             loadBidHistory(data.history());
             updateCountdown();
-            submissions.refreshed(stamp);
+            submissions.refreshed(data.stamp());
             refreshing = false;
             renderAuctionDetails();
             if ("Đang tải dữ liệu phiên…".equals(lblAlertMessage.getText())) hideAlert();
@@ -301,7 +303,7 @@ public class AuctionRoomController implements DisposableView {
         return switch (bidPhase()) {
             case SENDING -> autoBusy ? "Đang cập nhật auto-bid; vui lòng chờ phản hồi." : "Đang gửi lệnh đặt giá; vui lòng chờ phản hồi.";
             case AWAITING_REFRESH -> "Đã nhận phản hồi đặt giá; cần tải lại dữ liệu sau phản hồi trước khi đặt tiếp.";
-            case UNKNOWN -> "Kết quả lượt đặt giá trước chưa xác định. Tải lại chỉ cập nhật lịch sử, không chứng minh lệnh đã hoàn tất. Chưa có API tra trạng thái lệnh nên thao tác giá tiếp tục khóa.";
+            case UNKNOWN -> "Kết quả lượt đặt giá trước chưa xác định. Tải lại chỉ cập nhật lịch sử, không chứng minh lệnh đã hoàn tất. Bấm Tải lại để đối soát với máy chủ trước khi đặt tiếp.";
             case READY -> refreshing ? "Đang tải lại dữ liệu phiên…"
                     : !auctionReady ? "Chưa có dữ liệu mới. Bấm Tải lại để thử lại."
                     : autoBusy ? "Đang cập nhật auto-bid…" : "";
@@ -355,9 +357,9 @@ public class AuctionRoomController implements DisposableView {
             if (currentAuction.getStatus() == AuctionStatus.FINISHED) {
                 lblStatusExplanation.setText("Phiên đấu giá đã kết thúc. Không thể đặt thêm giá.");
             } else if (currentAuction.getStatus() == AuctionStatus.CANCELED) {
-                lblStatusExplanation.setText("Phiên đấu giá đã bị hủy. Không thể đặt thêm giá.");
+                lblStatusExplanation.setText("Phiên đã bị hủy. Tiền tạm giữ được giải phóng. " + currentAuction.getCancellationReason());
             } else if (currentAuction.getStatus() == AuctionStatus.PAID) {
-                lblStatusExplanation.setText("Phiên đã kết thúc và đã thanh toán mô phỏng.");
+                lblStatusExplanation.setText("Người thắng: " + currentAuction.getHighestBidderUsername() + ". Đã thanh toán bằng ví giả lập cho người bán.");
             } else {
                 lblStatusExplanation.setText("Phiên đấu giá chưa mở. Vui lòng chờ đến giờ bắt đầu.");
             }
@@ -367,7 +369,7 @@ public class AuctionRoomController implements DisposableView {
         var user = auctionService.getCurrentUser();
         boolean seller = user != null && user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername());
         boolean canBid = canChangePrice() && isRunning && user != null && !seller
-                && currentAuction.getEndTime() != null && LocalDateTime.now().isBefore(currentAuction.getEndTime());
+                && currentAuction.getEndTime() != null && auctionService.serverNow().isBefore(currentAuction.getEndTime());
         if (isRunning && user == null) {
             lblStatusExplanation.setText("Vui lòng đăng nhập để đặt giá.");
             if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) lblStatusExplanation.getStyleClass().add("notice-disabled");
@@ -387,7 +389,7 @@ public class AuctionRoomController implements DisposableView {
 
         updateAutoAvailability();
         // Đề xuất mức giá tối thiểu vào ô nhập
-        txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
+        if (txtBidAmount.getText().isBlank() || !txtBidAmount.isFocused()) txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
     }
 
     private void loadBidHistory(List<Bid> bids) {
@@ -396,7 +398,7 @@ public class AuctionRoomController implements DisposableView {
 
         if (bids.isEmpty()) {
             LocalDateTime startTime = currentAuction.getStartTime() == null
-                    ? LocalDateTime.now() : currentAuction.getStartTime();
+                    ? auctionService.serverNow() : currentAuction.getStartTime();
             addPricePoint(startTime, currentAuction.getStartingPrice(), null, false);
             lblNoBids.setVisible(true);
             lblNoBids.setManaged(true);
@@ -405,7 +407,7 @@ public class AuctionRoomController implements DisposableView {
             chronologicalBids.sort(Comparator.comparing(Bid::getTimestamp,
                     Comparator.nullsFirst(Comparator.naturalOrder())));
             for (Bid bid : chronologicalBids) {
-                LocalDateTime time = bid.getTimestamp() == null ? LocalDateTime.now() : bid.getTimestamp();
+                LocalDateTime time = bid.getTimestamp() == null ? auctionService.serverNow() : bid.getTimestamp();
                 addPricePoint(time, bid.getAmount(), bid.getBidderUsername(), bid.isAuto());
                 lvRecentBids.getItems().add(0, formatBid(bid));
             }
@@ -444,7 +446,7 @@ public class AuctionRoomController implements DisposableView {
      */
     private void updateCountdown() {
         if (currentAuction == null || currentAuction.getEndTime() == null) return;
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = auctionService.serverNow();
         if (currentAuction.getStatus() != AuctionStatus.RUNNING && currentAuction.getStatus() != AuctionStatus.OPEN) {
             lblCountdown.setText(currentAuction.getStatus().getDescription());
             countdownTimer.stop();
@@ -476,14 +478,11 @@ public class AuctionRoomController implements DisposableView {
 
     private void addPricePoint(LocalDateTime time, double price, String bidder, boolean auto) {
         XYChart.Data<Number, Number> dataPoint =
-                new XYChart.Data<>(priceSeries.getData().size(), price, time);
+                new XYChart.Data<>(time.atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant().toEpochMilli(), price, time);
         priceSeries.getData().add(dataPoint);
         attachPointTooltip(dataPoint, time, price, bidder, auto);
         while (priceSeries.getData().size() > MAX_CHART_POINTS) {
             priceSeries.getData().remove(0);
-        }
-        for (int index = 0; index < priceSeries.getData().size(); index++) {
-            priceSeries.getData().get(index).setXValue(index);
         }
         updateChartAxes();
         styleCurrentPoint();
@@ -532,16 +531,12 @@ public class AuctionRoomController implements DisposableView {
             maxPrice = Math.max(maxPrice, price);
         }
 
-        int count = priceSeries.getData().size();
-        if (count == 1) {
-            xAxisTime.setLowerBound(-1);
-            xAxisTime.setUpperBound(1);
-            xAxisTime.setTickUnit(2);
-        } else {
-            xAxisTime.setLowerBound(0);
-            xAxisTime.setUpperBound(count - 1);
-            xAxisTime.setTickUnit(Math.max(1, Math.ceil((count - 1) / 5.0)));
-        }
+        double first = priceSeries.getData().getFirst().getXValue().doubleValue();
+        double last = priceSeries.getData().getLast().getXValue().doubleValue();
+        double span = Math.max(1000, last - first);
+        xAxisTime.setLowerBound(first - span * 0.05);
+        xAxisTime.setUpperBound(last + span * 0.05);
+        xAxisTime.setTickUnit(Math.max(1000, span / 5));
 
         double priceRange = maxPrice - minPrice;
         if (priceRange <= 0) {
@@ -710,8 +705,8 @@ public class AuctionRoomController implements DisposableView {
                 return null;
             } catch (Exception error) {
                 // Implementation mock hiện có kiểm tra cấu hình trước khi sửa quy tắc/đặt giá.
-                if (autoService.getClass() == com.auction.client.service.mock.MockAutoBidService.class
-                        && error instanceof com.auction.client.service.AutoBidException) submissions.answered(ticket);
+                if (error instanceof com.auction.client.service.server.ServerError || (autoService.getClass() == com.auction.client.service.mock.MockAutoBidService.class
+                        && error instanceof com.auction.client.service.AutoBidException)) submissions.answered(ticket);
                 else submissions.uncertain(ticket);
                 throw error;
             }
@@ -746,7 +741,7 @@ public class AuctionRoomController implements DisposableView {
     @FXML
     private void handleSimulateIncomingBid() {
         if (!(auctionService instanceof MockAuctionClientService) || currentAuction == null || !canChangePrice()) return;
-        txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
+        if (txtBidAmount.getText().isBlank() || !txtBidAmount.isFocused()) txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
         handlePlaceBid();
     }
 
@@ -761,6 +756,7 @@ public class AuctionRoomController implements DisposableView {
     @Override public void dispose() {
         if (disposed) return;
         disposed = true;
+        auctionService.removeChangeListener(serverChanges);
         tasks.close(); imageTasks.close();
         detachAuction();
     }

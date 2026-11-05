@@ -21,6 +21,9 @@ public class Auction implements Serializable {
     private LocalDateTime endTime;
     private double minBidStep;
     private int totalBids;
+    private String cancellationReason = "";
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String value) { cancellationReason = value == null ? "" : value; }
 
     public Auction() {
     }

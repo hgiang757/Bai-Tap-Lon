@@ -1,3 +1,7 @@
+> Nhánh member1-member3: UI/mock đạt 95 test gồm 12 GUI; mạng đạt 4 test mới và 42 test backend sẵn có vẫn đạt. Bản này chỉ kiểm chứng mạng với gateway fixture trong test; chưa tích hợp nghiệp vụ thật của thành viên 2/4.
+
+> Bản frontend-only chạy mock độc lập. Backend do thành viên backend tích hợp.
+
 # Kết quả kiểm tra client
 
 ## Đợt giao diện ngày 03/11/2026 — kết quả mới nhất

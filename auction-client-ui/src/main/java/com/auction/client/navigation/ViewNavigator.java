@@ -109,7 +109,7 @@ public final class ViewNavigator {
         currentView = new View(fxmlPath, windowTitle, null);
         currentController = loader.getController();
         applyAppStylesheet(scene);
-        primaryStage.setTitle(AppInfo.NAME + " [MOCK] - " + windowTitle);
+        primaryStage.setTitle(AppInfo.NAME + " [" + com.auction.client.service.ServiceRegistry.modeLabel() + "] - " + windowTitle);
         primaryStage.show();
         root.setFocusTraversable(true);
         Parent focusRoot = root;

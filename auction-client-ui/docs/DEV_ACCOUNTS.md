@@ -1,3 +1,5 @@
+> Bản frontend-only chạy mock độc lập. Backend do thành viên backend tích hợp.
+
 # Mock development accounts
 
 These accounts are available only when the client runs with `MockAuctionClientService`.
