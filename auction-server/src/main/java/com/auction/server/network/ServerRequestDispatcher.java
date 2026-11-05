@@ -1,84 +1,31 @@
 package com.auction.server.network;
 
-import com.auction.server.service.*;
-import com.auction.shared.network.NetworkRequest;
-import com.auction.shared.network.NetworkResponse;
-import com.auction.shared.network.GenericResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.gson.JsonObject;
+import java.io.IOException;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-public class ServerRequestDispatcher {
-    private static final Logger logger = LoggerFactory.getLogger(ServerRequestDispatcher.class);
-
-    private final UserService userService;
-    private final ItemService itemService;
-    private final AuctionBiddingService auctionService;
-    private final CheckoutService checkoutService;
-    private final AuctionSellerService sellerService;
-    private final AdminFacadeService adminFacadeService;
-    private final AutoBidService autoBidService;
-    private final Consumer<NetworkResponse> broadcastCallback;
-    private final Consumer<String> forceLogoutCallback;
-
-    public ServerRequestDispatcher(
-            UserService userService,
-            ItemService itemService,
-            AuctionBiddingService auctionService,
-            CheckoutService checkoutService,
-            AuctionSellerService sellerService,
-            AdminFacadeService adminFacadeService,
-            AutoBidService autoBidService,
-            Consumer<NetworkResponse> broadcastCallback,
-            Consumer<String> forceLogoutCallback) {
-        this.userService = userService;
-        this.itemService = itemService;
-        this.auctionService = auctionService;
-        this.checkoutService = checkoutService;
-        this.sellerService = sellerService;
-        this.adminFacadeService = adminFacadeService;
-        this.autoBidService = autoBidService;
-        this.broadcastCallback = broadcastCallback;
-        this.forceLogoutCallback = forceLogoutCallback;
+/**
+ * A single fair lock serializes every request, scheduler tick and session lookup
+ * through the gateway. Two client sockets cannot concurrently update shared
+ * business state via this entry point. Financial rollback/deduplication remains
+ * the responsibility of the transactional backend provider.
+ */
+public final class ServerRequestDispatcher implements BackendGateway {
+    private final BackendGateway delegate;
+    private final ReentrantLock lock=new ReentrantLock(true);
+    public ServerRequestDispatcher(BackendGateway delegate) { this.delegate=java.util.Objects.requireNonNull(delegate); }
+    @Override public JsonObject execute(String action,String token,String commandId,JsonObject payload) {
+        lock.lock();
+        try { return delegate.execute(action,token,commandId,payload); }
+        finally { lock.unlock(); }
     }
-
-    public void dispatch(Object requestObj, ClientConnection client) {
-        // Kiểm tra xem dữ liệu gửi lên có đúng chuẩn khung NetworkRequest không
-        if (!(requestObj instanceof NetworkRequest)) {
-            logger.warn("Gói tin không hợp lệ, từ chối xử lý.");
-            return;
-        }
-
-        NetworkRequest request = (NetworkRequest) requestObj;
-        logger.info("Server nhận lệnh: {}", request.getCommand());
-
-        try {
-            // Bộ định tuyến rẽ nhánh (Router)
-            switch (request.getCommand()) {
-                case "LOGIN":
-                    // TODO: Gọi userService.login() ở đây và lưu vào client.setCurrentUser(user)
-                    client.send(new GenericResponse(true, "Đăng nhập thành công"));
-                    break;
-                    
-                case "BID":
-                    // TODO: Gọi auctionService.placeBid() ở đây
-                    client.send(new GenericResponse(true, "Ghi nhận giá thầu"));
-                    break;
-                    
-                case "LOGOUT":
-                    client.setCurrentUser(null);
-                    client.send(new GenericResponse(true, "Đăng xuất thành công"));
-                    break;
-                    
-                default:
-                    logger.warn("Lệnh không xác định: {}", request.getCommand());
-                    client.send(new GenericResponse(false, "Lệnh không hợp lệ"));
-                    break;
-            }
-        } catch (Exception e) {
-            logger.error("Lỗi khi xử lý lệnh {}: {}", request.getCommand(), e.getMessage());
-            client.send(new GenericResponse(false, "Lỗi Server: " + e.getMessage()));
-        }
+    @Override public String authenticatedUserId(String token) {
+        lock.lock();
+        try { return delegate.authenticatedUserId(token); }
+        finally { lock.unlock(); }
     }
+    @Override public void tick() { lock.lock();try { delegate.tick(); }finally { lock.unlock(); } }
+    @Override public void setEventSink(Consumer<JsonObject> sink) { delegate.setEventSink(sink); }
+    @Override public void close() throws IOException { lock.lock();try { delegate.close(); }finally { lock.unlock(); } }
 }
