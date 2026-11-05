@@ -1,40 +1,66 @@
-package com.auction.server.model;
+package com.example.auction.server.entity;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
-// Áp dụng tính Trừu tượng (Abstraction): Lớp nền tảng không thể khởi tạo trực tiếp
+/**
+ * Abstract base class cho tất cả entities trong hệ thống đấu giá.
+ * Chứa các thuộc tính chung: id, createdAt, updatedAt.
+ */
 public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    // Đóng gói (Encapsulation): Thuộc tính private, truy cập qua getter/setter
-    private String id;
-    private String name;
-    private LocalDateTime createdAt;
+    private Long id;
+    private Instant createdAt;
+    private Instant updatedAt;
 
-    public Entity(String id, String name) {
-        this.id = id;
-        this.name = name;
-        this.createdAt = LocalDateTime.now();
+    public Entity() {
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public String getId() {
+    public Entity(Long id) {
+        this.id = id;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    public Entity(Long id, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "Entity{" +
+                "id=" + id +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
     }
 }
