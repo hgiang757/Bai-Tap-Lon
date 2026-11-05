@@ -1,11 +1,11 @@
-package com.example.auction.server.entity;
+package com.auction.server.model;
 
 import java.io.Serializable;
 import java.time.Instant;
 
 /**
  * Abstract base class cho tất cả entities trong hệ thống đấu giá.
- * Chứa các thuộc tính chung: id, createdAt, updatedAt.
+ * Chứa các thuộc tính chung: id, createdAt, updatedAt
  */
 public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -15,6 +15,7 @@ public abstract class Entity implements Serializable {
     private Instant updatedAt;
 
     public Entity() {
+        this.id = 1L;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
