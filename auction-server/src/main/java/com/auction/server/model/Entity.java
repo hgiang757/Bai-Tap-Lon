@@ -1,39 +1,112 @@
 package com.auction.server.model;
 
-public class Bidder extends User {
+import java.io.Serializable;
+import java.time.Instant;
+
+/**
+ * Abstract base class cho tất cả entities trong hệ thống đấu giá.
+ * Chứa các thuộc tính chung: id, name, createdAt, updatedAt
+ */
+// ABSTRACTION
+public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    public Bidder() {
-        super();
-        setRole("BIDDER");
+    // ENCAPSULATION: ẩn thuộc tính, truy cập qua getter/setter
+    protected String id;
+    protected String name;
+    private Instant createdAt;
+    private Instant updatedAt;
+
+    // Constructor mặc định
+    public Entity() {
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public Bidder(String id, String name) {
-        super(id, name, "", "BIDDER");
+    // Constructor 1 tham số String id
+    public Entity(String id) {
+        this.id = id;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public Bidder(Long id, String name) {
-        super(id, name, "", "BIDDER");
+    // Constructor 1 tham số Long id (Tự động convert sang String để tương thích cả Long và String)
+    public Entity(Long id) {
+        this.id = id != null ? String.valueOf(id) : null;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public Bidder(String id, String name, String password) {
-        super(id, name, password, "BIDDER");
+    // Constructor 2 tham số (String id, String name)
+    public Entity(String id, String name) {
+        this.id = id;
+        this.name = name;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public Bidder(Long id, String name, String password) {
-        super(id, name, password, "BIDDER");
+    // Constructor 2 tham số (Long id, String name)
+    public Entity(Long id, String name) {
+        this.id = id != null ? String.valueOf(id) : null;
+        this.name = name;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
 
-    public Bidder(String id, String name, String password, String email) {
-        super(id, name, password, email, "BIDDER");
+    public Entity(String id, String name, Instant createdAt, Instant updatedAt) {
+        this.id = id;
+        this.name = name;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
-    public Bidder(Long id, String name, String password, String email) {
-        super(id, name, password, email, "BIDDER");
+    // GETTER & SETTER
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+        this.updatedAt = Instant.now();
+    }
+
+    public void setId(Long id) {
+        this.id = id != null ? String.valueOf(id) : null;
+        this.updatedAt = Instant.now();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        this.updatedAt = Instant.now();
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     @Override
-    public String getRoleName() {
-        return "BIDDER";
+    public String toString() {
+        return "Entity{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
     }
 }
