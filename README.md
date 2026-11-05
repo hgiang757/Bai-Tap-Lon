@@ -1,82 +1,145 @@
 # Hệ thống đấu giá trực tuyến
 
-Hệ thống hỗ trợ người dùng tham gia đấu giá, người bán quản lý sản phẩm và quản trị viên quản lý người dùng và phiên đấu giá. Giao diện JavaFX kết nối backend qua Socket JSON. Máy chủ xác thực, xử lý đấu giá/ví/quản trị và lưu dữ liệu; client nhận cập nhật realtime. Chế độ mock vẫn có để phát triển giao diện độc lập.
+Ứng dụng JavaFX kết nối server Java qua TCP Socket, trao đổi JSON.
+Một dự án Maven, một thư mục `src`; client và server vẫn chạy thành hai tiến trình.
 
-## Cấu trúc thư mục
+## Chạy trên Windows
 
-- `auction-client-ui/`: ứng dụng JavaFX, dịch vụ mock, tài liệu và kiểm thử client.
-- `auction-server/`: backend Socket JSON, tài khoản/quyền, sản phẩm/ảnh, đấu giá, ví, auto-bid, scheduler và lưu trữ.
-
-## Chạy backend
+Cài **JDK 25 trở lên**, **Maven** và **Git** nếu lấy code bằng Git. Kiểm tra trong terminal:
 
 ```powershell
-cd auction-server
+java -version
+mvn -version
+```
+
+Mở thư mục dự án bằng **File Explorer**:
+
+1. Nhấp đúp `Start-Server.cmd`, chờ dòng `Auction JSON server listening on ...`.
+2. Giữ cửa sổ server mở, nhấp đúp `Start-Client.cmd`.
+3. Mở thêm `Start-Client.cmd` để thử hai người đấu giá.
+
+Nhấp đúp file trong VS Code chỉ mở nội dung để sửa. Để chạy ngay trong terminal VS Code:
+
+```powershell
+.\Start-Server.cmd
+```
+
+Mở terminal thứ hai, cùng thư mục chứa `pom.xml`:
+
+```powershell
+.\Start-Client.cmd
+```
+
+Lần đầu Maven tải thư viện nên cần mạng và có thể mất vài phút.
+Nếu có lỗi, cửa sổ `.cmd` giữ lại thông báo để đọc.
+
+## Tài khoản demo của server
+
+| Vai trò | Tên đăng nhập | Mật khẩu |
+|---|---|---|
+| Người đấu giá | bidder_hieu | Bidder12345 |
+| Người đấu giá 2 | bidder_vip99 | Bidder12345 |
+| Người bán | seller_hieu | Seller12345 |
+| Quản trị viên | admin_hieu | Admin12345 |
+
+Tài khoản và sáu phiên mẫu chỉ được tạo khi chưa có dữ liệu.
+Nếu phiên mẫu đã hết giờ, đăng nhập người bán để tạo phiên mới.
+Tài khoản đăng ký mới có số dư 0; vào Ví để nạp tiền giả lập.
+
+## Chức năng
+
+- Đăng nhập, đăng ký, phân quyền người bán/người đấu giá/quản trị viên.
+- Danh sách phiên, lọc/tìm kiếm, chi tiết và ảnh sản phẩm.
+- Tạo/sửa/xóa sản phẩm và phiên sắp diễn ra của người bán.
+- Đặt giá, cập nhật giá và lịch sử/biểu đồ trực tiếp cho nhiều client.
+- Đấu giá tự động theo giá tối đa, bước giá và thứ tự đăng ký.
+- Gia hạn 60 giây khi có bid hợp lệ trong 30 giây cuối phiên.
+- Ví: nạp/rút giả lập, giữ tiền khi đang dẫn đầu, trả tiền cho người bán khi hết phiên.
+- Quản trị tài khoản, khóa/mở khóa, đổi vai trò và hủy/lưu trữ phiên.
+- Lưu trạng thái server ra JSON; gửi lại cùng mã lệnh không trừ tiền hai lần.
+
+## Cấu trúc
+
+```text
+pom.xml                         Cấu hình build duy nhất
+src/main/java/com/auction/
+  client/
+    controller/                 Xử lý thao tác giao diện
+    model/                      Dữ liệu dùng để hiển thị
+    service/server/             Gọi server và chuyển JSON thành model
+    service/mock/               Dữ liệu giả để phát triển UI độc lập
+    navigation/, ui/, util/     Chuyển màn hình và tiện ích giao diện
+  server/
+    network/Server.java         Nhận kết nối và điều phối request
+    service/AuctionService.java Xác thực, sản phẩm, đấu giá, ví, quản trị
+    service/AntiSnipingPolicy.java
+    dao/AuctionRepository.java  Đọc/ghi trạng thái JSON
+    model/                      Entity, User, Item và Factory
+    exception/                  Lỗi nghiệp vụ
+  shared/JsonProtocol.java      Đóng gói thông điệp dùng chung
+src/main/resources/             FXML và CSS
+src/test/java/                  Kiểm thử client, server và kết nối
+```
+
+Đọc [luồng xử lý và câu hỏi vấn đáp](docs/VAN_DAP.md).
+
+## Lệnh khác
+
+Từ thư mục chứa `pom.xml`:
+
+```powershell
+# Kiểm thử nghiệp vụ và kết nối
 mvn -B verify
-java -Dauction.demo=true -jar target/auction-server-1.0.0.jar
-```
 
-Server mặc định tại `127.0.0.1:8888`. Tài khoản demo, cấu hình và quy tắc nằm trong [hướng dẫn backend](auction-server/README.md); hợp đồng request/response/push trong [giao thức v1](auction-server/PROTOCOL.md). Client mặc định kết nối server này; không tự chuyển sang mock khi lỗi mạng.
-
-## Chạy client kết nối server
-
-Cần JDK 25 và Maven. Từ thư mục gốc của repo:
-
-```bash
-cd auction-client-ui
-mvn javafx:run
-```
-
-Mở thêm terminal và chạy cùng lệnh để có nhiều client. Có thể cấu hình `mvn javafx:run "-Dauction.host=IP_MAY_CHU" "-Dauction.port=8888"`. Chạy riêng mock bằng `mvn javafx:run "-Dauction.mode=mock"`.
-
-Tài khoản thử được liệt kê trong [docs/DEV_ACCOUNTS.md](auction-client-ui/docs/DEV_ACCOUNTS.md).
-
-## Chạy nhanh trên Windows
-
-Cần JDK 25 và Maven trong PATH. Có thể nhấp đúp `Start-Server.cmd`, chờ thông báo server đã mở cổng, rồi nhấp đúp `Start-Client.cmd`. Mỗi lần mở thêm `Start-Client.cmd` sẽ tạo một client khác. Giữ cửa sổ server mở trong lúc sử dụng.
-
-Từ thư mục gốc, terminal thứ nhất:
-
-```powershell
-.\run.ps1 Server
-```
-
-Terminal thứ hai (và thứ ba nếu muốn demo cạnh tranh giá):
-
-```powershell
-.\run.ps1 Client
-```
-
-Tài khoản SERVER demo: `bidder_hieu / Bidder12345`, `bidder_vip99 / Bidder12345`, `seller_hieu / Seller12345`, `admin_hieu / Admin12345`. Đăng ký mới có số dư 0; mở Ví để nạp tiền giả lập trước khi đấu. Tài khoản mock dùng mật khẩu khác (`123456`). Seed chỉ tạo lần đầu; nếu phiên mẫu đã hết giờ, đăng nhập Seller để tạo phiên mới, không cần xóa dữ liệu.
-
-## Kiểm thử toàn dự án
-
-```powershell
-mvn -B verify
+# Kiểm thử thêm màn hình JavaFX (cần desktop; Linux dùng Xvfb)
 mvn -B verify "-Dauction.ui.tests=true"
+
+# Chạy UI độc lập, không cần server (mock dùng mật khẩu 123456)
+powershell -NoProfile -ExecutionPolicy Bypass -File .un.ps1 Client -Mock
+
+# Đổi địa chỉ khi client và server ở hai máy khác nhau
+powershell -NoProfile -ExecutionPolicy Bypass -File .un.ps1 Server -ServerHost 0.0.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .un.ps1 Client -ServerHost IP_MAY_SERVER
 ```
 
-Lệnh thứ hai cần desktop (Linux dùng Xvfb). Root Maven build server, client và `auction-integration-tests`; CI có kiểm thử Socket lẫn JavaFX kết nối backend. `auction-server/data` lưu dữ liệu máy chủ; lệnh chưa rõ kết quả được lưu ở thư mục người dùng `.digital-auction/server` và được đối soát bằng cùng commandId. Ví chỉ giả lập tiền; chưa có cổng thanh toán/giao hàng. Giao thức v1 phù hợp dữ liệu BTL, chưa phân trang tập dữ liệu lớn.
+Các lệnh server và client ở hai dòng cuối chạy trên hai máy/terminal tương ứng.
+Máy server cần cho phép kết nối TCP cổng 8888.
 
-## Kiểm thử riêng client
+Không dùng script cũng được: terminal thứ nhất chạy `mvn -B package -DskipTests`,
+rồi `java -Dauction.demo=true -jar target/digital-auction-1.0.0.jar`.
+Terminal thứ hai chạy `mvn javafx:run`.
 
-```bash
-cd auction-client-ui
-mvn -B test
-python scripts/check-encoding.py
+## Dữ liệu và phạm vi
+
+Server lưu `data/state.json` tại thư mục dự án, không dùng MySQL.
+Thư mục `data/` đã được loại khỏi Git. Ví dùng tiền giả lập, chưa tích hợp thanh toán ngân hàng.
+Các lệnh client chưa rõ kết quả được lưu ở thư mục người dùng `.digital-auction/server` để đối soát khi kết nối lại.
+
+Nếu chuyển dữ liệu từ bản nhiều module: tắt server cũ, sao lưu `auction-server/data/state.json`,
+rồi chép file đó vào `data/state.json` của bản này **trước lần chạy đầu**.
+Định dạng dữ liệu vẫn là `schemaVersion = 1`.
+
+Bản gọn giữ giao thức và các chức năng đang chạy. Đã bỏ bản ObjectStream tham khảo,
+thuật toán/DAO cũ không được server sử dụng và màn hình trưng bày UI dành cho phát triển.
+Lịch sử Git của bản đầy đủ trước đó vẫn còn.
+
+## Làm việc trên nhánh riêng
+
+Lấy bản gọn sau khi nhánh đã được đăng lên GitHub:
+
+```powershell
+git clone --branch codex/simple-project https://github.com/hgiang757/Bai-Tap-Lon.git Bai-Tap-Lon-gon
+cd Bai-Tap-Lon-gon
 ```
 
-## Kiểm thử server
+Để đưa thay đổi tiếp theo lên đúng nhánh này:
 
-```bash
-cd auction-server
-mvn -B test
+```powershell
+git branch --show-current
+git add -A
+git commit -m "Update simplified auction application"
+git push origin codex/simple-project
 ```
 
-Các kiểm thử server gồm: xử lý đặt giá và ngoại lệ (`BidProcessorTest`), đấu giá tự động (`AutoBidEngineTest`), chống bắn tỉa (`AntiSnipingPolicyTest`) và lưu trữ dữ liệu (`FileDaoTest`, `UserDAOTest`, `ItemDAOTest`). GitHub Actions chạy cả kiểm thử client và server mỗi khi push.
-
-## Phân công
-
-- Thành viên 1: Hệ thống & Mạng
-- Thành viên 2: Dữ liệu & Logic nghiệp vụ
-- Thành viên 3: Lập trình giao diện (client JavaFX, giao diện và adapter Socket)
-- Thành viên 4: Nâng cao & Đảm bảo chất lượng
+Dòng đầu cần hiển thị `codex/simple-project`. Push nhánh riêng chưa thay đổi `main`.
+`main` nhận code mới khi có thao tác merge vào `main` hoặc push trực tiếp lên `main`.
