@@ -8,7 +8,7 @@ class ServiceRegistryTest {
     @Test void unsupportedModeDoesNotFallBackToMock() {
         String previous = System.getProperty("auction.mode");
         try {
-            System.setProperty("auction.mode", "server");
+            System.setProperty("auction.mode", "unknown");
             assertThrows(IllegalStateException.class, ServiceRegistry::getService);
             assertThrows(IllegalStateException.class, ServiceRegistry::getWalletService);
         } finally {

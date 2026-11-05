@@ -38,8 +38,10 @@ import javafx.stage.FileChooser;
 /** Điều khiển trang quản lý sản phẩm của người bán. */
 public class SellerProductsController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
+    private boolean operationBusy, loadAgain;
+    private final Consumer<String> serverChanges = type -> tasks.dispatch(() -> { if (type.startsWith("AUCTION_") || type.equals("BID_PLACED") || type.equals("RECONNECTED")) load(); });
     public boolean isLoading() { return progress.isVisible(); }
-    @Override public void dispose() { tasks.close(); imageScopes.forEach(ViewTasks::close); imageScopes.clear(); }
+    @Override public void dispose() { ServiceRegistry.getService().removeChangeListener(serverChanges); tasks.close(); imageScopes.forEach(ViewTasks::close); imageScopes.clear(); }
     @FXML private TextField search;
     @FXML private ComboBox<String> status;
     @FXML private ComboBox<String> category;
@@ -64,6 +66,7 @@ public class SellerProductsController implements DisposableView {
             message.setText("Chỉ người bán được truy cập trang này.");
             table.setDisable(true); addButton.setDisable(true); return;
         }
+        ServiceRegistry.getService().addChangeListener(serverChanges);
         status.getItems().add("Tất cả trạng thái");
         for (AuctionStatus value : AuctionStatus.values()) status.getItems().add(value.getDescription());
         status.getSelectionModel().selectFirst();
@@ -148,6 +151,7 @@ public class SellerProductsController implements DisposableView {
     }
     private record Products(List<Auction> rows, Map<String, String> paths) { }
     private void load() {
+        if (operationBusy) { loadAgain = true; return; }
         run(() -> {
             List<Auction> list = service.listProducts(currentUser.getUsername());
             Map<String, String> paths = new HashMap<>();
@@ -161,12 +165,16 @@ public class SellerProductsController implements DisposableView {
         });
     }
     private <T> void run(Callable<T> work, Consumer<T> success) {
+        operationBusy = true;
         progress.setVisible(true); progress.setManaged(true); table.setDisable(true); addButton.setDisable(true); message.setText("");
         tasks.submit("seller", work, value -> {
             progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false);
+            operationBusy = false;
             success.accept(value);
+            if (loadAgain && !operationBusy) { loadAgain = false; load(); }
         }, error -> {
             progress.setVisible(false); progress.setManaged(false); table.setDisable(false); addButton.setDisable(false);
+            operationBusy = false; loadAgain = false;
             message.setText("Không thể thực hiện: " + error.getMessage());
         });
     }
@@ -256,8 +264,8 @@ public class SellerProductsController implements DisposableView {
         boolean[] touched = {false}, updating = {false};
         Runnable validate = () -> {
             LocalDateTime a = date(start, startTime), b = date(end, endTime);
-            boolean validDates = com.auction.client.util.AuctionTime.valid(a, b, LocalDateTime.now());
-            String error = a == null || b == null ? "Giờ theo dạng HH:mm, ví dụ 14:30." : a.isBefore(LocalDateTime.now()) ? "Thời gian bắt đầu phải từ bây giờ trở đi." : !b.isAfter(a) ? "Thời gian kết thúc phải sau thời gian bắt đầu." : "";
+            boolean validDates = com.auction.client.util.AuctionTime.valid(a, b, ServiceRegistry.getService().serverNow());
+            String error = a == null || b == null ? "Giờ theo dạng HH:mm, ví dụ 14:30." : a.isBefore(ServiceRegistry.getService().serverNow()) ? "Thời gian bắt đầu phải từ bây giờ trở đi." : !b.isAfter(a) ? "Thời gian kết thúc phải sau thời gian bắt đầu." : "";
             dates.setText(touched[0] && !validDates ? error : "");
             summary.setText(a != null && b != null && b.isAfter(a) ? com.auction.client.util.AuctionTime.summary(a, b) : "");
             java.util.List<String> absent = new java.util.ArrayList<>(); if (name.getText().isBlank()) absent.add("tên"); if (description.getText().isBlank()) absent.add("mô tả"); if (type.getValue() == null) absent.add("loại"); if (!positive(price.getText())) absent.add("giá khởi điểm"); if (!positive(step.getText())) absent.add("bước giá"); if (!validDates) absent.add("thời gian hợp lệ");
@@ -267,14 +275,14 @@ public class SellerProductsController implements DisposableView {
         Runnable applyDuration = () -> { if (updating[0]) return; LocalDateTime a = date(start, startTime); if (a == null || duration.getValue() == null || duration.getValue().equals("Tùy chọn")) { validate.run(); return; }
             LocalDateTime b = switch(duration.getValue()) { case "30 phút" -> a.plusMinutes(30); case "1 giờ" -> a.plusHours(1); case "6 giờ" -> a.plusHours(6); case "1 ngày" -> a.plusDays(1); case "3 ngày" -> a.plusDays(3); default -> a.plusDays(7); };
             updating[0] = true; end.setValue(b.toLocalDate()); endTime.setText(b.format(DateTimeFormatter.ofPattern("HH:mm"))); updating[0] = false; validate.run(); };
-        now.selectedProperty().addListener((o,x,v) -> { start.setDisable(v); startTime.setDisable(v); if (v) { LocalDateTime a = LocalDateTime.now().plusMinutes(1).withSecond(0).withNano(0); start.setValue(a.toLocalDate()); startTime.setText(a.format(DateTimeFormatter.ofPattern("HH:mm"))); } applyDuration.run(); });
+        now.selectedProperty().addListener((o,x,v) -> { start.setDisable(v); startTime.setDisable(v); if (v) { LocalDateTime a = ServiceRegistry.getService().serverNow().plusMinutes(1).withSecond(0).withNano(0); start.setValue(a.toLocalDate()); startTime.setText(a.format(DateTimeFormatter.ofPattern("HH:mm"))); } applyDuration.run(); });
         duration.valueProperty().addListener((o,x,v) -> applyDuration.run()); start.valueProperty().addListener((o,x,v) -> applyDuration.run()); startTime.textProperty().addListener((o,x,v) -> applyDuration.run());
         end.valueProperty().addListener((o,x,v) -> validate.run()); endTime.textProperty().addListener((o,x,v) -> validate.run());
         for (TextField field : List.of(name, price, step)) field.textProperty().addListener((o,x,v) -> validate.run()); description.textProperty().addListener((o,x,v) -> validate.run()); type.valueProperty().addListener((o,x,v) -> validate.run());
         for (javafx.scene.Node field : List.of(start, end, startTime, endTime)) field.focusedProperty().addListener((o,was,focused) -> { if (was && !focused) { touched[0] = true; validate.run(); } });
         validate.run(); dialog.setOnShown(e -> scroll.setVvalue(0));
         if (dialog.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-            LocalDateTime a = date(start, startTime), b = date(end, endTime); if (a == null || b == null || a.isBefore(LocalDateTime.now()) || !b.isAfter(a)) { message.setText("Thời gian phiên không hợp lệ."); return; }
+            LocalDateTime a = date(start, startTime), b = date(end, endTime); if (a == null || b == null || a.isBefore(ServiceRegistry.getService().serverNow()) || !b.isAfter(a)) { message.setText("Thời gian phiên không hợp lệ."); return; }
             String id = original == null ? UUID.randomUUID().toString() : original.getId();
             Item item = new Item(original == null ? UUID.randomUUID().toString() : original.getItem().getId(), name.getText().trim(), description.getText().trim(), type.getValue(), Double.parseDouble(price.getText()), currentUser.getUsername());
             Auction auction = new Auction(id, item, currentUser.getUsername(), item.getStartingPrice(), null, AuctionStatus.OPEN, a, b, Double.parseDouble(step.getText()));
@@ -287,7 +295,7 @@ public class SellerProductsController implements DisposableView {
             }, ignored -> load());
         }
     }
-    private boolean positive(String text) { try { double value = Double.parseDouble(text); return Double.isFinite(value) && value > 0; } catch (NumberFormatException e) { return false; } }
+    private boolean positive(String text) { try { double value = Double.parseDouble(text); return Double.isFinite(value) && value > 0 && value == Math.rint(value) && value <= 9_000_000_000_000L; } catch (NumberFormatException e) { return false; } }
     private LocalDateTime date(DatePicker day, TextField time) { LocalTime value = com.auction.client.util.AuctionTime.parse(time.getText()); return day.getValue() == null || value == null ? null : LocalDateTime.of(day.getValue(), value); }
     @FXML private void handleBackToHome() { try { ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD); } catch (IOException e) { message.setText("Không thể mở trang chủ."); } }
 }

@@ -5,6 +5,7 @@ module com.auction.client {
     requires java.desktop;
     requires java.prefs;
     requires java.logging;
+    requires com.google.gson;
 
     opens com.auction.client to javafx.fxml, javafx.graphics;
     opens com.auction.client.controller to javafx.fxml;
@@ -17,6 +18,7 @@ module com.auction.client {
     exports com.auction.client.controller;
     exports com.auction.client.model;
     exports com.auction.client.service;
+    exports com.auction.client.service.server;
     exports com.auction.client.util;
     exports com.auction.client.ui;
 }

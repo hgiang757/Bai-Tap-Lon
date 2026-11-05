@@ -14,7 +14,17 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
+            System.setProperty("auction.mode", System.getProperty("auction.mode", "server"));
             com.auction.client.service.ServiceRegistry.validateMode();
+            com.auction.client.service.ServiceRegistry.getService().addChangeListener(type -> {
+                if (type.equals("SESSION_EXPIRED") || type.equals("USER_CHANGED")) javafx.application.Platform.runLater(() -> {
+                    try {
+                        ViewNavigator.clearHistory();
+                        var user = com.auction.client.service.ServiceRegistry.getService().getCurrentUser();
+                        ViewNavigator.navigate(user == null ? ViewNavigator.Route.AUTH : user.getRole() == com.auction.client.model.UserRole.ADMIN ? ViewNavigator.Route.ADMIN : ViewNavigator.Route.DASHBOARD);
+                    } catch (java.io.IOException e) { LOGGER.warning(e.getMessage()); }
+                });
+            });
             String fontFamily = Font.getFamilies().contains("Segoe UI") ? "Segoe UI" : "System";
             LOGGER.info("Phông chữ giao diện đang dùng: " + fontFamily);
             // Đăng ký primaryStage vào tiện ích ViewNavigator để chuyển đổi màn hình linh hoạt
@@ -36,7 +46,7 @@ public class Main extends Application {
         }
     }
 
-    @Override public void stop() { ViewNavigator.disposeCurrentView(); }
+    @Override public void stop() { ViewNavigator.disposeCurrentView(); com.auction.client.service.ServiceRegistry.close(); }
 
     public static void main(String[] args) {
         launch(args);

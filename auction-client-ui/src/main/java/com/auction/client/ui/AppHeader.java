@@ -10,16 +10,27 @@ import javafx.scene.layout.HBox;
 public final class AppHeader extends HBox {
     private javafx.scene.Node account;
     private ViewTasks tasks;
-    private boolean readingBalance;
+    private boolean readingBalance, readAgain;
+    private Runnable balanceRefresh = () -> {};
+    private final javafx.scene.control.Label connectionState = new javafx.scene.control.Label(ServiceRegistry.modeLabel());
+    private final java.util.function.Consumer<String> serverChanges = type -> {
+        if (tasks != null) tasks.dispatch(() -> {
+            if (type.equals("DISCONNECTED")) connectionState.setText("Mất kết nối");
+            else if (type.equals("RECONNECTED")) connectionState.setText("Đã kết nối");
+            if (type.equals("WALLET_CHANGED") || type.equals("RECONNECTED")) balanceRefresh.run();
+        });
+    };
     private javafx.animation.Timeline walletTimer;
     private final String path = ViewNavigator.getCurrentPath();
     public AppHeader() {
         sceneProperty().addListener((obs, oldScene, scene) -> {
+            ServiceRegistry.getService().removeChangeListener(serverChanges);
             if (tasks != null) tasks.close();
             if (walletTimer != null) walletTimer.stop();
             readingBalance = false;
             if (scene != null) {
                 tasks = new ViewTasks();
+                ServiceRegistry.getService().addChangeListener(serverChanges);
                 refreshAccount();
             }
         });
@@ -39,22 +50,27 @@ public final class AppHeader extends HBox {
                 balance.managedProperty().bind(balance.visibleProperty());
                 balance.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                 balance.setOnAction(e -> { try { ViewNavigator.navigate(ViewNavigator.Route.WALLET); } catch (java.io.IOException ex) { throw new IllegalStateException(ex); } });
-                HBox group = new HBox(8, balance, menu);
+                HBox group = new HBox(8, connectionState, balance, menu);
                 group.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
                 account = group;
                 Runnable update = () -> {
                     var user = ServiceRegistry.getService().getCurrentUser();
-                    if (user == null || readingBalance) return;
+                    if (user == null) return;
+                    if (readingBalance) { readAgain = true; return; }
                     readingBalance = true;
                     tasks.submit("balance", () -> ServiceRegistry.getWalletService().getAvailable(user.getUsername()), value -> {
                         readingBalance = false;
                         balance.setText("Ví: " + com.auction.client.util.FormatUtil.formatCurrency(value));
-                    }, error -> { readingBalance = false; balance.setText("Ví: không thể tải"); });
+                        if (readAgain) { readAgain = false; balanceRefresh.run(); }
+                    }, error -> { readingBalance = false; readAgain = false; balance.setText("Ví: không thể tải"); });
                 };
+                balanceRefresh = update;
                 update.run();
+                if (ServiceRegistry.modeLabel().equals("MOCK")) {
                 walletTimer = new javafx.animation.Timeline(new javafx.animation.KeyFrame(javafx.util.Duration.seconds(2), e -> update.run()));
                 walletTimer.setCycleCount(javafx.animation.Timeline.INDEFINITE);
                 walletTimer.play();
+                }
             } else account = menu;
         } else {
             Button login = new Button("Đăng nhập");

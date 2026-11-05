@@ -140,7 +140,7 @@ public class AuthController implements DisposableView {
         validateFields();
         if (isRegisterMode) {
             lblFormTitle.setText("Đăng ký tài khoản");
-            lblFormSubtitle.setText("Tạo tài khoản mô phỏng trên " + AppInfo.NAME + ".");
+            lblFormSubtitle.setText("Tạo tài khoản trên " + AppInfo.NAME + ".");
             btnSubmit.setText("Tạo tài khoản");
             btnSwitchMode.setText("Đã có tài khoản? Đăng nhập tại đây");
             registerFieldsBox.setVisible(true);
@@ -151,7 +151,7 @@ public class AuthController implements DisposableView {
             rememberBox.setManaged(false);
         } else {
             lblFormTitle.setText("Đăng nhập");
-            lblFormSubtitle.setText("Chế độ mô phỏng · Chưa kết nối nghiệp vụ server.");
+            lblFormSubtitle.setText(ServiceRegistry.modeLabel().equals("SERVER") ? "Đăng nhập vào máy chủ đấu giá." : "Chế độ mock dùng để thử giao diện độc lập.");
             btnSubmit.setText("Đăng nhập");
             btnSwitchMode.setText("Chưa có tài khoản? Đăng ký ngay");
             registerFieldsBox.setVisible(false);

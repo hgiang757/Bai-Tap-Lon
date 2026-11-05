@@ -11,4 +11,7 @@ public interface WalletService {
     /** Nạp tiền mô phỏng. */ void deposit(String username, long amount);
     /** Rút tiền mô phỏng. */ void withdraw(String username, long amount);
     /** Danh sách giao dịch mới nhất trước. */ List<Transaction> getTransactions(String username);
+    default WalletSnapshot getSnapshot(String username) {
+        return new WalletSnapshot(getBalance(username), getHeldAmount(username), getAvailable(username), getTransactions(username));
+    }
 }

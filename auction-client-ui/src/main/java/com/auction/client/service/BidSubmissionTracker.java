@@ -20,6 +20,10 @@ public final class BidSubmissionTracker {
 
     private Entry entry(Key key) { return entries.computeIfAbsent(key, ignored -> new Entry()); }
     public synchronized Phase phase(Key key) { return entry(key).phase; }
+    /** Only called after the adapter has reconciled the durable server command. */
+    public synchronized void reconciled(Key key) {
+        Entry e=entry(key); if(e.phase==Phase.UNKNOWN){e.phase=Phase.AWAITING_REFRESH;e.revision=++sequence;}
+    }
 
     public synchronized Ticket begin(Key key) {
         Entry entry = entry(key);

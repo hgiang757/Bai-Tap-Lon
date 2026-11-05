@@ -29,7 +29,16 @@ import javafx.scene.layout.VBox;
 /** Điều khiển ba màn hình quản trị. */
 public class AdminController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
-    @Override public void dispose() { tasks.close(); }
+    private boolean working, refreshQueued;
+    private final Consumer<String> serverChanges = type -> tasks.dispatch(() -> {
+        if (!this.authorized) return;
+        if (working) { refreshQueued = true; return; }
+        refreshSelected();
+    });
+    private void refreshSelected() {
+        if (usersPane.isVisible()) users(); else if (auctionsPane.isVisible()) auctions(); else overview();
+    }
+    @Override public void dispose() { ServiceRegistry.getService().removeChangeListener(serverChanges); tasks.close(); }
     @FXML private VBox content, overviewPane, usersPane, auctionsPane;
     @FXML private Label usersCount, openCount, runningCount, finishedCount, canceledCount;
     @FXML private TextField userSearch, auctionSearch;
@@ -57,6 +66,7 @@ public class AdminController implements DisposableView {
         authorized = user != null && user.getRole() == UserRole.ADMIN;
         if (!authorized) { message.setText("Chỉ quản trị viên được truy cập trang này."); content.setDisable(true); return; }
         actorId = user.getId();
+        ServiceRegistry.getService().addChangeListener(serverChanges);
         configureTables();
         userSearch.textProperty().addListener((o, a, b) -> userFilter.run());
         userRole.valueProperty().addListener((o, a, b) -> userFilter.run());
@@ -66,11 +76,14 @@ public class AdminController implements DisposableView {
     }
     private <T> void run(Callable<T> work, Consumer<T> success) {
         if (!authorized) return;
+        working = true;
         content.setDisable(true); progress.setVisible(true); progress.setManaged(true); message.setText("");
         tasks.submit("admin", work, value -> {
-            content.setDisable(false); progress.setVisible(false); progress.setManaged(false); success.accept(value);
+            content.setDisable(false); progress.setVisible(false); progress.setManaged(false); working = false; success.accept(value);
+            if (refreshQueued && !working) { refreshQueued = false; refreshSelected(); }
         }, error -> {
             content.setDisable(false); progress.setVisible(false); progress.setManaged(false);
+            working = false; refreshQueued = false;
             message.setText("Không thể thực hiện: " + error.getMessage());
         });
     }
