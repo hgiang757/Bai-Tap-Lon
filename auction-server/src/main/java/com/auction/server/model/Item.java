@@ -7,53 +7,51 @@ public abstract class Item extends Entity {
 
     protected String description;
     protected double basePrice;
+    protected Seller seller;
     protected String sellerId;
 
     public Item() {
         super();
     }
 
-    // Constructor 3 tham số (String id, String name, double basePrice)
-    public Item(String id, String name, double basePrice) {
+    // Constructor khớp chính xác với ItemDAOTest và BidProcessorTest:
+    // super(id, name, "mô tả", (Seller) null);
+    public Item(String id, String name, String description, Seller seller) {
         super(id, name);
-        this.basePrice = basePrice;
+        this.description = description;
+        this.seller = seller;
+        this.sellerId = seller != null ? seller.getId() : null;
     }
 
-    // Constructor 3 tham số (Long id, String name, double basePrice)
-    public Item(Long id, String name, double basePrice) {
+    public Item(Long id, String name, String description, Seller seller) {
         super(id, name);
-        this.basePrice = basePrice;
+        this.description = description;
+        this.seller = seller;
+        this.sellerId = seller != null ? seller.getId() : null;
     }
 
-    // Constructor 4 tham số (String id, String name, String description, double basePrice)
     public Item(String id, String name, String description, double basePrice) {
         super(id, name);
         this.description = description;
         this.basePrice = basePrice;
     }
 
-    // Constructor 4 tham số (Long id, String name, String description, double basePrice)
     public Item(Long id, String name, String description, double basePrice) {
         super(id, name);
         this.description = description;
         this.basePrice = basePrice;
     }
 
-    // Constructor 5 tham số (String id, ...)
-    public Item(String id, String name, String description, double basePrice, String sellerId) {
+    public Item(String id, String name, String description, double basePrice, Seller seller) {
         super(id, name);
         this.description = description;
         this.basePrice = basePrice;
-        this.sellerId = sellerId;
+        this.seller = seller;
+        this.sellerId = seller != null ? seller.getId() : null;
     }
 
-    // Constructor 5 tham số (Long id, ...)
-    public Item(Long id, String name, String description, double basePrice, Long sellerId) {
-        super(id, name);
-        this.description = description;
-        this.basePrice = basePrice;
-        this.sellerId = sellerId != null ? String.valueOf(sellerId) : null;
-    }
+    // Phương thức bắt buộc để @Override trong ItemDAOTest và BidProcessorTest
+    public abstract double calculateInsuranceFee(double currentPrice);
 
     public String getDescription() {
         return description;
@@ -73,47 +71,22 @@ public abstract class Item extends Entity {
         setUpdatedAt(Instant.now());
     }
 
-    public double getStartingPrice() {
-        return basePrice;
+    public Seller getSeller() {
+        return seller;
     }
 
-    public void setStartingPrice(double startingPrice) {
-        this.basePrice = startingPrice;
+    public void setSeller(Seller seller) {
+        this.seller = seller;
+        this.sellerId = seller != null ? seller.getId() : null;
         setUpdatedAt(Instant.now());
     }
 
     public String getSellerId() {
-        return sellerId;
+        return seller != null ? seller.getId() : sellerId;
     }
 
     public void setSellerId(String sellerId) {
         this.sellerId = sellerId;
         setUpdatedAt(Instant.now());
-    }
-
-    // Các phương thức cho lớp con / anonymous class trong test override
-    public String getCategory() {
-        return "GENERAL";
-    }
-
-    public String getItemType() {
-        return getCategory();
-    }
-
-    public String getDetails() {
-        return description != null ? description : "";
-    }
-
-    public String getItemDetails() {
-        return getDetails();
-    }
-
-    @Override
-    public String toString() {
-        return "Item{" +
-                "id='" + getId() + '\'' +
-                ", name='" + getName() + '\'' +
-                ", basePrice=" + basePrice +
-                '}';
     }
 }
