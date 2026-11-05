@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectDirectory = $PSScriptRoot
 if (-not (Get-Command java -ErrorAction SilentlyContinue) -or -not (Get-Command mvn -ErrorAction SilentlyContinue)) {
-    throw 'Install JDK 25 and Maven, then add java and mvn to PATH.'
+    throw 'Install JDK 25 or newer and Maven, then add java and mvn to PATH.'
 }
 Push-Location -LiteralPath $projectDirectory
 try {
@@ -17,15 +17,14 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Tests failed. See the output above.' }
         }
         'Server' {
-            & mvn -B -f auction-server/pom.xml package -DskipTests
+            & mvn -B package -DskipTests
             if ($LASTEXITCODE -ne 0) { throw 'Server build failed. See the output above.' }
-            Push-Location -LiteralPath (Join-Path $projectDirectory 'auction-server')
-            try { & java "-Dauction.host=$ServerHost" "-Dauction.port=$Port" '-Dauction.demo=true' -jar target/auction-server-1.0.0.jar }
-            finally { Pop-Location }
+            & java "-Dauction.host=$ServerHost" "-Dauction.port=$Port" '-Dauction.demo=true' -jar target/digital-auction-1.0.0.jar
+            if ($LASTEXITCODE -ne 0) { throw 'Server stopped with an error. See the output above.' }
         }
         'Client' {
             $clientMode = if ($Mock) { 'mock' } else { 'server' }
-            & mvn -B -f auction-client-ui/pom.xml javafx:run "-Dauction.mode=$clientMode" "-Dauction.host=$ServerHost" "-Dauction.port=$Port"
+            & mvn -B javafx:run "-Dauction.mode=$clientMode" "-Dauction.host=$ServerHost" "-Dauction.port=$Port"
             if ($LASTEXITCODE -ne 0) { throw 'Client launch failed. See the output above.' }
         }
     }
