@@ -32,6 +32,8 @@ Tài khoản thử được liệt kê trong [docs/DEV_ACCOUNTS.md](auction-clie
 
 ## Chạy nhanh trên Windows
 
+Cần JDK 25 và Maven trong PATH. Có thể nhấp đúp `Start-Server.cmd`, chờ thông báo server đã mở cổng, rồi nhấp đúp `Start-Client.cmd`. Mỗi lần mở thêm `Start-Client.cmd` sẽ tạo một client khác. Giữ cửa sổ server mở trong lúc sử dụng.
+
 Từ thư mục gốc, terminal thứ nhất:
 
 ```powershell

@@ -9,8 +9,9 @@ public abstract class ItemFactory {
         return new ItemFactory() {
             @Override public Item create(String id, String name, String description, Seller owner) {
                 return switch (category) {
-                    case "ELECTRONICS" -> new ElectronicsItem(id, name, description, owner, 0);
-                    case "ART" -> new ArtItem(id, name, description, owner, "");
+                    case "ELECTRONICS" -> new Electronics(id, name, description, owner, "", 0);
+                    case "ART" -> new Art(id, name, description, owner, "", 0);
+                    case "VEHICLE" -> new Vehicle(id, name, description, owner, "", 0);
                     default -> new CategoryItem(id, name, description, owner, category);
                 };
             }
