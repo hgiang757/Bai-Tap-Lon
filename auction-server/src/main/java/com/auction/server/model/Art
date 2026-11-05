@@ -1,0 +1,40 @@
+package com.auction.server.model;
+
+public class Art extends Item {
+    private static final long serialVersionUID = 1L;
+
+    private String artist;
+    private int yearCreated;
+
+    public Art() {
+        super();
+    }
+
+    public Art(Long id, String name, String description, double basePrice,
+               String artist, int yearCreated) {
+        super(id, name, description, basePrice);
+        this.artist = artist;
+        this.yearCreated = yearCreated;
+    }
+
+    public String getArtist() {
+        return artist;
+    }
+
+    public void setArtist(String artist) {
+        this.artist = artist;
+    }
+
+    public int getYearCreated() {
+        return yearCreated;
+    }
+
+    public void setYearCreated(int yearCreated) {
+        this.yearCreated = yearCreated;
+    }
+
+    @Override
+    public String getCategory() {
+        return "ART";
+    }
+}
