@@ -1,15 +1,18 @@
 package com.auction.server.model;
 
-// Lớp Người Bán
 public class Seller extends User {
     private static final long serialVersionUID = 1L;
 
-    public Seller(String id, String username, String password) {
-        super(id, username, password);
+    public Seller() {
+        super();
+        setRole("SELLER");
     }
 
-    @Override
-    public String getRoleName() {
-        return "SELLER";
+    public Seller(Long id, String name, String password) {
+        super(id, name, password, "SELLER");
+    }
+
+    public Seller(Long id, String name, String password, String email) {
+        super(id, name, password, email, "SELLER");
     }
 }
