@@ -147,8 +147,7 @@ public class AuctionServer {
 
     private void seedDefaultAdmin(UserDAO userDAO) {
         if (userDAO.findByUsername("admin") == null) {
-            com.auction.shared.model.Admin defaultAdmin = new com.auction.shared.model.Admin("admin", "admin123",
-                    "admin@auction.com");
+            com.auction.shared.model.User defaultAdmin = new com.auction.shared.model.User("admin", "admin123", "admin@auction.com", com.auction.shared.model.User.Role.ADMIN);
             userDAO.save(defaultAdmin);
             logger.info("Da tao tai khoan Admin mac dinh: admin / admin123");
         }
