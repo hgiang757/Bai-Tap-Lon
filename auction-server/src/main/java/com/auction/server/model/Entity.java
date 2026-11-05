@@ -3,7 +3,7 @@ package com.auction.server.model;
 import java.io.Serializable;
 import java.time.Instant;
 
-/**
+/**Sửa lại
  * Abstract base class cho tất cả entities trong hệ thống đấu giá.
  * Chứa các thuộc tính chung: id, name, createdAt, updatedAt
  */
