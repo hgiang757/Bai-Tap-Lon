@@ -1,0 +1,40 @@
+package com.auction.server.model;
+
+public class Electronics extends Item {
+    private static final long serialVersionUID = 1L;
+
+    private String brand;
+    private int warrantyMonths;
+
+    public Electronics() {
+        super();
+    }
+
+    public Electronics(Long id, String name, String description, double basePrice,
+                       String brand, int warrantyMonths) {
+        super(id, name, description, basePrice);
+        this.brand = brand;
+        this.warrantyMonths = warrantyMonths;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public int getWarrantyMonths() {
+        return warrantyMonths;
+    }
+
+    public void setWarrantyMonths(int warrantyMonths) {
+        this.warrantyMonths = warrantyMonths;
+    }
+
+    @Override
+    public String getCategory() {
+        return "ELECTRONICS";
+    }
+}
