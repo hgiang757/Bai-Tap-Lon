@@ -1,0 +1,40 @@
+package com.auction.server.model;
+
+public class Vehicle extends Item {
+    private static final long serialVersionUID = 1L;
+
+    private String licensePlate;
+    private int mileage;
+
+    public Vehicle() {
+        super();
+    }
+
+    public Vehicle(Long id, String name, String description, double basePrice,
+                   String licensePlate, int mileage) {
+        super(id, name, description, basePrice);
+        this.licensePlate = licensePlate;
+        this.mileage = mileage;
+    }
+
+    public String getLicensePlate() {
+        return licensePlate;
+    }
+
+    public void setLicensePlate(String licensePlate) {
+        this.licensePlate = licensePlate;
+    }
+
+    public int getMileage() {
+        return mileage;
+    }
+
+    public void setMileage(int mileage) {
+        this.mileage = mileage;
+    }
+
+    @Override
+    public String getCategory() {
+        return "VEHICLE";
+    }
+}
