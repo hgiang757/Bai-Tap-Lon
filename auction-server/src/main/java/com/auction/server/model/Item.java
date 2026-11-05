@@ -2,40 +2,57 @@ package com.auction.server.model;
 
 import java.time.Instant;
 
-public class Item extends Entity {
+public abstract class Item extends Entity {
     private static final long serialVersionUID = 1L;
 
-    private String name;
-    private String description;
-    private double basePrice;
-    private Long sellerId;
+    protected String description;
+    protected double basePrice;
+    protected String sellerId;
 
     public Item() {
         super();
     }
 
-    public Item(Long id, String name, String description, double basePrice) {
-        super(id);
-        this.name = name;
+    // Constructor 3 tham số (String id, String name, double basePrice)
+    public Item(String id, String name, double basePrice) {
+        super(id, name);
+        this.basePrice = basePrice;
+    }
+
+    // Constructor 3 tham số (Long id, String name, double basePrice)
+    public Item(Long id, String name, double basePrice) {
+        super(id, name);
+        this.basePrice = basePrice;
+    }
+
+    // Constructor 4 tham số (String id, String name, String description, double basePrice)
+    public Item(String id, String name, String description, double basePrice) {
+        super(id, name);
         this.description = description;
         this.basePrice = basePrice;
     }
 
-    public Item(Long id, String name, String description, double basePrice, Long sellerId) {
-        super(id);
-        this.name = name;
+    // Constructor 4 tham số (Long id, String name, String description, double basePrice)
+    public Item(Long id, String name, String description, double basePrice) {
+        super(id, name);
+        this.description = description;
+        this.basePrice = basePrice;
+    }
+
+    // Constructor 5 tham số (String id, ...)
+    public Item(String id, String name, String description, double basePrice, String sellerId) {
+        super(id, name);
         this.description = description;
         this.basePrice = basePrice;
         this.sellerId = sellerId;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-        setUpdatedAt(Instant.now());
+    // Constructor 5 tham số (Long id, ...)
+    public Item(Long id, String name, String description, double basePrice, Long sellerId) {
+        super(id, name);
+        this.description = description;
+        this.basePrice = basePrice;
+        this.sellerId = sellerId != null ? String.valueOf(sellerId) : null;
     }
 
     public String getDescription() {
@@ -65,26 +82,38 @@ public class Item extends Entity {
         setUpdatedAt(Instant.now());
     }
 
-    public Long getSellerId() {
+    public String getSellerId() {
         return sellerId;
     }
 
-    public void setSellerId(Long sellerId) {
+    public void setSellerId(String sellerId) {
         this.sellerId = sellerId;
         setUpdatedAt(Instant.now());
     }
 
+    // Các phương thức cho lớp con / anonymous class trong test override
     public String getCategory() {
         return "GENERAL";
+    }
+
+    public String getItemType() {
+        return getCategory();
+    }
+
+    public String getDetails() {
+        return description != null ? description : "";
+    }
+
+    public String getItemDetails() {
+        return getDetails();
     }
 
     @Override
     public String toString() {
         return "Item{" +
-                "id=" + getId() +
-                ", name='" + name + '\'' +
+                "id='" + getId() + '\'' +
+                ", name='" + getName() + '\'' +
                 ", basePrice=" + basePrice +
-                ", category='" + getCategory() + '\'' +
                 '}';
     }
 }
