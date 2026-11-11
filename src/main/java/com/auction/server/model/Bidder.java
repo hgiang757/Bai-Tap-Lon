@@ -8,17 +8,17 @@ public class Bidder extends User {
         super();
     }
 
-    public Bidder(String id, String username, String passwordHash) {
-        super(id, username, passwordHash);
+    public Bidder(String id, String name, String passwordHash) {
+        super(id, name, passwordHash);
     }
 
-    public Bidder(String id, String username, String passwordHash, String email, double balance) {
-        super(id, username, passwordHash, email, balance);
+    public Bidder(String id, String name, String passwordHash, String email, double balance) {
+        super(id, name, passwordHash, email, balance);
     }
 
     @Override
-    public UserRole getRole() {
-        return UserRole.BIDDER;
+    public String getRoleName() {
+        return "BIDDER";
     }
 
     public int getWonAuctionsCount() {
