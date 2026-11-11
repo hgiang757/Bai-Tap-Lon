@@ -1,87 +1,79 @@
 package com.auction.server.dao;
 
-import com.auction.server.model.Auction;
-import com.auction.server.model.AuctionStatus;
-import com.auction.server.model.Transaction;
-import java.io.*;
+import com.google.gson.*;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
-public class AuctionRepository {
-    private final Map<String, Auction> auctionsById = new ConcurrentHashMap<>();
-    private final List<Transaction> transactions = new CopyOnWriteArrayList<>();
-    private final Path storagePath;
+/** One durable snapshot is the transaction boundary for money and auctions. */
+public final class AuctionRepository implements AutoCloseable {
+    private final Path file;
+    private final FileChannel lockChannel;
+    private final FileLock lock;
 
-    public AuctionRepository() {
-        this(Paths.get("data", "auctions.dat"));
+    public AuctionRepository(Path directory) throws IOException {
+        Files.createDirectories(directory);
+        file = directory.resolve("state.json");
+        lockChannel =
+                FileChannel.open(
+                        directory.resolve("server.lock"),
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE);
+        FileLock acquired;
+        try {
+            acquired = lockChannel.tryLock();
+        } catch (RuntimeException | IOException e) {
+            lockChannel.close();
+            throw e;
+        }
+        if (acquired == null) {
+            lockChannel.close();
+            throw new IOException("Data directory is already in use");
+        }
+        lock = acquired;
     }
 
-    public AuctionRepository(Path storagePath) {
-        this.storagePath = storagePath;
-        loadFromDisk();
-    }
-
-    public synchronized Auction save(Auction auction) {
-        auctionsById.put(auction.getId(), auction);
-        persistToDisk();
-        return auction;
-    }
-
-    public Optional<Auction> findById(String id) {
-        return Optional.ofNullable(auctionsById.get(id));
-    }
-
-    public List<Auction> findAll() {
-        return new ArrayList<>(auctionsById.values());
-    }
-
-    public List<Auction> findByStatus(AuctionStatus status) {
-        return auctionsById.values().stream()
-                .filter(a -> a.getStatus() == status)
-                .toList();
-    }
-
-    public synchronized boolean deleteById(String id) {
-        boolean removed = auctionsById.remove(id) != null;
-        if (removed) persistToDisk();
-        return removed;
-    }
-
-    public synchronized void recordTransaction(Transaction tx) {
-        transactions.add(tx);
-        persistToDisk();
-    }
-
-    public List<Transaction> findTransactionsByUser(String userId) {
-        return transactions.stream()
-                .filter(t -> Objects.equals(userId, t.getUserId()))
-                .toList();
-    }
-
-    @SuppressWarnings("unchecked")
-    private synchronized void loadFromDisk() {
-        if (storagePath == null || !Files.exists(storagePath)) return;
-        try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(storagePath))) {
-            Map<String, Auction> loaded = (Map<String, Auction>) ois.readObject();
-            auctionsById.clear();
-            auctionsById.putAll(loaded);
-        } catch (Exception ignored) {
+    public JsonObject load() throws IOException {
+        if (!Files.exists(file)) return null;
+        try {
+            return JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+        } catch (RuntimeException e) {
+            throw new IOException("Invalid state file; refusing to overwrite existing data", e);
         }
     }
 
-    private synchronized void persistToDisk() {
-        if (storagePath == null) return;
+    public void save(JsonObject state) throws IOException {
+        Path temporary = file.resolveSibling("state.json.tmp");
+        byte[] bytes = new Gson().toJson(state).getBytes(StandardCharsets.UTF_8);
+        try (FileChannel channel =
+                FileChannel.open(
+                        temporary,
+                        StandardOpenOption.CREATE,
+                        StandardOpenOption.TRUNCATE_EXISTING,
+                        StandardOpenOption.WRITE)) {
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+            while (buffer.hasRemaining()) channel.write(buffer);
+            channel.force(true);
+        }
+        // Fail rather than silently replace atomic transactions with a non-atomic write.
+        Files.move(
+                temporary,
+                file,
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    @Override
+    public void close() throws IOException {
         try {
-            if (storagePath.getParent() != null) {
-                Files.createDirectories(storagePath.getParent());
-            }
-            try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(storagePath))) {
-                oos.writeObject(new HashMap<>(auctionsById));
-            }
-        } catch (IOException e) {
-            System.err.println("Không thể lưu file Auction: " + e.getMessage());
+            lock.release();
+        } finally {
+            lockChannel.close();
         }
     }
 }
