@@ -1,5 +1,0 @@
-package com.aution.server.model;
-// Định nghĩa vai trò trong hệ thống đấu giá
-//Admin k có quyền đấu giá
-//Bidder và seller có profile riêng biệt
-public enum UserRole { BIDDER, SELLER, ADMIN }
