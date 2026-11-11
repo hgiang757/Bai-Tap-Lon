@@ -6,13 +6,20 @@ public class Art extends Item {
 
     public Art() {
         super();
+        this.artistName = "Unknown Artist";
     }
 
     public Art(String id, String name, double basePrice) {
         this(id, name, "", basePrice, "", "Unknown Artist");
     }
 
-    public Art(String id, String name, String description, double basePrice, String imageUrl, String artistName) {
+    public Art(
+            String id,
+            String name,
+            String description,
+            double basePrice,
+            String imageUrl,
+            String artistName) {
         super(id, name, description, basePrice, imageUrl);
         this.artistName = artistName;
     }
