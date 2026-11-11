@@ -25,36 +25,13 @@ public abstract class Item extends Entity {
 
     public abstract String getCategory();
 
-    // --- HÀM BỊ THIẾU MÀ AUCTION SERVICE GỐC ĐANG GỌI TẠI DÒNG 590 ---
-    public static Item create(String arg1, String arg2, String arg3, Seller seller) {
-        Item item;
-        try {
-            // Trường hợp 1: arg1 là category (VD: "ART"), arg2 là name, arg3 là description
-            item = ItemFactory.forCategory(arg1);
-            item.setName(arg2);
-            item.setDescription(arg3);
-        } catch (Exception e1) {
-            try {
-                // Trường hợp 2: arg1 là name, arg2 là description, arg3 là category
-                item = ItemFactory.forCategory(arg3);
-                item.setName(arg1);
-                item.setDescription(arg2);
-            } catch (Exception e2) {
-                // Trường hợp 3 (Dự phòng): arg1 là id, arg2 là name, arg3 là category
-                try {
-                    item = ItemFactory.forCategory(arg3);
-                    item.setId(arg1);
-                    item.setName(arg2);
-                } catch (Exception e3) {
-                    // Fallback an toàn nhất để tránh sập Server nếu dữ liệu bất thường
-                    item = ItemFactory.forCategory("ELECTRONICS");
-                    item.setName(arg1);
-                    item.setDescription(arg2);
-                }
-            }
-        }
-        item.setSeller(seller);
-        return item;
+    // Khớp với lời gọi chuỗi: ItemFactory.forCategory(category).create(id, name, description, seller)
+    public Item create(String id, String name, String description, Seller seller) {
+        setId(id);
+        setName(name);
+        setDescription(description);
+        setSeller(seller);
+        return this;
     }
 
     public Seller getSeller() {
