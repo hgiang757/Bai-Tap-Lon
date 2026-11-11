@@ -1,14 +1,14 @@
-// Hệ thống đấu giá có nhiều loại object, tất cả đều có thuộc tính chung nên viết 1 lớp abstract class
-
 package com.auction.server.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.Objects;
 
 public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private Long id;
+    private String id;
+    private String name;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -17,17 +17,43 @@ public abstract class Entity implements Serializable {
         this.updatedAt = this.createdAt;
     }
 
-    public Entity(Long id) {
+    public Entity(String id) {
         this();
         this.id = id;
     }
 
-    public Long getId() {
+    public Entity(String id, String name) {
+        this();
+        this.id = id;
+        this.name = name;
+    }
+
+    // Hỗ trợ tương thích khi truyền ID dạng Long
+    public Entity(Long id) {
+        this(id == null ? null : String.valueOf(id), null);
+    }
+
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
+        markAsUpdated();
+    }
+
+    public void setId(Long id) {
+        this.id = id == null ? null : String.valueOf(id);
+        markAsUpdated();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        markAsUpdated();
     }
 
     public Instant getCreatedAt() {
@@ -51,9 +77,23 @@ public abstract class Entity implements Serializable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Entity entity = (Entity) o;
+        return Objects.equals(id, entity.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
     public String toString() {
         return "Entity{" +
-                "id=" + id +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
