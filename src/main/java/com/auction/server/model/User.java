@@ -13,12 +13,8 @@ public abstract class User extends Entity {
         this.active = true;
     }
 
-    // Constructor bắt buộc để khớp với Admin, Bidder, Seller và AuctionService
     public User(String id, String name, String passwordHash) {
-        super(id, name);
-        this.passwordHash = passwordHash;
-        this.balance = 0.0;
-        this.active = true;
+        this(id, name, passwordHash, "", 0.0);
     }
 
     public User(String id, String name, String passwordHash, String email, double balance) {
@@ -29,14 +25,12 @@ public abstract class User extends Entity {
         this.active = true;
     }
 
-    // Hàm trừu tượng bắt buộc để khớp với AuctionService.java dòng 193
     public abstract String getRoleName();
 
     public UserRole getRole() {
         return UserRole.valueOf(getRoleName());
     }
 
-    // Hàm bắt buộc để khớp với AuctionService.java dòng 195
     public String getPasswordHash() {
         return passwordHash;
     }
@@ -81,7 +75,7 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void addBalance(double amount) {
+    public void deposit(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0");
         }
@@ -89,7 +83,7 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void deductBalance(double amount) {
+    public void deduct(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền trừ phải lớn hơn 0");
         }
