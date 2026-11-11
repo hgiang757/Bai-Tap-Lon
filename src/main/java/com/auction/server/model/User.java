@@ -10,27 +10,40 @@ public abstract class User extends Entity {
 
     public User() {
         super();
+        this.active = true;
+    }
+
+    // Constructor bắt buộc để khớp với Admin, Bidder, Seller và AuctionService
+    public User(String id, String name, String passwordHash) {
+        super(id, name);
+        this.passwordHash = passwordHash;
         this.balance = 0.0;
         this.active = true;
     }
 
-    public User(String id, String username, String passwordHash) {
-        this(id, username, passwordHash, "", 0.0);
-    }
-
-    public User(String id, String username, String passwordHash, String email, double balance) {
-        super(id, username);
+    public User(String id, String name, String passwordHash, String email, double balance) {
+        super(id, name);
         this.passwordHash = passwordHash;
         this.email = email;
         this.balance = balance;
         this.active = true;
     }
 
-    // Đa hình (Polymorphism): Các lớp con bắt buộc định nghĩa vai trò
-    public abstract UserRole getRole();
+    // Hàm trừu tượng bắt buộc để khớp với AuctionService.java dòng 193
+    public abstract String getRoleName();
 
-    public String getRoleName() {
-        return getRole().name();
+    public UserRole getRole() {
+        return UserRole.valueOf(getRoleName());
+    }
+
+    // Hàm bắt buộc để khớp với AuctionService.java dòng 195
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        markAsUpdated();
     }
 
     public String getUsername() {
@@ -39,15 +52,6 @@ public abstract class User extends Entity {
 
     public void setUsername(String username) {
         setName(username);
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-        markAsUpdated();
     }
 
     public String getEmail() {
@@ -77,7 +81,7 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void deposit(double amount) {
+    public void addBalance(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0");
         }
@@ -85,12 +89,12 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void deduct(double amount) {
+    public void deductBalance(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền trừ phải lớn hơn 0");
         }
         if (this.balance < amount) {
-            throw new IllegalStateException("Số dư ví không đủ");
+            throw new IllegalStateException("Số dư không đủ");
         }
         this.balance -= amount;
         markAsUpdated();
