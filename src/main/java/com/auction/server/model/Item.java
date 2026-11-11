@@ -24,6 +24,14 @@ public abstract class Item extends Entity {
 
     public abstract String getCategory();
 
+    public String getType() {
+        return getCategory();
+    }
+
+    public String getItemType() {
+        return getCategory();
+    }
+
     public String getDescription() {
         return description;
     }
@@ -34,6 +42,10 @@ public abstract class Item extends Entity {
     }
 
     public double getBasePrice() {
+        return basePrice;
+    }
+
+    public double getStartingPrice() {
         return basePrice;
     }
 
