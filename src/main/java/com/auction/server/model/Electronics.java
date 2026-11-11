@@ -6,13 +6,20 @@ public class Electronics extends Item {
 
     public Electronics() {
         super();
+        this.warrantyMonths = 12;
     }
 
     public Electronics(String id, String name, double basePrice) {
         this(id, name, "", basePrice, "", 12);
     }
 
-    public Electronics(String id, String name, String description, double basePrice, String imageUrl, int warrantyMonths) {
+    public Electronics(
+            String id,
+            String name,
+            String description,
+            double basePrice,
+            String imageUrl,
+            int warrantyMonths) {
         super(id, name, description, basePrice, imageUrl);
         this.warrantyMonths = warrantyMonths;
     }
