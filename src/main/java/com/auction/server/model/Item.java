@@ -1,23 +1,53 @@
 package com.auction.server.model;
 
-/** Lớp cha của các danh mục sản phẩm; Factory tạo lớp con tương ứng. */
 public abstract class Item extends Entity {
-    private final String description;
-    private final Seller seller;
+    private static final long serialVersionUID = 1L;
 
-    protected Item(String id, String name, String description, Seller seller) {
+    private String description;
+    private double basePrice;
+    private String imageUrl;
+
+    public Item() {
+        super();
+    }
+
+    public Item(String id, String name, double basePrice) {
+        this(id, name, "", basePrice, "");
+    }
+
+    public Item(String id, String name, String description, double basePrice, String imageUrl) {
         super(id, name);
         this.description = description;
-        this.seller = seller;
+        this.basePrice = basePrice;
+        this.imageUrl = imageUrl;
     }
+
+    public abstract String getCategory();
 
     public String getDescription() {
         return description;
     }
 
-    public Seller getSeller() {
-        return seller;
+    public void setDescription(String description) {
+        this.description = description;
+        markAsUpdated();
     }
 
-    public abstract String getCategory();
+    public double getBasePrice() {
+        return basePrice;
+    }
+
+    public void setBasePrice(double basePrice) {
+        this.basePrice = basePrice;
+        markAsUpdated();
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+        markAsUpdated();
+    }
 }
