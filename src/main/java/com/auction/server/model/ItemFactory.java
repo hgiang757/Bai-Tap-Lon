@@ -4,13 +4,13 @@ public class ItemFactory {
 
     public static Item forCategory(String category) {
         if (category == null || category.isBlank()) {
-            throw new IllegalArgumentException("Loại sản phẩm không được để trống");
+            return new Art();
         }
         return switch (category.trim().toUpperCase()) {
-            case "ELECTRONICS" -> new Electronics();
-            case "ART", "JEWELRY" -> new Art(); // Cho phép JEWELRY để chạy qua dữ liệu mẫu của hệ thống test
-            case "VEHICLE" -> new Vehicle();
-            default -> throw new IllegalArgumentException("Danh mục sản phẩm không hợp lệ: " + category);
+            case "ELECTRONICS", "TECHNOLOGY", "DIGITAL" -> new Electronics();
+            case "VEHICLE", "VEHICLES", "AUTOMOTIVE", "CAR" -> new Vehicle();
+            case "ART", "JEWELRY", "REAL_ESTATE", "FASHION", "WATCHES", "COLLECTIBLES", "OTHER" -> new Art();
+            default -> new Art();
         };
     }
 
@@ -47,19 +47,18 @@ public class ItemFactory {
         }
 
         return switch (type.trim().toUpperCase()) {
-            case "ELECTRONICS" -> {
+            case "ELECTRONICS", "TECHNOLOGY", "DIGITAL" -> {
                 int warranty = parseIntOrDefault(extraInfo, 12);
                 yield new Electronics(id, name, description, basePrice, imageUrl, warranty);
             }
-            case "ART", "JEWELRY" -> { // Bổ sung JEWELRY vào đây
-                String artist = (extraInfo == null || extraInfo.isBlank()) ? "Unknown Artist" : extraInfo;
-                yield new Art(id, name, description, basePrice, imageUrl, artist);
-            }
-            case "VEHICLE" -> {
+            case "VEHICLE", "VEHICLES", "AUTOMOTIVE", "CAR" -> {
                 int mileage = parseIntOrDefault(extraInfo, 0);
                 yield new Vehicle(id, name, description, basePrice, imageUrl, mileage);
             }
-            default -> throw new IllegalArgumentException("Loại sản phẩm không hợp lệ: " + type);
+            default -> {
+                String artist = (extraInfo == null || extraInfo.isBlank()) ? "Unknown Artist" : extraInfo;
+                yield new Art(id, name, description, basePrice, imageUrl, artist);
+            }
         };
     }
 
