@@ -2,6 +2,18 @@ package com.auction.server.model;
 
 public class ItemFactory {
 
+    public static Item create(String type, String id, String name, double basePrice) {
+        return createItem(type, id, name, basePrice);
+    }
+
+    public static Item create(String type, String name, double basePrice) {
+        return createItem(type, null, name, basePrice);
+    }
+
+    public static Item createItem(String type, String name, double basePrice) {
+        return createItem(type, null, name, basePrice);
+    }
+
     public static Item createItem(String type, String id, String name, double basePrice) {
         return createItem(type, id, name, "", basePrice, "", null);
     }
@@ -28,7 +40,7 @@ public class ItemFactory {
                 yield new Electronics(id, name, description, basePrice, imageUrl, warranty);
             }
             case "ART" -> {
-                String artist = (extraInfo == null || extraInfo.isBlank()) ? "Unknown" : extraInfo;
+                String artist = (extraInfo == null || extraInfo.isBlank()) ? "Unknown Artist" : extraInfo;
                 yield new Art(id, name, description, basePrice, imageUrl, artist);
             }
             case "VEHICLE" -> {
