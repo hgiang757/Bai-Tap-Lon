@@ -11,6 +11,10 @@ public class Admin extends User {
         super(id, name, passwordHash);
     }
 
+    public Admin(String id, String name, String passwordHash, String email) {
+        super(id, name, passwordHash, email, 0.0);
+    }
+
     @Override
     public String getRoleName() {
         return "ADMIN";
