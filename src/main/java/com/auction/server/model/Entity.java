@@ -3,6 +3,7 @@ package com.auction.server.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -13,20 +14,20 @@ public abstract class Entity implements Serializable {
     private Instant updatedAt;
 
     public Entity() {
+        this.id = UUID.randomUUID().toString();
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
     }
 
     public Entity(String id) {
-        this();
-        this.id = id;
+        this(id, null);
     }
 
-    // Constructor bắt buộc để khớp với Item.java dòng 9 và User.java
     public Entity(String id, String name) {
-        this();
-        this.id = id;
+        this.id = (id == null || id.isBlank()) ? UUID.randomUUID().toString() : id;
         this.name = name;
+        this.createdAt = Instant.now();
+        this.updatedAt = this.createdAt;
     }
 
     public String getId() {
@@ -38,7 +39,6 @@ public abstract class Entity implements Serializable {
         markAsUpdated();
     }
 
-    // Hàm bắt buộc để khớp với AuctionService.java dòng 187
     public String getName() {
         return name;
     }
@@ -79,15 +79,5 @@ public abstract class Entity implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Entity{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                '}';
     }
 }
