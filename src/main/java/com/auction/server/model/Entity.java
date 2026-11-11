@@ -1,17 +1,14 @@
 // Hệ thống đấu giá có nhiều loại object, tất cả đều có thuộc tính chung nên viết 1 lớp abstract class
 
 package com.auction.server.model;
+
 import java.io.Serializable;
+import java.time.Instant;
 
-/** Thuộc tính chung của người dùng và sản phẩm. */
-
-
-// ABSTRACTION: Lớp trừu tượng định nghĩa các thuộc tính cơ bản
 public abstract class Entity implements Serializable {
     private static final long serialVersionUID = 1L;
-    
-    // ENCAPSULATION: Các thuộc tính được đóng gói (private)
-    private Long id; 
+
+    private Long id;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -25,13 +22,40 @@ public abstract class Entity implements Serializable {
         this.id = id;
     }
 
-    // Hàm gọi khi có dữ liệu bên trong thay đổi
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     public void markAsUpdated() {
         this.updatedAt = Instant.now();
     }
 
-    // Getters và Setters...
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    @Override
+    public String toString() {
+        return "Entity{" +
+                "id=" + id +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                '}';
+    }
+}
