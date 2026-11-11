@@ -2,26 +2,23 @@ package com.auction.server.model;
 
 public class Seller extends User {
     private static final long serialVersionUID = 1L;
-    private double rating;
+    private double rating = 5.0;
 
     public Seller() {
         super();
-        this.rating = 5.0;
     }
 
-    public Seller(String id, String username, String passwordHash) {
-        super(id, username, passwordHash);
-        this.rating = 5.0;
+    public Seller(String id, String name, String passwordHash) {
+        super(id, name, passwordHash);
     }
 
-    public Seller(String id, String username, String passwordHash, String email, double balance) {
-        super(id, username, passwordHash, email, balance);
-        this.rating = 5.0;
+    public Seller(String id, String name, String passwordHash, String email, double balance) {
+        super(id, name, passwordHash, email, balance);
     }
 
     @Override
-    public UserRole getRole() {
-        return UserRole.SELLER;
+    public String getRoleName() {
+        return "SELLER";
     }
 
     public double getRating() {
