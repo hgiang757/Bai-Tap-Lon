@@ -6,58 +6,33 @@ public abstract class User extends Entity {
     private String passwordHash;
     private String email;
     private double balance;
+    private boolean active;
 
     public User() {
         super();
         this.balance = 0.0;
+        this.active = true;
     }
 
-    public User(String id, String name) {
-        super(id, name);
-        this.balance = 0.0;
+    public User(String id, String username, String passwordHash) {
+        this(id, username, passwordHash, "", 0.0);
     }
 
-    public User(String id, String name, String passwordHash) {
-        super(id, name);
-        this.passwordHash = passwordHash;
-        this.balance = 0.0;
-    }
-
-    public User(String id, String name, String passwordHash, String email) {
-        super(id, name);
-        this.passwordHash = passwordHash;
-        this.email = email;
-        this.balance = 0.0;
-    }
-
-    public User(String id, String name, String passwordHash, String email, double balance) {
-        super(id, name);
+    public User(String id, String username, String passwordHash, String email, double balance) {
+        super(id, username);
         this.passwordHash = passwordHash;
         this.email = email;
         this.balance = balance;
+        this.active = true;
     }
 
-    public User(String name, String passwordHash, String email) {
-        super(null, name);
-        this.passwordHash = passwordHash;
-        this.email = email;
-        this.balance = 0.0;
+    // Đa hình (Polymorphism): Các lớp con bắt buộc định nghĩa vai trò
+    public abstract UserRole getRole();
+
+    public String getRoleName() {
+        return getRole().name();
     }
 
-    // Phương thức trừu tượng định danh vai trò (Admin, Seller, Bidder sẽ override)
-    public abstract String getRoleName();
-
-    // Các hàm phục vụ AuctionService
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-        markAsUpdated();
-    }
-
-    // Các alias hỗ trợ cả 2 cách gọi name / username, password / passwordHash
     public String getUsername() {
         return getName();
     }
@@ -66,16 +41,13 @@ public abstract class User extends Entity {
         setName(username);
     }
 
-    public String getPassword() {
+    public String getPasswordHash() {
         return passwordHash;
     }
 
-    public void setPassword(String password) {
-        setPasswordHash(password);
-    }
-
-    public String getRole() {
-        return getRoleName();
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        markAsUpdated();
     }
 
     public String getEmail() {
@@ -96,7 +68,16 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void addBalance(double amount) {
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+        markAsUpdated();
+    }
+
+    public void deposit(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền nạp phải lớn hơn 0");
         }
@@ -104,25 +85,14 @@ public abstract class User extends Entity {
         markAsUpdated();
     }
 
-    public void deductBalance(double amount) {
+    public void deduct(double amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Số tiền trừ phải lớn hơn 0");
         }
         if (this.balance < amount) {
-            throw new IllegalStateException("Số dư tài khoản không đủ");
+            throw new IllegalStateException("Số dư ví không đủ");
         }
         this.balance -= amount;
         markAsUpdated();
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id='" + getId() + '\'' +
-                ", name='" + getName() + '\'' +
-                ", role='" + getRoleName() + '\'' +
-                ", email='" + email + '\'' +
-                ", balance=" + balance +
-                '}';
     }
 }
