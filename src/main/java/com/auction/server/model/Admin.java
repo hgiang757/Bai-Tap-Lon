@@ -7,16 +7,12 @@ public class Admin extends User {
         super();
     }
 
-    public Admin(String id, String username, String passwordHash) {
-        super(id, username, passwordHash);
-    }
-
-    public Admin(String id, String username, String passwordHash, String email) {
-        super(id, username, passwordHash, email, 0.0);
+    public Admin(String id, String name, String passwordHash) {
+        super(id, name, passwordHash);
     }
 
     @Override
-    public UserRole getRole() {
-        return UserRole.ADMIN;
+    public String getRoleName() {
+        return "ADMIN";
     }
 }
