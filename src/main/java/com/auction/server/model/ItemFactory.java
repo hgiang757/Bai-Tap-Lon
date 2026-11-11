@@ -2,6 +2,19 @@ package com.auction.server.model;
 
 public class ItemFactory {
 
+    // Hàm quan trọng nhất để khớp với dòng 589 của AuctionService gốc
+    public static Item forCategory(String category) {
+        if (category == null || category.isBlank()) {
+            throw new IllegalArgumentException("Loại sản phẩm không được để trống");
+        }
+        return switch (category.trim().toUpperCase()) {
+            case "ELECTRONICS" -> new Electronics();
+            case "ART" -> new Art();
+            case "VEHICLE" -> new Vehicle();
+            default -> throw new IllegalArgumentException("Danh mục sản phẩm không hợp lệ: " + category);
+        };
+    }
+
     public static Item create(String type, String id, String name, double basePrice) {
         return createItem(type, id, name, basePrice);
     }
