@@ -32,6 +32,21 @@ class ItemFactoryTest {
         assertThrows(IllegalArgumentException.class, () -> ItemFactory.forCategory("UNKNOWN"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"TECHNOLOGY", "DIGITAL", "VEHICLES", "AUTOMOTIVE", "CAR",
+            "FASHION", "WATCHES", "COLLECTIBLES"})
+    void acceptsCategoryAliasesIntroducedOnMain(String category) {
+        Seller owner = new Seller("seller", "owner", "hash");
+        Item item = ItemFactory.forCategory(category).create("item", "Name", "Description", owner);
+        assertSame(owner, item.getSeller());
+        String expected = switch (category) {
+            case "TECHNOLOGY", "DIGITAL" -> "ELECTRONICS";
+            case "VEHICLES", "AUTOMOTIVE", "CAR" -> "VEHICLE";
+            default -> "ART";
+        };
+        assertEquals(expected, item.getCategory());
+    }
+
     @Test
     void userRoleDispatchUsesTheRuntimeSubclass() {
         List<User> users = List.of(new Bidder("b", "buyer", "hash"),

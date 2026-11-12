@@ -8,16 +8,23 @@ public abstract class ItemFactory {
     public abstract Item create(String id, String name, String description, Seller owner);
 
     public static ItemFactory forCategory(String category) {
+        String input = category == null ? "" : category.trim().toUpperCase(java.util.Locale.ROOT);
+        String type = switch (input) {
+            case "TECHNOLOGY", "DIGITAL" -> "ELECTRONICS";
+            case "VEHICLES", "AUTOMOTIVE", "CAR" -> "VEHICLE";
+            case "FASHION", "WATCHES", "COLLECTIBLES" -> "ART";
+            default -> input;
+        };
         if (!java.util.Set.of("ELECTRONICS", "ART", "VEHICLE", "JEWELRY", "REAL_ESTATE", "OTHER")
-                .contains(category)) throw new IllegalArgumentException("Unknown category");
+                .contains(type)) throw new IllegalArgumentException("Unknown category");
         return new ItemFactory() {
             @Override
             public Item create(String id, String name, String description, Seller owner) {
-                return switch (category) {
-                    case "ELECTRONICS" -> new Electronics(id, name, description, owner);
-                    case "ART" -> new Art(id, name, description, owner);
-                    case "VEHICLE" -> new Vehicle(id, name, description, owner);
-                    default -> new CategoryItem(id, name, description, owner, category);
+                return switch (type) {
+                    case "ELECTRONICS" -> new Electronics().create(id, name, description, owner);
+                    case "ART" -> new Art().create(id, name, description, owner);
+                    case "VEHICLE" -> new Vehicle().create(id, name, description, owner);
+                    default -> new CategoryItem(id, name, description, owner, type);
                 };
             }
         };
@@ -27,7 +34,8 @@ public abstract class ItemFactory {
         private final String category;
 
         CategoryItem(String id, String name, String description, Seller owner, String category) {
-            super(id, name, description, owner);
+            super(id, name, description, 0, "");
+            setSeller(owner);
             this.category = category;
         }
 
