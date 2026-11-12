@@ -27,7 +27,7 @@ public final class Server implements AutoCloseable {
         if (instance == null || instance.closed.get()) {
             instance =
                     new Server(
-                            System.getProperty("auction.host", "127.0.0.1"),
+                            System.getProperty("auction.bind", "0.0.0.0"),
                             Integer.getInteger("auction.port", 8888),
                             Path.of(System.getProperty("auction.data", "data")),
                             Boolean.getBoolean("auction.demo"));
@@ -91,6 +91,7 @@ public final class Server implements AutoCloseable {
                 socket.setSoTimeout(60_000);
                 Client c = new Client(socket);
                 clients.add(c);
+                System.out.println("Client connected: " + socket.getRemoteSocketAddress());
                 workers.submit(c::writeLoop);
                 workers.submit(c::readLoop);
             } catch (IOException e) {
@@ -150,8 +151,9 @@ public final class Server implements AutoCloseable {
             try (DataInputStream in = new DataInputStream(socket.getInputStream())) {
                 while (!done) {
                     JsonObject request = readFrame(in), response;
-                    String requestId = text(request, "requestId");
+                    String requestId = "";
                     try {
+                        requestId = text(request, "requestId");
                         if (number(request, "protocolVersion") != 1
                                 || requestId.isBlank()
                                 || requestId.length() > 100)
@@ -219,16 +221,20 @@ public final class Server implements AutoCloseable {
                     offer(response);
                 }
             } catch (IOException e) {
-                /* Release disconnected and idle clients. */
+                if (!done && !(e instanceof EOFException))
+                    System.err.println("Client read failed: " + socket.getRemoteSocketAddress()
+                            + " (" + e.getClass().getSimpleName() + ")");
             } finally {
                 close();
             }
         }
 
         @Override
-        public void close() {
+        public synchronized void close() {
+            if (done) return;
             done = true;
             clients.remove(this);
+            System.out.println("Client disconnected: " + socket.getRemoteSocketAddress());
             subscriptions.clear();
             try {
                 socket.close();

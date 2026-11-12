@@ -11,6 +11,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.stream.Stream;
 
 class ValidatorsTest {
+    @org.junit.jupiter.api.Test
+    void passwordLengthMatchesTheServerLimit() {
+        assertTrue(Validators.password("a1".repeat(64)));
+        assertFalse(Validators.password("a1".repeat(64) + "a"));
+    }
     @ParameterizedTest
     @ValueSource(
             strings = {

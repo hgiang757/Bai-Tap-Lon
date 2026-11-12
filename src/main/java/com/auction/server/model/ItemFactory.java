@@ -1,6 +1,9 @@
 package com.auction.server.model;
 
-/** Factory Method for the six client product categories. */
+/**
+ * Parameterized Factory Method: create() is overridden by the selected creator.
+ * The static forCategory() selector is a Simple Factory for these creators.
+ */
 public abstract class ItemFactory {
     public abstract Item create(String id, String name, String description, Seller owner);
 

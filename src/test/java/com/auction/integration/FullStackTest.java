@@ -75,14 +75,41 @@ class FullStackTest {
         assertNotEquals("draft", saved.getId());
         Path downloaded = Path.of(buyer.getImagePath(saved.getId()));
         assertArrayEquals(Files.readAllBytes(image), Files.readAllBytes(downloaded));
+        assertEquals(downloaded, Path.of(buyer.getImagePath(saved.getId())),
+                "Refreshing an unchanged image must reuse the cached file");
         saved.getItem().setName("Đã sửa");
         seller.saveProduct(saved, downloaded.toString());
         assertEquals("Đã sửa", buyer.getAuctionById(saved.getId()).getItemName());
+        ImageIO.write(new BufferedImage(11, 10, BufferedImage.TYPE_INT_RGB), "png", image.toFile());
+        seller.saveProduct(saved, image.toString());
+        Path changedImage = Path.of(buyer.getImagePath(saved.getId()));
+        assertNotEquals(downloaded, changedImage);
+        assertArrayEquals(Files.readAllBytes(image), Files.readAllBytes(changedImage));
+        Path sellerImage = Path.of(seller.getImagePath(saved.getId()));
+        assertNotEquals(changedImage, sellerImage, "Different clients have separate caches");
+        assertArrayEquals(Files.readAllBytes(image), Files.readAllBytes(sellerImage));
         assertThrows(ServerError.class, () -> buyer.deleteProduct("bidder_hieu", saved.getId()));
         admin.cancelAuction(saved.getId(), "Kiểm thử hủy");
         assertEquals(AuctionStatus.CANCELED, buyer.getAuctionById(saved.getId()).getStatus());
         admin.deleteAuction(saved.getId());
         assertThrows(ServerError.class, () -> buyer.getAuctionById(saved.getId()));
+    }
+
+    @Test
+    void sellerValidationIdentifiesTheRejectedFieldAndLeavesProductsUnchanged() {
+        LocalDateTime start = seller.serverNow().plusMinutes(5);
+        Item item = new Item("draft-item", "x".repeat(201), "Mô tả", "ART", 1_000_000, "seller_hieu");
+        Auction draft = new Auction("draft", item, "seller_hieu", 1_000_000, null,
+                AuctionStatus.OPEN, start, start.plusHours(1), 100_000);
+        int before = seller.listProducts("seller_hieu").size();
+        ServerError nameError = assertThrows(ServerError.class, () -> seller.saveProduct(draft, null));
+        assertEquals("VALIDATION_ERROR", nameError.code());
+        assertTrue(nameError.getMessage().contains("200 ký tự"));
+        item.setName("Tên hợp lệ");
+        item.setDescription("x".repeat(10001));
+        ServerError descriptionError = assertThrows(ServerError.class, () -> seller.saveProduct(draft, null));
+        assertTrue(descriptionError.getMessage().contains("10.000 ký tự"));
+        assertEquals(before, seller.listProducts("seller_hieu").size());
     }
 
     @Test
@@ -100,6 +127,26 @@ class FullStackTest {
         admin.cancelAuction(id, "Kết thúc kiểm thử");
         assertEquals(300_000_000, other.getAvailable("bidder_vip99"));
         assertFalse(other.getMyAutoBid(id).isActive());
+    }
+
+    @Test
+    void failingBidObserverDoesNotSuppressOtherObserversOrGeneralChanges() throws Exception {
+        String id = buyer.getAuctions(AuctionStatus.RUNNING).get(0).getId();
+        CountDownLatch bidReceived = new CountDownLatch(1), changeReceived = new CountDownLatch(1);
+        java.util.function.Consumer<Bid> broken = bid -> { throw new IllegalStateException("broken view"); };
+        java.util.function.Consumer<Bid> healthy = bid -> bidReceived.countDown();
+        java.util.function.Consumer<String> changes = event -> {
+            if (event.equals("BID_PLACED")) changeReceived.countDown();
+        };
+        other.registerBidListener(id, broken);
+        other.registerBidListener(id, healthy);
+        other.addChangeListener(changes);
+        assertTrue(buyer.placeBid(id, 1_200_000).isSuccess());
+        assertTrue(bidReceived.await(5, TimeUnit.SECONDS));
+        assertTrue(changeReceived.await(5, TimeUnit.SECONDS));
+        other.unregisterBidListener(id, broken);
+        other.unregisterBidListener(id, healthy);
+        other.removeChangeListener(changes);
     }
 
     @Test
@@ -171,6 +218,73 @@ class FullStackTest {
         assertNull(buyer.getCurrentUser());
         assertTrue(buyer.login("bidder_hieu", "Bidder12345", null));
         assertEquals(100_010_000, buyer.getAvailable("bidder_hieu"));
+    }
+
+    @Test
+    void coldServerJvmCanAuthenticateWithinTheNormalClientTimeout() throws Exception {
+        server.close();
+        Path log = directory.resolve("cold-server.log");
+        String executable = System.getProperty("os.name").toLowerCase(Locale.ROOT)
+                .contains("win") ? "java.exe" : "java";
+        String classpath = Path.of(Server.class.getProtectionDomain().getCodeSource()
+                .getLocation().toURI()) + java.io.File.pathSeparator
+                + Path.of(com.google.gson.Gson.class.getProtectionDomain().getCodeSource()
+                        .getLocation().toURI());
+        Process child = new ProcessBuilder(
+                Path.of(System.getProperty("java.home"), "bin", executable).toString(),
+                "-Dauction.bind=127.0.0.1", "-Dauction.port=0", "-Dauction.demo=false",
+                "-Dauction.data=" + directory.resolve("server"),
+                "-Djava.io.tmpdir=" + System.getProperty("java.io.tmpdir"),
+                "-cp", classpath, Server.class.getName())
+                .redirectErrorStream(true).redirectOutput(log.toFile()).start();
+        try {
+            int port = -1;
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+            var listening = java.util.regex.Pattern.compile(
+                    "Auction JSON server listening on .*:(\\d+)");
+            while (child.isAlive() && System.nanoTime() < deadline) {
+                var match = listening.matcher(Files.readString(log));
+                if (match.find()) {
+                    port = Integer.parseInt(match.group(1));
+                    break;
+                }
+                Thread.sleep(30);
+            }
+            assertTrue(port > 0, "Child server did not become ready: " + Files.readString(log));
+            try (var coldClient = new ServerServices(
+                    "127.0.0.1", port, directory.resolve("cold-client"))) {
+                // No raised timeout or retry: this is the first authenticated request in a new JVM.
+                assertTrue(coldClient.login("bidder_hieu", "Bidder12345", null));
+                assertEquals(100_000_000, coldClient.getAvailable("bidder_hieu"));
+            }
+        } finally {
+            child.destroy();
+            if (!child.waitFor(5, TimeUnit.SECONDS)) {
+                child.destroyForcibly();
+                assertTrue(child.waitFor(5, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test
+    void requestTimeoutAlsoClosesAConnectionWhosePeerStopsReading() throws Exception {
+        try (var listener = new java.net.ServerSocket()) {
+            listener.setReceiveBufferSize(1024);
+            listener.bind(new java.net.InetSocketAddress("127.0.0.1", 0));
+            try (var workers = Executors.newVirtualThreadPerTaskExecutor();
+                    var transport = new JsonTransport(
+                            "127.0.0.1", listener.getLocalPort(), 300, event -> {})) {
+                var accepted = workers.submit(listener::accept);
+                var request = workers.submit(() -> transport.call("TEST", "", "",
+                        com.auction.shared.JsonProtocol.obj("body", "x".repeat(6 * 1024 * 1024))));
+                try (var stalled = accepted.get(5, TimeUnit.SECONDS)) {
+                    // The peer accepts TCP but never drains the request body.
+                    ExecutionException failure = assertThrows(ExecutionException.class,
+                            () -> request.get(4, TimeUnit.SECONDS));
+                    assertInstanceOf(IllegalStateException.class, failure.getCause());
+                }
+            }
+        }
     }
 
     @Test

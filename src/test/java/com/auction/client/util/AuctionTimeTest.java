@@ -29,5 +29,7 @@ class AuctionTimeTest {
         assertTrue(AuctionTime.valid(now, now.plusMinutes(1), now));
         assertFalse(AuctionTime.valid(now.minusMinutes(1), now.plusMinutes(1), now));
         assertFalse(AuctionTime.valid(now, now, now));
+        assertTrue(AuctionTime.valid(now, now.plusDays(365), now));
+        assertFalse(AuctionTime.valid(now, now.plusDays(365).plusSeconds(1), now));
     }
 }

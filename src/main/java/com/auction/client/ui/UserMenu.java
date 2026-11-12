@@ -9,6 +9,7 @@ import com.auction.client.service.ServiceRegistry;
 
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
@@ -39,6 +40,18 @@ public final class UserMenu extends HBox {
     private final Button trigger = new Button();
     private Button firstMenuItem;
     private boolean closing;
+    private Scene menuScene;
+    private Window menuOwner;
+    private FadeTransition animation;
+    private final ChangeListener<Boolean> focusListener = (o, before, focused) -> {
+        if (!focused) Platform.runLater(() -> {
+            if (popup.isShowing() && menuOwner != null
+                    && !menuOwner.isFocused() && !popup.isFocused()) hideMenu();
+        });
+    };
+    private final ChangeListener<Boolean> showingListener = (o, before, showing) -> {
+        if (!showing) hideMenu();
+    };
     private final EventHandler<MouseEvent> outsideClickHandler = this::handleOutsideClick;
     private final EventHandler<KeyEvent> escapeHandler = this::handleEscape;
 
@@ -75,8 +88,12 @@ public final class UserMenu extends HBox {
         getChildren().add(trigger);
         createMenu(user, displayName);
         popup.getContent().add(menuContent);
-        popup.setAutoHide(false);
+        popup.setAutoHide(true);
+        popup.setConsumeAutoHidingEvents(true);
         popup.setOnHidden(event -> removeSceneHandlers());
+        sceneProperty().addListener((o, before, scene) -> {
+            if (before != scene) hideMenu();
+        });
     }
 
     public static void closeActive() {
@@ -196,6 +213,11 @@ public final class UserMenu extends HBox {
         if (bounds == null || owner == null) {
             return;
         }
+        if (activeMenu != null && activeMenu != this) activeMenu.hideMenu();
+        if (animation != null) animation.stop();
+        closing = false;
+        menuScene = trigger.getScene();
+        menuOwner = owner;
         activeMenu = this;
         popup.show(owner, bounds.getMaxX() - 300, bounds.getMaxY() + 8);
         Scene popupScene = popup.getScene();
@@ -205,10 +227,14 @@ public final class UserMenu extends HBox {
             trigger.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, outsideClickHandler);
             trigger.getScene().addEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
+        owner.focusedProperty().addListener(focusListener);
+        owner.showingProperty().addListener(showingListener);
+        popup.focusedProperty().addListener(focusListener);
         menuContent.setOpacity(0);
         FadeTransition fade = new FadeTransition(Duration.millis(120), menuContent);
         fade.setFromValue(0);
         fade.setToValue(1);
+        animation = fade;
         fade.play();
         boolean keyboardNavigation =
                 trigger.getScene() != null
@@ -269,6 +295,7 @@ public final class UserMenu extends HBox {
             return;
         }
         closing = true;
+        if (animation != null) animation.stop();
         FadeTransition fade = new FadeTransition(Duration.millis(120), menuContent);
         fade.setFromValue(menuContent.getOpacity());
         fade.setToValue(0);
@@ -281,17 +308,34 @@ public final class UserMenu extends HBox {
                         activeMenu = null;
                     }
                 });
+        animation = fade;
         fade.play();
+    }
+
+    private void hideMenu() {
+        if (animation != null) animation.stop();
+        popup.hide();
+        menuContent.setOpacity(1);
+        closing = false;
     }
 
     private void removeSceneHandlers() {
         if (popup.getScene() != null) {
             popup.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
-        if (trigger.getScene() != null) {
-            trigger.getScene().removeEventFilter(MouseEvent.MOUSE_PRESSED, outsideClickHandler);
-            trigger.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
+        if (animation != null) animation.stop();
+        if (menuScene != null) {
+            menuScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, outsideClickHandler);
+            menuScene.removeEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
+        if (menuOwner != null) {
+            menuOwner.focusedProperty().removeListener(focusListener);
+            menuOwner.showingProperty().removeListener(showingListener);
+        }
+        popup.focusedProperty().removeListener(focusListener);
+        menuScene = null;
+        menuOwner = null;
+        closing = false;
         if (activeMenu == this) {
             activeMenu = null;
         }

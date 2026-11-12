@@ -568,7 +568,7 @@ public class SellerProductsController implements DisposableView {
                                             : !b.isAfter(a)
                                                     ? "Thời gian kết thúc phải sau thời gian bắt"
                                                           + " đầu."
-                                                    : "";
+                                                    : "Thời lượng phiên không được vượt quá 365 ngày.";
                     dates.setText(touched[0] && !validDates ? error : "");
                     summary.setText(
                             a != null && b != null && b.isAfter(a)
@@ -576,7 +576,10 @@ public class SellerProductsController implements DisposableView {
                                     : "");
                     java.util.List<String> absent = new java.util.ArrayList<>();
                     if (name.getText().isBlank()) absent.add("tên");
+                    else if (name.getText().strip().length() > 200) absent.add("tên tối đa 200 ký tự");
                     if (description.getText().isBlank()) absent.add("mô tả");
+                    else if (description.getText().strip().length() > 10_000)
+                        absent.add("mô tả tối đa 10.000 ký tự");
                     if (type.getValue() == null) absent.add("loại");
                     if (!positive(price.getText())) absent.add("giá khởi điểm");
                     if (!positive(step.getText())) absent.add("bước giá");
@@ -659,10 +662,8 @@ public class SellerProductsController implements DisposableView {
         dialog.setOnShown(e -> scroll.setVvalue(0));
         if (dialog.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             LocalDateTime a = date(start, startTime), b = date(end, endTime);
-            if (a == null
-                    || b == null
-                    || a.isBefore(ServiceRegistry.getService().serverNow())
-                    || !b.isAfter(a)) {
+            if (!com.auction.client.util.AuctionTime.valid(
+                    a, b, ServiceRegistry.getService().serverNow())) {
                 message.setText("Thời gian phiên không hợp lệ.");
                 return;
             }

@@ -64,6 +64,19 @@ class MockAutoBidServiceTest {
     }
 
     @Test
+    void earlierRegistrationWithoutBudgetDoesNotBlockAnAffordableRival() {
+        var t = setup();
+        String id = t.auction.getId();
+        t.autoAlice.registerAutoBid(id, 5000, 100);
+        t.wallet.withdraw("alice", t.wallet.getBalance("alice") - 2000);
+        t.autoBob.registerAutoBid(id, 5000, 5000);
+        assertEquals("bob", t.auction.getHighestBidderUsername());
+        assertEquals(5000, t.auction.getCurrentPrice());
+        assertEquals(2000, t.wallet.getAvailable("alice"));
+        assertEquals(5000, t.wallet.getHeldAmount("bob"));
+    }
+
+    @Test
     void noSelfOutbiddingAndStopsAtCeiling() {
         var t = setup();
         String id = t.auction.getId();

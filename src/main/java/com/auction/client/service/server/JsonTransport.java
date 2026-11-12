@@ -15,6 +15,12 @@ public final class JsonTransport implements AutoCloseable {
     private final String host;
     private final int port, timeout;
     private final Consumer<JsonObject> events;
+    private final ScheduledThreadPoolExecutor deadlines = new ScheduledThreadPoolExecutor(
+            1, runnable -> {
+                Thread thread = new Thread(runnable, "auction-request-timeout");
+                thread.setDaemon(true);
+                return thread;
+            });
     private final ExecutorService dispatch =
             Executors.newSingleThreadExecutor(
                     r -> {
@@ -53,6 +59,7 @@ public final class JsonTransport implements AutoCloseable {
         this.port = port;
         this.timeout = timeout;
         this.events = events;
+        deadlines.setRemoveOnCancelPolicy(true);
     }
 
     private synchronized Connection connection() {
@@ -91,12 +98,17 @@ public final class JsonTransport implements AutoCloseable {
         request.add("payload", payload);
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         c.pending.put(requestId, response);
+        ScheduledFuture<?> deadline = null;
         try {
+            // Socket writes can block too; closing the socket also unblocks a stalled writer.
+            deadline = deadlines.schedule(() -> {
+                if (!response.isDone()) c.fail(new SocketTimeoutException("Request timed out"));
+            }, timeout, TimeUnit.MILLISECONDS);
             synchronized (c.out) {
                 JsonProtocol.writeFrame(c.out, request);
             }
             return response.get(timeout, TimeUnit.MILLISECONDS);
-        } catch (IOException | ExecutionException | TimeoutException e) {
+        } catch (IOException | ExecutionException | TimeoutException | RejectedExecutionException e) {
             c.fail(e);
             throw network(e);
         } catch (InterruptedException e) {
@@ -104,6 +116,7 @@ public final class JsonTransport implements AutoCloseable {
             c.fail(e);
             throw network(e);
         } finally {
+            if (deadline != null) deadline.cancel(false);
             c.pending.remove(requestId);
         }
     }
@@ -147,6 +160,7 @@ public final class JsonTransport implements AutoCloseable {
     public synchronized void close() {
         closed = true;
         disconnect();
+        deadlines.shutdownNow();
         dispatch.shutdownNow();
     }
 }

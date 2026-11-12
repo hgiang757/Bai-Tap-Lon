@@ -269,6 +269,23 @@ class AuctionServiceTest {
     }
 
     @Test
+    void earlierAutoBidCannotBlockAnAffordableRivalAfterItsBudgetChanges() {
+        JsonArray auctions = ok("LIST_AUCTIONS", "", obj()).getAsJsonArray();
+        String first = auctions.get(0).getAsJsonObject().get("id").getAsString();
+        String second = auctions.get(1).getAsJsonObject().get("id").getAsString();
+        ok("SET_MY_AUTO_BID", buyer,
+                obj("auctionId", first, "maxBid", 5_000_000, "increment", 100_000));
+        ok("PLACE_BID", buyer, bid(second, 98_000_000));
+        ok("SET_MY_AUTO_BID", other,
+                obj("auctionId", first, "maxBid", 5_000_000, "increment", 5_000_000));
+        JsonObject result = ok("GET_AUCTION", "", obj("auctionId", first)).getAsJsonObject();
+        assertEquals("bidder_vip99", result.get("highestBidderUsername").getAsString());
+        assertEquals(5_000_000, result.get("currentPrice").getAsLong());
+        assertEquals(2_000_000, available(buyer));
+        assertEquals(295_000_000, available(other));
+    }
+
+    @Test
     void idempotencyRejectsChangedPayloadAndPersistsFinalOutcome() throws Exception {
         String id = running(), command = UUID.randomUUID().toString();
         JsonObject p = bid(id, 2_000_000);
@@ -325,6 +342,30 @@ class AuctionServiceTest {
     }
 
     @Test
+    void equalConcurrentBidsChooseOneLeaderAndRejectTheOtherAtTheNewPrice() throws Exception {
+        String id = running();
+        CountDownLatch start = new CountDownLatch(1);
+        List<JsonObject> results = new ArrayList<>();
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<JsonObject>> futures = new ArrayList<>();
+            for (String token : List.of(buyer, other)) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    return raw("PLACE_BID", token, bid(id, 1_200_000));
+                }));
+            }
+            start.countDown();
+            for (Future<JsonObject> future : futures) results.add(future.get(5, TimeUnit.SECONDS));
+        }
+        assertEquals(1, results.stream().filter(r -> r.get("success").getAsBoolean()).count());
+        JsonObject rejected = results.stream().filter(r -> !r.get("success").getAsBoolean()).findFirst().orElseThrow();
+        assertEquals("BID_TOO_LOW", rejected.get("errorCode").getAsString());
+        assertEquals(1, ok("GET_BID_HISTORY", "", obj("auctionId", id)).getAsJsonArray().size());
+        assertEquals(398_800_000, available(buyer) + available(other));
+        assertEquals(1_200_000, ok("GET_AUCTION", "", obj("auctionId", id)).getAsJsonObject().get("currentPrice").getAsLong());
+    }
+
+    @Test
     void adminLockAppliesToExistingSessionAndCannotBeSpoofed() {
         String id = ok("GET_ME", buyer, obj()).getAsJsonObject().get("id").getAsString();
         fail("FORBIDDEN", "LOCK_USER", buyer, obj("userId", id));
@@ -354,6 +395,38 @@ class AuctionServiceTest {
         fail("STORAGE_ERROR", "DEPOSIT_SIMULATED", buyer, obj("amount", 10000));
         Files.delete(temporary);
         assertEquals(100_000_000, available(buyer));
+    }
+
+    @Test
+    void failedBidDoesNotPublishOrPersistAndSameCommandCanBeRetried() throws Exception {
+        String id = running(), command = UUID.randomUUID().toString();
+        byte[] before = Files.readAllBytes(directory.resolve("state.json"));
+        events.clear();
+        Path temporary = Files.createDirectory(directory.resolve("state.json.tmp"));
+        JsonObject result = app.execute("PLACE_BID", buyer, command, bid(id, 2_000_000));
+        assertFalse(result.get("success").getAsBoolean());
+        assertEquals("STORAGE_ERROR", result.get("errorCode").getAsString());
+        assertTrue(events.isEmpty(), "A failed commit must not broadcast a successful bid");
+        assertArrayEquals(before, Files.readAllBytes(directory.resolve("state.json")));
+        assertEquals(100_000_000, available(buyer));
+        assertEquals(0, ok("GET_BID_HISTORY", "", obj("auctionId", id)).getAsJsonArray().size());
+        assertEquals(
+                "NOT_FOUND",
+                ok("GET_COMMAND_STATUS", buyer, obj("commandId", command))
+                        .getAsJsonObject().get("status").getAsString());
+        Files.delete(temporary);
+        assertTrue(
+                app.execute("PLACE_BID", buyer, command, bid(id, 2_000_000))
+                        .get("success").getAsBoolean());
+        assertEquals(98_000_000, available(buyer));
+        app.close();
+        app = new AuctionService(directory, clock, false, events::add);
+        buyer = login("bidder_hieu", "Bidder12345");
+        assertTrue(
+                app.execute("PLACE_BID", buyer, command, bid(id, 2_000_000))
+                        .get("success").getAsBoolean());
+        assertEquals(1, ok("GET_BID_HISTORY", "", obj("auctionId", id)).getAsJsonArray().size());
+        assertEquals(98_000_000, available(buyer));
     }
 
     @Test

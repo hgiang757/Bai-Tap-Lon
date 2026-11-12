@@ -12,6 +12,8 @@
     <auction.host>127.0.0.1</auction.host>
     <auction.port>8888</auction.port>
     <main.class>com.auction.client.Main</main.class>
+    <argLine></argLine>
+    <jacocoArgLine></jacocoArgLine>
   </properties>
   <dependencies>
     <dependency>
@@ -55,7 +57,43 @@
         <configuration>
           <useModulePath>false</useModulePath>
           <reuseForks>false</reuseForks>
+          <argLine>@{jacocoArgLine} ${argLine}</argLine>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.14</version>
+        <configuration>
+          <propertyName>jacocoArgLine</propertyName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals><goal>prepare-agent</goal></goals>
+          </execution>
+          <execution>
+            <id>coverage-report</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <configLocation>config/checkstyle.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+        <executions>
+          <execution>
+            <id>basic-conventions</id>
+            <phase>verify</phase>
+            <goals><goal>check</goal></goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.openjfx</groupId>

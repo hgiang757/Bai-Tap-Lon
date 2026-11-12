@@ -15,7 +15,7 @@
       <HBox spacing="12"><Button text="Nạp tiền" onAction="#deposit" styleClass="btn-primary"/><Button text="Rút tiền" onAction="#withdraw"/></HBox>
       <VBox spacing="12" styleClass="card-panel"><Label text="Lịch sử giao dịch" styleClass="section-header, t-h2"/>
         <Label text="Tiền tạm giữ cho đấu giá" styleClass="text-bold" wrapText="true"/>
-        <Label text="Tiền dành cho các phiên bạn đang dẫn đầu; được giải phóng khi có người trả giá cao hơn hoặc phiên bị hủy. Khi xử lý kết thúc phiên, mock tự trừ khoản tạm giữ của người thắng khỏi tổng số dư để thanh toán và chuyển phiên sang Đã thanh toán. Giữ hoặc giải phóng tiền chỉ thay đổi số tiền có thể sử dụng, không làm tăng hoặc giảm tổng số dư." wrapText="true" minHeight="-Infinity" styleClass="text-secondary"/>
+        <Label text="Tiền dành cho các phiên bạn đang dẫn đầu; được giải phóng khi có người trả giá cao hơn hoặc phiên bị hủy. Khi kết thúc phiên, hệ thống tự trừ khoản tạm giữ của người thắng khỏi tổng số dư để thanh toán và chuyển phiên sang Đã thanh toán. Giữ hoặc giải phóng tiền chỉ thay đổi số tiền có thể sử dụng, không làm tăng hoặc giảm tổng số dư." wrapText="true" minHeight="-Infinity" styleClass="text-secondary"/>
         <HBox spacing="12"><ComboBox fx:id="typeFilter" promptText="Tất cả loại"/><TextField fx:id="search" promptText="Tìm ghi chú hoặc phiên" HBox.hgrow="ALWAYS"/></HBox>
         <TableView fx:id="table" prefHeight="360"/>
       </VBox>

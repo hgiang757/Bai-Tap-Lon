@@ -48,6 +48,8 @@ public final class AutoBidEngine {
                                                                     && other.isActive()
                                                                     && other.getMaxBid()
                                                                             == rule.getMaxBid()
+                                                                    && available(other, auction)
+                                                                            >= rule.getMaxBid()
                                                                     && (other.getCreatedAt()
                                                                                     .isBefore(
                                                                                             rule
@@ -97,5 +99,11 @@ public final class AutoBidEngine {
                 store.notifyBid(auction.getId(), bid);
             }
         }
+    }
+
+    private long available(AutoBid rule, Auction auction) {
+        MockDataStore.Hold hold = store.holds.get(auction.getId());
+        long own = hold != null && hold.username().equals(rule.getUsername()) ? hold.amount() : 0;
+        return store.balance(rule.getUsername()) - store.held(rule.getUsername()) + own;
     }
 }
