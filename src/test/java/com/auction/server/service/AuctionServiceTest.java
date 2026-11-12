@@ -446,4 +446,91 @@ class AuctionServiceTest {
                         .get("status")
                         .getAsString());
     }
+
+    @Test
+    void extensionFieldsSurviveAutomaticBidsSettlementAndRestart() throws Exception {
+        String id = running();
+        ok("PLACE_BID", buyer, bid(id, 2_000_000));
+        ok("SET_MY_AUTO_BID", buyer,
+                obj("auctionId", id, "maxBid", 3_000_000, "increment", 100_000));
+        String buyerId = app.authenticatedUserId(buyer);
+        app.close();
+        Path file = directory.resolve("state.json");
+        JsonObject state = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+        JsonObject extension = obj("preserve", new JsonArray(), "value", 9_000_000_000_001L);
+        state.add("futureRoot", extension.deepCopy());
+        state.getAsJsonObject("users").getAsJsonObject(buyerId).add("futureUser", extension.deepCopy());
+        JsonObject auction = state.getAsJsonObject("auctions").getAsJsonObject(id);
+        auction.add("futureAuction", extension.deepCopy());
+        auction.getAsJsonArray("bids").get(0).getAsJsonObject().add("futureBid", extension.deepCopy());
+        state.getAsJsonObject("rules").getAsJsonObject(id + ":" + buyerId)
+                .add("futureRule", extension.deepCopy());
+        Files.writeString(file, state.toString());
+        app = new AuctionService(directory, clock, false, events::add);
+        buyer = login("bidder_hieu", "Bidder12345");
+        other = login("bidder_vip99", "Bidder12345");
+        ok("SET_MY_AUTO_BID", buyer,
+                obj("auctionId", id, "maxBid", 3_500_000, "increment", 100_000));
+        ok("PLACE_BID", other, bid(id, 2_100_000));
+        assertEquals("bidder_hieu", ok("GET_AUCTION", "", obj("auctionId", id))
+                .getAsJsonObject().get("highestBidderUsername").getAsString());
+        clock.advance(7201);
+        app.tick();
+        app.close();
+        app = new AuctionService(directory, clock, false, events::add);
+        buyer = login("bidder_hieu", "Bidder12345");
+        seller = login("seller_hieu", "Seller12345");
+        assertEquals(97_800_000, available(buyer));
+        assertEquals(2_200_000, available(seller));
+        JsonObject saved = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+        assertEquals(1, saved.get("schemaVersion").getAsInt());
+        assertEquals(extension, saved.get("futureRoot"));
+        assertEquals(extension, saved.getAsJsonObject("users").getAsJsonObject(buyerId).get("futureUser"));
+        JsonObject savedAuction = saved.getAsJsonObject("auctions").getAsJsonObject(id);
+        assertEquals(extension, savedAuction.get("futureAuction"));
+        assertEquals(extension, savedAuction.getAsJsonArray("bids").get(0).getAsJsonObject().get("futureBid"));
+        assertEquals(extension, saved.getAsJsonObject("rules").getAsJsonObject(id + ":" + buyerId).get("futureRule"));
+        assertEquals(3, savedAuction.get("totalBids").getAsInt());
+    }
+
+    @Test
+    void failedSettlementSaveRestoresBothWalletsAndRetryPaysExactlyOnce() throws Exception {
+        String id = running();
+        ok("PLACE_BID", buyer, bid(id, 2_000_000));
+        byte[] before = Files.readAllBytes(directory.resolve("state.json"));
+        events.clear();
+        Path temporary = Files.createDirectory(directory.resolve("state.json.tmp"));
+        clock.advance(7201);
+        fail("STORAGE_ERROR", "PING", "", obj());
+        assertTrue(events.isEmpty());
+        assertArrayEquals(before, Files.readAllBytes(directory.resolve("state.json")));
+        Files.delete(temporary);
+        app.tick();
+        app.tick();
+        assertEquals(98_000_000, available(buyer));
+        assertEquals(2_000_000, available(seller));
+        JsonArray buyerHistory = ok("LIST_MY_TRANSACTIONS", buyer, obj()).getAsJsonArray();
+        JsonArray sellerHistory = ok("LIST_MY_TRANSACTIONS", seller, obj()).getAsJsonArray();
+        assertEquals(1, buyerHistory.asList().stream()
+                .filter(t -> t.getAsJsonObject().get("type").getAsString().equals("PAYMENT")).count());
+        assertEquals(1, sellerHistory.asList().stream()
+                .filter(t -> t.getAsJsonObject().get("type").getAsString().equals("SALE")).count());
+    }
+
+    @Test
+    void rejectedProductUpdateDoesNotLeaveHelpersUsingTheDiscardedSnapshot() {
+        JsonObject p = product(3600, 3600);
+        String id = ok("CREATE_PRODUCT_AUCTION", seller, p).getAsJsonObject().get("id").getAsString();
+        p.addProperty("auctionId", id);
+        p.addProperty("name", "Must roll back");
+        p.addProperty("imageBase64", "invalid-base64");
+        fail("VALIDATION_ERROR", "UPDATE_PRODUCT_AUCTION", seller, p);
+        assertEquals("Sản phẩm mới", ok("GET_AUCTION", "", obj("auctionId", id))
+                .getAsJsonObject().get("name").getAsString());
+        clock.advance(3600);
+        app.tick();
+        ok("PLACE_BID", buyer, bid(id, 1_100_000));
+        assertEquals(98_900_000, available(buyer));
+        assertEquals(1, ok("GET_BID_HISTORY", "", obj("auctionId", id)).getAsJsonArray().size());
+    }
 }

@@ -8,6 +8,13 @@ Bộ kiểm kê ngày 12/11/2026 gồm [trách nhiệm từng file](docs/PROJECT
 [thống kê code trước/sau](docs/CODE_STATISTICS.md) và
 [thao tác dọn dẹp cùng kết quả kiểm thử mới](docs/CLEANUP_REPORT.md).
 
+Lần refactor OOP/service tiếp theo được ghi tại
+[báo cáo OOP và service](docs/OOP_SERVICE_REFACTOR_REPORT.md), gồm đối chiếu PDF,
+method đã chuyển, LOC, hash dữ liệu và kết quả kiểm thử hiện tại.
+
+Đợt tối giản JavaFX được ghi trong [báo cáo hoàn thiện cuối](docs/FINAL_SIMPLIFICATION_REPORT.md),
+gồm số liệu mới, kiểm tra mock/legacy và checklist thử nghiệm trên hai máy Windows.
+
 ## Chạy trên Windows
 
 Cài JDK 25 và Maven, thêm vào PATH. Kiểm tra `java -version`, `mvn -version`.
@@ -39,7 +46,8 @@ bidder/seller hoặc phiên mẫu khi chạy script. Không xóa JSON để vư�
 - CommandId chống xử lý lặp, timeout, thông báo mất kết nối và reconnect.
 
 Client và server chạy riêng. MVC nằm ở controller/FXML/model. Adapter client gọi
-TCP; Server điều phối request, AuctionService xử lý nghiệp vụ, AuctionRepository
+TCP; Server điều phối request, AuctionService giữ transaction và gọi AuthLogic,
+ProductLogic, BiddingLogic, WalletLogic, SettlementLogic; AuctionRepository
 đọc/ghi JSON. Giữ cây kế thừa User/Item, Factory, Singleton và Observer.
 Đọc [bộ tài liệu bảo vệ và kết quả rà soát](docs/viva/AUDIT_AND_RESULTS.md),
 [OOP](docs/viva/OOP_EXPLANATION.md), [kiến trúc](docs/viva/ARCHITECTURE.md),

@@ -43,7 +43,7 @@ tuyên bố nó cấm mọi instance khác.”
 không lặp switch/new trong các controller và service.
 
 **Vị trí:** `server/model/ItemFactory.forCategory()` và abstract `create()`;
-`AuctionService.createAuction()` là caller thật.
+`ProductLogic.createAuction()` là caller thật, được facade AuctionService gọi.
 
 **Hoạt động:** `forCategory()` kiểm tra sáu mã hợp lệ, trả một anonymous subclass
 của ItemFactory override `create()`. Factory Method đó trả Electronics/Art/Vehicle;
@@ -66,7 +66,7 @@ cả kiểu runtime và thông tin sản phẩm/owner. **Hạn chế:** thêm ca
 sửa selector/switch và danh mục validation, chưa hoàn toàn đóng với thay đổi.
 
 **Thêm loại mới:** cập nhật ItemFactory, tập category trong
-`AuctionService.validateProduct()`, `client/model/ItemCategory` (nhãn/icon), test.
+`ProductLogic.validateProduct()`, `client/model/ItemCategory` (nhãn/icon), test.
 Thêm subclass Item khi có hành vi riêng; không bắt buộc một lớp cho mỗi nhãn.
 JSON lưu category dạng chuỗi nên không cần đổi schema cho chỉ một mã danh mục mới,
 nhưng client cũ có thể cần nâng cấp để hiển thị đúng nhãn.
@@ -83,7 +83,7 @@ một chỗ; service chỉ cần Item. Thêm loại mới không phải đi tìm
 
 | Vai trò | Code thực tế |
 |---|---|
-| Nguồn sự kiện | `AuctionService.event()`, `commit()` và `Consumer<JsonObject> publisher` |
+| Nguồn sự kiện | `AuctionContext.event()` tạo buffer; `AuctionService.commit()` lưu rồi gọi publisher |
 | Phân phối qua mạng | `Server.publish()`, Client.subscriptions/feed, outbound queue |
 | Đọc và điều phối | `JsonTransport.read()`, executor `auction-events` |
 | Subject phía client | `ServerServices.registerBidListener()`, `addChangeListener()`, `onEvent()` |

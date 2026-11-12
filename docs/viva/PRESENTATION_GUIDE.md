@@ -24,7 +24,7 @@ bằng bảng [CODE_MAP.md](CODE_MAP.md), không cuộn ngẫu nhiên cả nghì
 
 ## OOP — 2 phút
 
-30 giây cho Entity private final và đóng gói state. 30 giây cho hai nhánh kế thừa
+30 giây cho Entity với thuộc tính private, getter/setter và đóng gói state. 30 giây cho hai nhánh kế thừa
 User/Item. 30 giây chỉ call site `createUser` gọi getRoleName và `createAuction`
 gọi getCategory bằng đa hình. 30 giây cho service interfaces và Auction record
 chứa luật có kiểu dữ liệu. Nhấn mạnh `BidTransaction` là bid history, không phải

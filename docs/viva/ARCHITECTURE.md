@@ -14,7 +14,9 @@ JSON dùng cho cả thông điệp và snapshot, không có MySQL/JDBC/Spring/RE
 | Service contract | `client/service/*Service` | Hợp đồng bid/ví/sản phẩm/admin, tách controller khỏi TCP |
 | Adapter/network | ServerServices, ServerMapper, JsonTransport, JsonProtocol | Token, commandId, frame, pending request, push/reconnect |
 | Request handler | `server/network/Server.Client.readLoop()` | Envelope, subscription, gọi service, ghép requestId |
-| Application service | `server/service/AuctionService` | Xác thực/quyền, transaction, ví, auto-bid, settlement |
+| Application service | `server/service/AuctionService` | Khóa chung, commandId, commit/rollback, publish sau save |
+| Business helpers | AuthLogic, ProductLogic, BiddingLogic, WalletLogic, SettlementLogic | Từng nhóm nghiệp vụ, cùng context và monitor của facade |
+| Transaction context | `server/service/AuctionContext` | Cây JSON hiện tại, thời gian server, mapper/snapshot và buffer sự kiện |
 | Domain | `server/model/*` | Cây User/Item, luật Auction bất biến và bản ghi BidTransaction |
 | Mapper | `server/dao/AuctionJsonMapper` | Đọc trường phiên, ghi bid đúng schema cũ, không sửa trường khác |
 | Repository | `server/dao/AuctionRepository` | Load/save JSON, file lock, force và atomic move |
@@ -44,8 +46,9 @@ flowchart LR
   end
   subgraph Backend[Tiến trình Server - TCP 8888]
     H[Server.Client.readLoop] --> S[AuctionService - monitor chung]
-    S --> D[Auction / BidTransaction / Item / User]
-    S --> M[AuctionJsonMapper]
+    S --> L[Auth / Product / Bidding / Wallet / Settlement Logic]
+    L --> D[Auction / BidTransaction / Item / User]
+    L --> M[AuctionJsonMapper]
     S --> R[AuctionRepository]
     R --> J[(data/state.json)]
     S --> P[Server.publish - sau save]
@@ -100,9 +103,16 @@ classDiagram
   ItemFactory ..> Item : creates
   class Auction {
     <<record>>
+    +AuctionStatus status
     +minimumNextBid() long
     +requireBidder(userId, role, time)
     +requireMinimumBid(amount)
+    +withBid(bidderId, amount) Auction
+    +heldBy(userId) long
+    +requireAutoBid(maximum, increment)
+    +requireEditable()
+    +requireCancelable()
+    +hasExpired(time) boolean
   }
   class BidTransaction {
     <<record>>
@@ -115,12 +125,30 @@ classDiagram
   class AuctionJsonMapper
   class AuctionService
   class AuctionRepository
-  AuctionService ..> ItemFactory
-  AuctionService ..> User
-  AuctionService ..> Auction
-  AuctionService ..> BidTransaction
+  class AuthLogic
+  class ProductLogic
+  class BiddingLogic
+  class WalletLogic
+  class SettlementLogic
+  class AuctionContext
+  AuctionService --> AuctionContext
+  AuctionService --> AuthLogic
+  AuctionService --> ProductLogic
+  AuctionService --> BiddingLogic
+  AuctionService --> WalletLogic
+  AuctionService --> SettlementLogic
+  AuthLogic ..> User
+  ProductLogic ..> ItemFactory
+  BiddingLogic ..> Auction
+  BiddingLogic ..> BidTransaction
+  BiddingLogic --> WalletLogic
+  SettlementLogic --> WalletLogic
   AuctionService --> AuctionRepository
-  AuctionService ..> AuctionJsonMapper
+  AuctionContext ..> AuctionJsonMapper
+  BiddingLogic ..> AuctionJsonMapper
+  WalletLogic ..> Auction
+  ProductLogic ..> Auction
+  SettlementLogic ..> Auction
   AuctionJsonMapper ..> Auction
   AuctionJsonMapper ..> BidTransaction
 ```
@@ -142,6 +170,7 @@ sequenceDiagram
   participant T as JsonTransport
   participant H as Server.Client
   participant S as AuctionService
+  participant L as BiddingLogic / WalletLogic
   participant D as Auction / BidTransaction
   participant R as AuctionRepository
   participant B as Client B listeners
@@ -154,9 +183,12 @@ sequenceDiagram
   H->>S: execute(action, token, commandId, payload)
   Note over S: Giữ monitor tới khi commit/publish xong
   S->>S: refresh, xác thực, kiểm tra commandId
-  S->>D: requireBidder / requireMinimumBid
-  S->>S: Kiểm tra ví, acceptBid, auto-bid, ghi receipt
-  S->>D: Tạo BidTransaction rồi mapper ra JSON cũ
+  S->>L: placeBid
+  L->>D: requireBidder / requireMinimumBid
+  L->>L: Kiểm tra ví, acceptBid, auto-bid
+  L->>D: withBid, BidTransaction và mapper ra JSON cũ
+  L-->>S: Kết quả action
+  S->>S: Ghi receipt cùng snapshot
   S->>R: save(snapshot)
   R-->>S: force và atomic move hoàn tất
   S->>H: publish event vào outbound queues
@@ -212,7 +244,7 @@ chưa phải winner cuối cùng; scheduler quyết định settlement khi hết
 SchemaVersion vẫn 1: users, auctions, rules, commands, transactions. Phiên cũ giữ
 id/itemId/highestBidder/history/image/extension fields; bid mới giữ đúng các tên
 `id`, `auctionId`, `bidderUsername`, `amount`, `timestamp`, `auto`. Repository vẫn
-lưu cây JSON gốc. Mapper không tạo một snapshot mới chỉ từ bảy trường Auction,
+lưu cây JSON gốc. Mapper chỉ merge các trường bid đã thay đổi vào cây JSON đang có,
 nên không làm rơi lịch sử hoặc commandId.
 
 Client chỉ lưu pending và cache ảnh dưới thư mục người dùng, không mở JSON server.

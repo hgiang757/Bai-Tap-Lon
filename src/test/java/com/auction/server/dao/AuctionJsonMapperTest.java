@@ -21,7 +21,7 @@ class AuctionJsonMapperTest {
                 {"id":"a1","sellerId":"s1","currentPrice":1200000,"minBidStep":100000,
                  "status":"RUNNING","startTime":"2026-11-12T10:00:00",
                  "endTime":"2026-11-12T11:00:00","settled":false,"deleted":false,
-                 "highestBidderId":"b1","version":17,"imageBase64":"legacy-image",
+                 "highestBidderId":"b1","totalBids":1,"version":17,"imageBase64":"legacy-image",
                  "bids":[{"id":"old-bid","amount":1200000}],"futureField":{"preserve":true}}
                 """).getAsJsonObject();
         JsonObject before = legacy.deepCopy();
@@ -31,6 +31,26 @@ class AuctionJsonMapperTest {
         assertEquals(1_300_000, auction.minimumNextBid());
         assertDoesNotThrow(() -> auction.requireBidder("b2", "BIDDER", auction.startTime()));
         assertEquals(before, legacy);
+    }
+
+    @Test
+    void applyingDomainBidUpdatesOnlyTheLeaderPriceAndCount() {
+        JsonObject original = obj("id", "a", "sellerId", "s", "currentPrice", 1_000_000,
+                "minBidStep", 100_000, "status", "RUNNING", "highestBidderId", "",
+                "highestBidderUsername", "", "totalBids", 0, "settled", false,
+                "startTime", "2026-11-12T10:00", "endTime", "2026-11-12T11:00",
+                "futureField", obj("preserve", true), "imageBase64", "original-image");
+        JsonObject target = original.deepCopy();
+        Auction accepted = AuctionJsonMapper.auction(target).withBid("b", 1_100_001);
+        AuctionJsonMapper.applyBid(target, accepted, "buyer");
+        JsonObject expected = original.deepCopy();
+        expected.addProperty("highestBidderId", "b");
+        expected.addProperty("highestBidderUsername", "buyer");
+        expected.addProperty("currentPrice", 1_100_001);
+        expected.addProperty("totalBids", 1);
+        assertEquals(expected, target);
+        assertEquals(accepted, AuctionJsonMapper.auction(target));
+        assertEquals(1_000_000, original.get("currentPrice").getAsLong());
     }
 
     @ParameterizedTest

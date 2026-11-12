@@ -217,7 +217,7 @@ class ServerUiIntegrationTest {
                     login("admin_hieu", "Admin12345");
                     await(
                             () ->
-                                    stage.getScene().lookup("#overviewTable")
+                                    stage.getScene().lookup("#auctionTable")
                                                     instanceof TableView<?> table
                                             && !table.getItems().isEmpty());
                     snapshot("server-admin");

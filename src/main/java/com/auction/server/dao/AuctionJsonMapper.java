@@ -5,6 +5,7 @@ import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
 import com.auction.server.model.Auction;
+import com.auction.server.model.AuctionStatus;
 import com.auction.server.model.BidTransaction;
 import com.google.gson.JsonObject;
 
@@ -20,9 +21,20 @@ public final class AuctionJsonMapper {
                 text(json, "sellerId"),
                 number(json, "currentPrice"),
                 number(json, "minBidStep"),
-                text(json, "status"),
+                AuctionStatus.valueOf(text(json, "status")),
                 LocalDateTime.parse(text(json, "startTime")),
-                LocalDateTime.parse(text(json, "endTime")));
+                LocalDateTime.parse(text(json, "endTime")),
+                text(json, "highestBidderId"),
+                number(json, "totalBids"),
+                json.get("settled").getAsBoolean());
+    }
+
+    /** Merge only bidding fields into the existing JSON tree, retaining all extension fields. */
+    public static void applyBid(JsonObject target, Auction accepted, String username) {
+        target.addProperty("highestBidderId", accepted.highestBidderId());
+        target.addProperty("highestBidderUsername", username);
+        target.addProperty("currentPrice", accepted.currentPrice());
+        target.addProperty("totalBids", accepted.totalBids());
     }
 
     public static JsonObject bid(BidTransaction bid) {

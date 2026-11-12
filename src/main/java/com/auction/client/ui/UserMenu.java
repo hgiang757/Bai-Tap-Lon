@@ -7,7 +7,6 @@ import com.auction.client.navigation.ViewTasks;
 import com.auction.client.service.AuctionClientService;
 import com.auction.client.service.ServiceRegistry;
 
-import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.EventHandler;
@@ -21,13 +20,11 @@ import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Popup;
 import javafx.stage.Window;
-import javafx.util.Duration;
 
 import java.io.IOException;
 
@@ -39,10 +36,8 @@ public final class UserMenu extends HBox {
     private final VBox menuContent = new VBox();
     private final Button trigger = new Button();
     private Button firstMenuItem;
-    private boolean closing;
     private Scene menuScene;
     private Window menuOwner;
-    private FadeTransition animation;
     private final ChangeListener<Boolean> focusListener = (o, before, focused) -> {
         if (!focused) Platform.runLater(() -> {
             if (popup.isShowing() && menuOwner != null
@@ -52,7 +47,6 @@ public final class UserMenu extends HBox {
     private final ChangeListener<Boolean> showingListener = (o, before, showing) -> {
         if (!showing) hideMenu();
     };
-    private final EventHandler<MouseEvent> outsideClickHandler = this::handleOutsideClick;
     private final EventHandler<KeyEvent> escapeHandler = this::handleEscape;
 
     public UserMenu() {
@@ -80,7 +74,7 @@ public final class UserMenu extends HBox {
         trigger.setOnAction(
                 event -> {
                     if (popup.isShowing()) {
-                        closeMenu();
+                        hideMenu();
                     } else {
                         openMenu();
                     }
@@ -98,7 +92,7 @@ public final class UserMenu extends HBox {
 
     public static void closeActive() {
         if (activeMenu != null) {
-            activeMenu.closeMenu();
+            activeMenu.hideMenu();
         }
     }
 
@@ -133,11 +127,7 @@ public final class UserMenu extends HBox {
             Button salesMode = menuButton("Chế độ bán hàng", "bag", sellingMode);
             auctionMode.setOnAction(event -> navigate(ViewNavigator.Route.DASHBOARD));
             salesMode.setOnAction(event -> navigate(ViewNavigator.Route.PRODUCTS));
-            Label note = new Label("Chỉ đổi cách xem, không đổi quyền tài khoản.");
-            note.getStyleClass().add("user-menu-note");
-            note.setWrapText(true);
-            note.setMinHeight(Region.USE_PREF_SIZE);
-            menuContent.getChildren().addAll(auctionMode, salesMode, note, divider());
+            menuContent.getChildren().addAll(auctionMode, salesMode, divider());
         }
 
         if (user != null
@@ -159,31 +149,15 @@ public final class UserMenu extends HBox {
     }
 
     private Button menuButton(String text, String iconName, boolean selected) {
-        Button button = new Button();
+        Button button = new Button(text);
         button.getStyleClass().add("user-menu-item");
+        button.setGraphic(icon(iconName, 18, "icon-muted"));
+        button.setMaxWidth(Double.MAX_VALUE);
+        button.setAccessibleText(text);
         if (selected) {
             button.getStyleClass().add("user-menu-item-selected");
-        }
-        button.setMaxWidth(Double.MAX_VALUE);
-        button.setContentDisplay(javafx.scene.control.ContentDisplay.GRAPHIC_ONLY);
-        button.setAccessibleText(text);
-        HBox row = new HBox(12);
-        row.setPrefWidth(212);
-        row.setMaxWidth(Double.MAX_VALUE);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.getChildren().add(icon(iconName, 20, "icon-muted"));
-        Label label = new Label(text);
-        label.setMinWidth(0);
-        label.setPrefWidth(150);
-        label.setWrapText(true);
-        label.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(label, javafx.scene.layout.Priority.ALWAYS);
-        row.getChildren().add(label);
-        if (selected) {
-            row.getChildren().add(icon("check", 16, "icon-primary"));
             button.setAccessibleText(text + ", chế độ hiện tại");
         }
-        button.setGraphic(row);
         if (firstMenuItem == null) {
             firstMenuItem = button;
         }
@@ -214,8 +188,6 @@ public final class UserMenu extends HBox {
             return;
         }
         if (activeMenu != null && activeMenu != this) activeMenu.hideMenu();
-        if (animation != null) animation.stop();
-        closing = false;
         menuScene = trigger.getScene();
         menuOwner = owner;
         activeMenu = this;
@@ -224,23 +196,17 @@ public final class UserMenu extends HBox {
         ViewNavigator.applyAppStylesheet(popupScene);
         popupScene.addEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         if (trigger.getScene() != null) {
-            trigger.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, outsideClickHandler);
             trigger.getScene().addEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
         owner.focusedProperty().addListener(focusListener);
         owner.showingProperty().addListener(showingListener);
         popup.focusedProperty().addListener(focusListener);
-        menuContent.setOpacity(0);
-        FadeTransition fade = new FadeTransition(Duration.millis(120), menuContent);
-        fade.setFromValue(0);
-        fade.setToValue(1);
-        animation = fade;
-        fade.play();
         boolean keyboardNavigation =
                 trigger.getScene() != null
                         && trigger.getScene().getRoot().getStyleClass().contains("keyboard-nav");
-        if (!keyboardNavigation) {
-            popupScene.getRoot().getStyleClass().remove("keyboard-nav");
+        popupScene.getRoot().getStyleClass().remove("keyboard-nav");
+        if (keyboardNavigation) {
+            popupScene.getRoot().getStyleClass().add("keyboard-nav");
         }
         Platform.runLater(
                 () -> {
@@ -259,73 +225,20 @@ public final class UserMenu extends HBox {
     private void handleEscape(KeyEvent event) {
         if (event.getCode() == KeyCode.ESCAPE && popup.isShowing()) {
             event.consume();
-            closeMenu();
+            hideMenu();
             trigger.requestFocus();
         }
     }
 
-    private void handleOutsideClick(MouseEvent event) {
-        if (!popup.isShowing()
-                || event.getTarget() == trigger
-                || isDescendant(trigger, event.getTarget())) {
-            return;
-        }
-        Bounds bounds = menuContent.localToScreen(menuContent.getBoundsInLocal());
-        if (bounds == null || !bounds.contains(event.getScreenX(), event.getScreenY())) {
-            closeMenu();
-        }
-    }
-
-    private boolean isDescendant(javafx.scene.Node ancestor, Object candidate) {
-        if (!(candidate instanceof javafx.scene.Node)) {
-            return false;
-        }
-        for (javafx.scene.Node node = (javafx.scene.Node) candidate;
-                node != null;
-                node = node.getParent()) {
-            if (node == ancestor) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void closeMenu() {
-        if (!popup.isShowing() || closing) {
-            return;
-        }
-        closing = true;
-        if (animation != null) animation.stop();
-        FadeTransition fade = new FadeTransition(Duration.millis(120), menuContent);
-        fade.setFromValue(menuContent.getOpacity());
-        fade.setToValue(0);
-        fade.setOnFinished(
-                event -> {
-                    popup.hide();
-                    menuContent.setOpacity(1);
-                    closing = false;
-                    if (activeMenu == this) {
-                        activeMenu = null;
-                    }
-                });
-        animation = fade;
-        fade.play();
-    }
-
     private void hideMenu() {
-        if (animation != null) animation.stop();
         popup.hide();
-        menuContent.setOpacity(1);
-        closing = false;
     }
 
     private void removeSceneHandlers() {
         if (popup.getScene() != null) {
             popup.getScene().removeEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
-        if (animation != null) animation.stop();
         if (menuScene != null) {
-            menuScene.removeEventFilter(MouseEvent.MOUSE_PRESSED, outsideClickHandler);
             menuScene.removeEventFilter(KeyEvent.KEY_PRESSED, escapeHandler);
         }
         if (menuOwner != null) {
@@ -335,14 +248,13 @@ public final class UserMenu extends HBox {
         popup.focusedProperty().removeListener(focusListener);
         menuScene = null;
         menuOwner = null;
-        closing = false;
         if (activeMenu == this) {
             activeMenu = null;
         }
     }
 
     private void navigate(ViewNavigator.Route route) {
-        closeMenu();
+        hideMenu();
         try {
             ViewNavigator.navigate(route);
         } catch (IOException exception) {
@@ -351,7 +263,7 @@ public final class UserMenu extends HBox {
     }
 
     private void logout() {
-        closeMenu();
+        hideMenu();
         trigger.setDisable(true);
         var tasks = new ViewTasks();
         tasks.submit(
@@ -391,10 +303,6 @@ public final class UserMenu extends HBox {
 
     private String safeName(User user) {
         String name = user.getUsername();
-        if (name != null && !name.trim().isEmpty()) {
-            return name;
-        }
-        String username = user.getUsername();
-        return username == null || username.trim().isEmpty() ? "Tài khoản" : username;
+        return name == null || name.isBlank() ? "Tài khoản" : name;
     }
 }

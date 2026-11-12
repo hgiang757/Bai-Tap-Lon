@@ -28,17 +28,14 @@
     -fx-faint-focus-color: transparent;
 }
 .label { -fx-text-fill: -c-text; -fx-line-spacing: 3px; }
-.view-subtitle { -fx-font-size: 12px; -fx-text-fill: -c-muted; }
 .t-display { -fx-font-size: 40px; -fx-font-weight: bold; }
 .t-h1 { -fx-font-size: 32px; -fx-font-weight: bold; }
 .t-h3 { -fx-font-size: 18px; -fx-font-weight: bold; }
-.t-caption { -fx-font-size: 12px; }
 .icon .glyph { -fx-fill: -c-text; -fx-stroke: transparent; }
 .icon-muted .glyph { -fx-fill: -c-muted; }
 .icon-primary .glyph { -fx-fill: -c-primary; }
-.icon-on-primary .glyph, .btn-primary .icon-current .glyph { -fx-fill: -c-on-primary; }
+.btn-primary .icon-current .glyph { -fx-fill: -c-on-primary; }
 .icon-on-panel .glyph, .icon-current .glyph { -fx-fill: -c-text; }
-.brand-title { -fx-font-weight: bold; -fx-text-fill: -c-primary; -fx-font-size: 24px; }
 .top-logo-text { -fx-font-weight: bold; -fx-text-fill: -c-text; -fx-font-size: 18px; }
 .top-logo-icon { -fx-min-width: 22px; -fx-min-height: 22px; }
 .view-title { -fx-font-size: 18px; -fx-font-weight: bold; }
@@ -50,11 +47,6 @@
 .category-tag { -fx-font-weight: bold; -fx-text-fill: -c-primary; }
 .top-bar { -fx-min-height: 56px; -fx-pref-height: 56px; -fx-max-height: 56px; -fx-padding: 0 32px; -fx-spacing: 16px; -fx-background-color: -c-surface; -fx-border-color: -c-border; -fx-border-width: 0 0 1px 0; }
 .search-field-container, .dashboard-content, .page-content { -fx-background-color: transparent; }
-.thin-divider { -fx-background-color: -c-border; }
-.sidebar-panel { -fx-spacing: 20px; -fx-background-color: transparent; }
-.sidebar-cta { -fx-background-color: -c-surface; -fx-border-color: -c-border; }
-.sidebar-cta-title { -fx-font-size: 18px; -fx-font-weight: bold; }
-.sidebar-cta .text-secondary { -fx-font-size: 15px; }
 .text-field, .password-field, .text-area, .combo-box, .date-picker { -fx-min-height: 40px; -fx-background-color: -c-surface; -fx-background-radius: 12px; -fx-border-color: -c-border-input; -fx-border-radius: 12px; -fx-border-width: 1px; -fx-text-fill: -c-text; -fx-prompt-text-fill: -c-muted; -fx-padding: 10px 12px; -fx-font-size: 15px; }
 .text-field.search-bar { -fx-min-height: 40px; -fx-pref-height: 40px; -fx-padding: 8px 16px 8px 40px; -fx-background-radius: 999px; -fx-border-radius: 999px; }
 .text-field:focused, .password-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused { -fx-background-insets: 0; -fx-effect: none; }
@@ -64,7 +56,6 @@
 .btn-primary { -fx-background-color: -c-primary; -fx-border-color: transparent; -fx-border-width: 0; -fx-text-fill: -c-on-primary; }
 .btn-primary:hover { -fx-background-color: -c-primary-hover; }
 .btn-danger:hover { -fx-background-color: -c-surface-2; }
-.btn-icon { -fx-min-width: 40px; -fx-pref-width: 40px; -fx-max-width: 40px; -fx-min-height: 40px; -fx-pref-height: 40px; -fx-max-height: 40px; -fx-padding: 0; }
 .keyboard-nav .button:focused, .keyboard-nav .toggle-button:focused, .keyboard-nav .text-field:focused, .keyboard-nav .password-field:focused, .keyboard-nav .text-area:focused, .keyboard-nav .combo-box:focused, .keyboard-nav .date-picker:focused, .keyboard-nav .check-box:focused .box, .keyboard-nav .radio-button:focused .radio { -fx-border-color: -c-primary; -fx-border-width: 2px; -fx-effect: none; }
 .check-box, .radio-button { -fx-text-fill: -c-text; -fx-font-size: 15px; -fx-label-padding: 0 0 0 8px; }
 .check-box > .text, .radio-button > .text { -fx-fill: -c-text; }
@@ -91,54 +82,26 @@
 .alert-error .label { -fx-text-fill: -c-danger; }
 .min-bid-hint { -fx-text-fill: -c-text; -fx-font-weight: bold; }
 .notice-disabled { -fx-text-fill: -c-muted; }
-.main-scroll, .plain-scroll, .login-scroll, .auth-scroll { -fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent; }
-.main-scroll > .viewport, .plain-scroll > .viewport, .login-scroll > .viewport, .auth-scroll > .viewport { -fx-background-color: transparent; }
-.chip-btn { -fx-background-radius: 999px; -fx-border-radius: 999px; }
-.chip-btn:selected { -fx-background-color: -c-primary; -fx-border-color: -c-primary; -fx-text-fill: -c-on-primary; }
+.main-scroll, .auth-scroll { -fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent; }
+.main-scroll > .viewport, .auth-scroll > .viewport { -fx-background-color: transparent; }
 .auction-card > .label, .auction-card-meta { -fx-padding: 0 16px; }
 .auction-card-image .glyph { -fx-fill: -c-text; }
 .auction-card-title { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .countdown-label { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .hero-label { -fx-font-size: 15px; -fx-font-weight: bold; }
-.panel-text-muted { -fx-text-fill: -c-muted; }
-.upcoming-item { -fx-padding: 8px 0; -fx-border-color: -c-border; -fx-border-width: 0 0 1px 0; }
-.step-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px 18px; -fx-alignment: CENTER; }
-.step-number { -fx-background-color: -c-text; -fx-background-radius: 18px; -fx-min-width: 36px; -fx-pref-width: 36px; -fx-max-width: 36px; -fx-min-height: 36px; -fx-pref-height: 36px; -fx-max-height: 36px; -fx-alignment: CENTER; }
-.step-number .label { -fx-text-fill: -c-on-primary; -fx-font-weight: bold; }
-.step-title { -fx-font-size: 15px; -fx-font-weight: bold; }
-.showcase-focus { -fx-border-color: -c-primary; -fx-border-width: 2px; }
-.showcase-selected { -fx-background-color: -c-primary; -fx-border-color: -c-primary; }
-.showcase-selected .icon-current .glyph { -fx-fill: -c-on-primary; }
-.icon-gallery-item { -fx-background-color: -c-surface-2; -fx-background-radius: 16px; -fx-padding: 16px; -fx-min-width: 180px; }
-.icon-gallery-item .icon .glyph { -fx-fill: -c-primary; }
 .auth-root { -fx-background-color: -c-bg; }
 .auth-brand-block .label { -fx-text-fill: -c-text; }
 .auth-brand-icon-circle { -fx-background-color: -c-surface-2; -fx-background-radius: 28px; -fx-min-width: 56px; -fx-pref-width: 56px; -fx-max-width: 56px; -fx-min-height: 56px; -fx-pref-height: 56px; -fx-max-height: 56px; -fx-alignment: CENTER; }
 .auth-brand-icon-circle .glyph { -fx-fill: -c-accent; }
-.seller-avatar { -fx-background-color: -c-primary; -fx-background-radius: 22px; -fx-min-width: 44px; -fx-min-height: 44px; -fx-font-weight: bold; -fx-text-fill: -c-on-primary; -fx-font-size: 18px; -fx-alignment: CENTER; }
-.product-image-placeholder, .image-upload-zone { -fx-background-color: -c-surface-2; -fx-background-radius: 16px; }
+.product-image-placeholder { -fx-background-color: -c-surface-2; -fx-background-radius: 16px; }
 .product-image-icon { -fx-text-fill: -c-muted; -fx-font-size: 13px; }
-.skeleton-box, .skeleton-line, .skeleton-btn { -fx-background-color: -c-surface-2; -fx-background-radius: 8px; }
-.skeleton-line-sm { -fx-background-color: -c-border; -fx-background-radius: 4px; }
-.color-swatch-primary { -fx-background-color: -c-primary; }
-.color-swatch-surface { -fx-background-color: -c-surface; -fx-border-color: -c-border; }
-.color-swatch-success { -fx-background-color: -c-success; }
-.color-swatch-warning { -fx-background-color: -c-warning; }
-.color-swatch-danger { -fx-background-color: -c-danger; }
-.contact-avatar { -fx-background-color: -c-primary; -fx-background-radius: 24px; -fx-min-width: 40px; -fx-pref-width: 40px; -fx-max-width: 40px; -fx-min-height: 40px; -fx-pref-height: 40px; -fx-max-height: 40px; -fx-alignment: CENTER; -fx-text-fill: -c-on-primary; -fx-font-weight: bold; }
 .user-menu-account { -fx-padding: 8px 10px 12px 10px; }
 .user-menu-role { -fx-background-color: -c-surface-2; -fx-background-radius: 12px; -fx-padding: 3px 8px; -fx-font-size: 12px; -fx-font-weight: bold; }
 .user-menu-section-title { -fx-padding: 10px 10px 4px 10px; -fx-font-weight: bold; }
 .user-menu-item:hover, .user-menu-item-selected { -fx-background-color: -c-surface-2; }
-.user-menu-item-selected .label { -fx-font-weight: bold; -fx-text-fill: -c-text; }
+.user-menu-item.user-menu-item-selected { -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .keyboard-nav .user-menu-item:focused { -fx-border-color: -c-primary; -fx-border-width: 2px; -fx-background-radius: 12px; -fx-border-radius: 12px; }
 .app-footer-content { -fx-alignment: CENTER; }
-.guide-toc-title { -fx-font-weight: bold; }
-.contact-intro { -fx-font-size: 15px; }
-.contact-grid { -fx-alignment: TOP_CENTER; }
-.app-toast { -fx-background-color: -c-surface; -fx-background-radius: 16px; -fx-border-color: -c-border; -fx-border-radius: 16px; -fx-padding: 12px 18px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 16, 0, 0, 4); }
-.live-pill { -fx-background-color: transparent; -fx-background-radius: 999px; -fx-border-color: transparent; -fx-border-radius: 999px; -fx-padding: 0; -fx-font-size: 12px; -fx-font-weight: bold; }
-.live-indicator { -fx-min-width: 7px; -fx-pref-width: 7px; -fx-max-width: 7px; -fx-min-height: 7px; -fx-pref-height: 7px; -fx-max-height: 7px; -fx-background-color: -c-success; -fx-background-radius: 999px; }
 .chart-subtitle { -fx-text-fill: -c-muted; }
 .chart-container { -fx-padding: 8px; -fx-background-color: transparent; }
 .chart-container .chart { -fx-padding: 4px; }
@@ -147,24 +110,17 @@
 .chart-container .chart-horizontal-grid-lines { -fx-stroke: -c-border; -fx-stroke-width: 0.7px; -fx-opacity: 0.6; }
 .chart-container .chart-series-line { -fx-stroke: -c-primary; -fx-stroke-width: 2.5px; -fx-stroke-line-cap: round; -fx-stroke-line-join: round; }
 .chart-container .chart-point { -fx-background-color: -c-surface; -fx-background-radius: 4px; -fx-border-color: -c-primary; -fx-border-radius: 4px; -fx-border-width: 2px; -fx-padding: 2px; }
-.chart-container .chart-point:hover { -fx-scale-x: 1.15; -fx-scale-y: 1.15; }
-.chart-container .chart-point-current { -fx-background-color: -c-primary; -fx-background-radius: 5px; -fx-border-color: -c-primary; -fx-border-radius: 5px; -fx-border-width: 2px; -fx-padding: 3px; }
 .chart-container .axis { -fx-tick-label-fill: -c-muted; -fx-font-size: 12px; }
 .chart-container .axis .axis-tick-mark { -fx-stroke: transparent; }
 .chart-empty { -fx-text-fill: -c-muted; }
-.product-description, .input-helper { -fx-text-fill: -c-muted; -fx-line-spacing: 3px; }
-.user-menu-note { -fx-text-fill: -c-muted; -fx-font-size: 12px; -fx-padding: 2px 10px 8px 10px; -fx-line-spacing: 3px; }
+.product-description { -fx-text-fill: -c-muted; -fx-line-spacing: 3px; }
 .guide-copy { -fx-text-fill: -c-muted; -fx-font-size: 15px; -fx-line-spacing: 3px; }
-.app-footer-intro { -fx-text-fill: -c-muted; -fx-font-size: 13px; -fx-line-spacing: 3px; -fx-text-alignment: CENTER; }
-.step-desc { -fx-text-fill: -c-muted; -fx-font-size: 13px; -fx-text-alignment: CENTER; -fx-line-spacing: 3px; }
 .status-explanation { -fx-text-fill: -c-muted; -fx-line-spacing: 3px; }
 .card-panel, .sidebar-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px; }
-.guide-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 28px; -fx-spacing: 14px; }
 .hero-bid-panel { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px 24px 32px 24px; }
-.auction-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 0 0 16px 0; -fx-cursor: hand; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 12, 0, 0, 2); }
-.auction-card:hover { -fx-border-color: -c-primary; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.14), 12, 0, 0, 2); }
+.auction-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 0 0 16px 0; -fx-cursor: hand; }
+.auction-card:hover { -fx-border-color: -c-primary; }
 .auction-card-image { -fx-background-color: -c-surface-2; -fx-background-radius: 12px; -fx-min-height: 120px; -fx-alignment: CENTER; }
-.guide-toc { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 18px; -fx-min-width: 240px; -fx-pref-width: 240px; }
 .field-error { -fx-font-size: 13px; -fx-text-fill: -c-danger; }
 .field-hint { -fx-font-size: 13px; -fx-text-fill: -c-muted; }
 .field-success { -fx-text-fill: -c-success; }
@@ -194,29 +150,16 @@
 .user-menu-account-secondary { -fx-text-fill: -c-muted; -fx-font-size: 13px; -fx-line-spacing: 3px; }
 .user-menu-divider { -fx-background-color: -c-hairline; -fx-min-height: 1px; -fx-pref-height: 1px; -fx-max-height: 1px; -fx-margin: 5px 0; }
 .user-menu-item { -fx-min-height: 40px; -fx-background-color: transparent; -fx-background-radius: 10px; -fx-border-color: transparent; -fx-border-radius: 10px; -fx-padding: 0 12px; -fx-alignment: CENTER_LEFT; -fx-font-weight: normal; -fx-text-fill: -c-text; -fx-pref-height: 40px; -fx-font-size: 14px; }
-.user-menu-item.btn-danger { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -c-primary; }
-.user-menu-item.btn-danger .label { -fx-text-fill: -c-danger; }
+.user-menu-item.btn-danger { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -c-danger; }
 .user-menu-item.btn-danger .icon .glyph { -fx-fill: -c-danger; }
 .user-menu-item.btn-danger:hover { -fx-background-color: -c-bg; }
 .app-footer { -fx-background-color: -c-surface; -fx-background-radius: 0; -fx-border-color: -c-hairline transparent transparent transparent; -fx-border-width: 1px 0 0 0; -fx-padding: 24px 32px; -fx-effect: null; }
 .contact-member-name { -fx-font-weight: bold; -fx-font-size: 18px; }
 .contact-member-email { -fx-text-fill: -c-muted; -fx-font-size: 14px; -fx-line-spacing: 3px; }
-.contact-member-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px; -fx-min-width: 0; -fx-max-width: infinity; }
-.contact-note { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px; }
 .home-panel { -fx-padding: 24px; -fx-background-radius: 24px; -fx-border-radius: 24px; -fx-border-color: -c-border; -fx-border-width: 1px; }
 .home-panel-white { -fx-background-color: -c-surface; }
 .home-panel-alt { -fx-background-color: -c-bg; }
 .empty-placeholder { -fx-text-fill: -c-muted; -fx-font-style: normal; -fx-max-width: infinity; -fx-alignment: center; }
-.product-list { -fx-background-color: transparent; -fx-border-color: transparent; }
-.product-list .list-cell { -fx-background-color: transparent; -fx-padding: 0 0 12px 0; }
-.product-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 16px; }
-.product-card:hover { -fx-border-color: -c-primary; }
-.product-status { -fx-background-color: -c-surface-2; -fx-background-radius: 999px; -fx-padding: 3px 9px; }
-.status-open { -fx-background-color: -c-surface-2; -fx-text-fill: -c-primary; }
-.status-running { -fx-background-color: -c-surface-2; -fx-text-fill: -c-success; }
-.status-finished { -fx-background-color: -c-surface-2; -fx-text-fill: -c-muted; }
-.status-paid { -fx-background-color: -c-surface-2; -fx-text-fill: -c-accent; }
-.status-canceled { -fx-background-color: -c-surface-2; -fx-text-fill: -c-danger; }
 .table-view .column-header .label { -fx-text-fill: -c-muted; -fx-font-size: 12px; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT; }
 .tooltip { -fx-background-color: -c-surface; -fx-text-fill: -c-text; -fx-border-color: -c-border-input; -fx-background-radius: 8px; -fx-border-radius: 8px; -fx-padding: 10px; -fx-font-size: 14px; -fx-wrap-text: true; -fx-max-width: 480px; }
 .dialog-pane, .context-menu, .combo-box-popup .list-view { -fx-background-color: -c-surface; }
@@ -235,10 +178,8 @@
 .scroll-bar .thumb { -fx-background-color: -c-border-input; }
 .progress-indicator { -fx-progress-color: -c-primary; }
 .btn-danger { -fx-background-color: -c-surface; -fx-border-color: -c-danger; -fx-text-fill: -c-danger; }
-.badge-running, .badge-success-chip, .alert-success .label { -fx-text-fill: -c-success; }
-.badge-open, .badge-info-chip { -fx-text-fill: -c-primary; }
-.badge-warning-chip { -fx-text-fill: -c-warning; }
-.badge-error-chip { -fx-text-fill: -c-danger; }
+.badge-running, .alert-success .label { -fx-text-fill: -c-success; }
+.badge-open { -fx-text-fill: -c-primary; }
 .badge-dev { -fx-text-fill: -c-accent; }
 .countdown-label-urgent { -fx-text-fill: -c-danger; }
 .wallet-stat { -fx-padding: 20px; }

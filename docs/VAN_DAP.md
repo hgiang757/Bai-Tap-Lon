@@ -9,7 +9,7 @@ Cấu trúc ít thư mục hơn không thay thế việc hiểu luồng xử lý
 |---|---|
 | Giao diện | `Main` → `ViewNavigator` → FXML → controller tương ứng |
 | Mạng | `JsonTransport` → `JsonProtocol` → `Server.Client.readLoop` |
-| Nghiệp vụ | `AuctionService.execute` → `handleAction` → hàm xử lý action |
+| Nghiệp vụ | `AuctionService.execute` → `handleAction` → AuthLogic/ProductLogic/BiddingLogic/WalletLogic/SettlementLogic |
 | Lưu trữ | `AuctionRepository.load/save` |
 | Nâng cao | `processAutoBids`, `AntiSnipingPolicy`, các lớp trong `src/test/java` |
 
@@ -24,8 +24,10 @@ Các tên lớp nằm dưới `src/main/java/com/auction`, còn FXML ở
 4. `write` tạo `commandId`, ghi lệnh chờ vào máy client; `JsonTransport.call` gửi request qua Socket.
 5. `JsonProtocol.writeFrame` gửi độ dài 4 byte, sau đó là JSON UTF-8. Bên nhận dùng `readFrame`.
 6. `Server.Client.readLoop` nhận request, gọi `AuctionService.execute`.
-7. `execute` xác thực token, kiểm tra lệnh trùng; `handleAction` chuyển `PLACE_BID` tới `placeBid`.
-8. `placeBid` kiểm tra phiên, giá và tiền khả dụng; `acceptBid` cập nhật người dẫn đầu,
+7. `execute` giữ khóa chung, gọi AuthLogic xác thực token, kiểm tra lệnh trùng;
+   `handleAction` chuyển `PLACE_BID` tới `BiddingLogic.placeBid`.
+8. `Auction` kiểm tra phiên/quyền/giá; `WalletLogic` tính tiền khả dụng;
+   `BiddingLogic.acceptBid` dùng `Auction.withBid` và mapper cập nhật người dẫn đầu,
    lịch sử, tiền giữ và thời gian kết thúc. `processAutoBids` xử lý các luật tự động đang bật.
 9. `commit` lưu trạng thái thành công rồi phát sự kiện; server đưa response/event vào hàng đợi của client.
 10. `JsonTransport` ghép response theo `requestId`; event đi tới listener. Controller tải/cập nhật
@@ -39,7 +41,8 @@ Response xác nhận thao tác của người gửi. Event thông báo thay đ�
 - **Controller:** nhận thao tác và cập nhật thành phần JavaFX; không trực tiếp ghi file server.
 - **Model:** các lớp `Auction`, `Bid`, `User`, `Item` phía client dùng để hiển thị dữ liệu.
 
-Dịch vụ client nối controller với backend. Ở server, `AuctionService` xử lý quy tắc và
+Dịch vụ client nối controller với backend. Ở server, `AuctionService` giữ transaction,
+các lớp Logic xử lý từng nghiệp vụ, `Auction` giữ luật domain và
 `AuctionRepository` phụ trách lưu trữ. JSON được dùng cho thông điệp và trạng thái lưu trữ;
 không phải toàn bộ dữ liệu server đều được bọc thành lớp Java riêng.
 
@@ -62,7 +65,7 @@ không tuyên bố đây là kiến trúc xử lý tải lớn hay nhiều serve
 
 **Tiền giữ:** tổng số dư chưa bị trừ ngay khi đặt giá. Tiền đang dẫn đầu bị giữ để không thể
 rút hoặc tiêu ở phiên khác. Khi bị vượt giá, khoản giữ được giải phóng.
-Khi hết phiên có người thắng, `settle` trừ tiền người thắng, cộng tiền người bán và đánh dấu đã thanh toán.
+Khi hết phiên có người thắng, `SettlementLogic.settle` trừ tiền người thắng, cộng tiền người bán và đánh dấu đã thanh toán.
 Phiên không có bid kết thúc mà không chuyển tiền. Hủy phiên giải phóng khoản giữ.
 
 **Số tiền:** backend dùng `long` theo đơn vị đồng, không dùng số thực cho phép tính tiền.

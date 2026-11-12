@@ -26,7 +26,7 @@ abstract class không có constructor hoặc không chứa method cụ thể.
 
 **Đáp nhanh:** User account tham chiếu Admin/Seller/Bidder, gọi getRoleName.
 **Kỹ thuật:** dynamic dispatch theo lớp runtime; kết quả đưa vào JSON role.
-**Code:** AuctionService.createUser; ItemFactoryTest.userRoleDispatchUsesTheRuntimeSubclass.
+**Code:** AuthLogic.createUser; ItemFactoryTest.userRoleDispatchUsesTheRuntimeSubclass.
 **Dễ sai:** nhầm overloading với overriding, hoặc chỉ đưa danh sách lớp kế thừa.
 
 ### 4. Record Auction có phải đóng gói không?
@@ -108,7 +108,7 @@ AntiSnipingPolicy, handleAction. **Dễ sai:** thấy chữ “command” hoặc
 
 **Đáp nhanh:** kiểm tra để phản hồi nhanh được, nhưng server phải kiểm tra lại.
 **Kỹ thuật:** giá UI có thể cũ, nên validateBidder/requireMinimumBid/ví chạy trong
-transaction server. **Code:** handlePlaceBid, AuctionService.placeBid, Auction.
+transaction server. **Code:** handlePlaceBid, BiddingLogic.placeBid, Auction.
 **Dễ sai:** tin nút disable là đủ bảo vệ quyền hoặc coi UI validation là dữ liệu chính thức.
 
 ### 15. Vì sao chưa tách AuctionService thành nhiều manager?
@@ -246,7 +246,7 @@ AuctionRepository. **Dễ sai:** nhầm mọi file JSON trên client là databas
 **Đáp nhanh:** không tái tạo toàn bộ snapshot; chỉ đọc các trường cần và ghi bid mới.
 **Kỹ thuật:** state JSON gốc vẫn được giữ/save; `auto` được map rõ từ automatic,
 timestamp giữ LocalDateTime.toString như trước. **Code:** AuctionJsonMapper,
-AuctionJsonMapperTest. **Dễ sai:** serialize record Auction bảy trường thành toàn bộ phiên.
+AuctionJsonMapperTest. **Dễ sai:** serialize record Auction thành toàn bộ phiên rồi làm mất các trường ngoài domain.
 
 ## Exception
 

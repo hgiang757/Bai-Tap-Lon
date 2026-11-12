@@ -10,12 +10,15 @@ tên method là điểm tìm kiếm ổn định nếu số dòng thay đổi.
 rõ ràng. Không bắt buộc phải có setter cho mọi thuộc tính.
 
 - [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java),
-  thuộc tính `id`, `name` là private final, đọc qua `getId()`, `getName()`.
+  thuộc tính `id`, `name` là private, đọc/đổi qua getter/setter; setter đánh dấu cập nhật.
 - [Auction](../../src/main/java/com/auction/server/model/Auction.java): record có
   thành phần private final; không có setter; `requireBidder()` và `requireMinimumBid()`
-  diễn đạt luật nghiệp vụ bằng tên có nghĩa.
+  diễn đạt luật nghiệp vụ bằng tên có nghĩa. `withBid()` tạo snapshot mới với một
+  leader; `heldBy()`, `requireEditable()`, `requireAutoBid()` và các luật thời gian
+  được WalletLogic/ProductLogic/BiddingLogic/SettlementLogic gọi thật.
 - [AuctionService](../../src/main/java/com/auction/server/service/AuctionService.java):
-  `state`, `sessions`, `repository` private; `execute()` trả deepCopy, tránh caller
+  giữ `context`, các helper và `repository` private; AuthLogic giữ sessions private.
+  `execute()` trả deepCopy, tránh caller
   sửa cây JSON đang thuộc transaction.
 
 ```java
@@ -25,8 +28,8 @@ auction.requireMinimumBid(1_200_000); // hợp lệ
 long minimum = auction.minimumNextBid(); // 1.100.000
 ```
 
-Trả lời 30–60 giây: “Trong Entity, id và name là private final nên bên ngoài không
-đổi định danh tùy tiện. Auction là record bất biến, các luật kiểm tra bidder và
+Trả lời 30–60 giây: “Trong Entity, id và name là private và truy cập qua getter/setter;
+không tuyên bố chúng bất biến. Auction là record bất biến, các luật kiểm tra bidder và
 bước giá được gọi bằng method của domain. Ở service, snapshot thật và phiên đăng
 nhập không được public; phản hồi được deepCopy. Đóng gói ở đây giúp kiểm soát ai
 được thay đổi trạng thái, chứ không chỉ thêm getter/setter cho đủ.”
@@ -50,7 +53,7 @@ Kế thừa biểu diễn quan hệ ‘là một’. Lớp con nhận phần chu
 
 ```java
 Seller seller = new Seller("s", "người_bán", "hash");
-Item item = new Art("i", "Tranh", "Sơn dầu", seller);
+Item item = ItemFactory.forCategory("ART").create("i", "Tranh", "Sơn dầu", seller);
 String id = item.getId(); // method kế thừa từ Entity
 ```
 
@@ -64,9 +67,9 @@ Item với Seller là sản phẩm có người bán nên dùng thuộc tính, k
 Cùng một kiểu tham chiếu và lời gọi method có thể thực thi hành vi khác theo lớp
 thực tế lúc chạy. Có override chưa đủ làm ví dụ thuyết phục: cần chỉ ra nơi gọi.
 
-- `AuctionService.createUser()`: biến `User account` nhận Admin/Seller/Bidder;
+- `AuthLogic.createUser()`: biến `User account` nhận Admin/Seller/Bidder;
   `account.getRoleName()` dispatch đến implementation lớp con trước khi ghi JSON.
-- `AuctionService.createAuction()`: `ItemFactory.forCategory(...).create(...)` trả
+- `ProductLogic.createAuction()`: `ItemFactory.forCategory(...).create(...)` trả
   `Item`; `item.getCategory()` gọi Electronics/Art/Vehicle/CategoryItem tương ứng.
 - `AuctionRoomController.handlePlaceBid()`: gọi `AuctionClientService.placeBid()`;
   runtime là ServerServices trong chế độ thật hoặc MockAuctionClientService khi
@@ -113,10 +116,16 @@ hành vi cần dùng, còn đóng gói giúp kiểm soát dữ liệu bên trong
 
 User/Item server hiện chủ yếu cung cấp thông tin vai trò/danh mục; luật phân quyền
 và ví vẫn do service kiểm tra. Role trong JSON có thể đổi bởi admin, không phải thay
-đổi Java runtime class của một User đang được cache. `BidTransaction` chỉ ghi một
+đổi Java runtime class của một User đang được cache. Các phương thức ví `double`
+trong User và giá `double` trong Item là API cũ, không được gọi để tính tiền ở backend.
+Đợt tối giản JavaFX đã xóa ba model server cũ `AuctionDraft`, `Bid` và `Transaction`
+sau khi kiểm tra caller, FXML, reflection và JSON persistence. `BidTransaction` ghi một
 bid đã chấp nhận, không tự chuyển tiền. `Auction` mới là domain quy tắc bất biến,
 không phải toàn bộ state manager. `AuctionService` vẫn là nơi điều phối giao dịch.
 
 Kiểm chứng: `AuctionTest`, `ItemFactoryTest`, `AuctionJsonMapperTest` và
 `AuctionServiceTest`. Không tuyên bố mọi setter của DTO UI bảo vệ được toàn bộ
 invariant nghiệp vụ; server mới là nơi thực thi luật chính thức.
+
+Xem [báo cáo refactor](../OOP_SERVICE_REFACTOR_REPORT.md) để đối chiếu PDF,
+trách nhiệm service, dữ liệu thật và kết quả test sau sửa.

@@ -396,7 +396,35 @@ class ClientUiTest {
         assertTrue(ServiceRegistry.getService().login("admin_hieu", "123456", null));
         AdminController admin = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.ADMIN));
         await(() -> !((ProgressIndicator) field(admin, "progress")).isVisible());
-        assertFalse(fx(() -> ((TableView<?>) field(admin, "overviewTable")).getItems().isEmpty()));
+        assertFalse(fx(() -> ((TableView<?>) field(admin, "auctionTable")).getItems().isEmpty()));
+        fx(() -> {
+            TableView<Auction> table = field(admin, "auctionTable");
+            stage.getScene().getRoot().applyCss();
+            stage.getScene().getRoot().layout();
+            assertEquals(4, table.getColumns().size());
+            var row = table.lookupAll(".table-row-cell").stream()
+                    .filter(TableRow.class::isInstance).map(TableRow.class::cast)
+                    .filter(candidate -> candidate.getIndex() == 0)
+                    .findFirst().orElseThrow();
+            Button detail = row.lookupAll(".button").stream()
+                    .filter(Button.class::isInstance).map(Button.class::cast)
+                    .filter(button -> button.getText().equals("Chi tiết"))
+                    .findFirst().orElseThrow();
+            detail.fire();
+            Auction auction = table.getItems().getFirst();
+            DialogPane pane = dialogPane();
+            assertNotNull(pane);
+            String copy = pane.getContentText();
+            assertTrue(copy.contains(auction.getItemName()));
+            assertTrue(copy.contains("Người bán: " + auction.getSellerUsername()));
+            assertTrue(copy.contains("Người dẫn đầu: " + auction.getHighestBidderUsername()));
+            assertTrue(copy.contains(auction.getStartTime().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+            assertTrue(copy.contains(auction.getEndTime().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+            ((Button) pane.lookupButton(ButtonType.OK)).fire();
+            return null;
+        });
         snapshot("admin");
         fx(
                 () -> {
@@ -1288,6 +1316,125 @@ class ClientUiTest {
             });
         } finally {
             fx(() -> { otherWindow.close(); stage.show(); return null; });
+        }
+    }
+
+    @Test
+    @Order(15)
+    void conciseGuideAndContactCopyWorkAtNarrowWidth() throws Exception {
+        try {
+            GuideController guide = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.GUIDE));
+            fx(() -> {
+                stage.setWidth(640);
+                var sections = ((javafx.scene.layout.VBox) field(guide, "pageContent")).getChildren();
+                assertEquals(6, sections.size());
+                String[] ids = {"guide-start", "guide-seller", "guide-bidder", "guide-auto-bid",
+                        "guide-wallet", "guide-results"};
+                for (int i = 0; i < ids.length; i++) {
+                    var section = (javafx.scene.layout.VBox) sections.get(i);
+                    assertEquals(ids[i], section.getId());
+                    assertEquals(2, section.getChildren().size());
+                    Label copy = (Label) section.getChildren().get(1);
+                    assertTrue(copy.isWrapText());
+                    assertEquals(2, copy.getText().split("\\.\\s*").length);
+                    assertFalse(copy.getText().contains("?"));
+                }
+                return null;
+            });
+            await(() -> stage.getScene().getWidth() < 700);
+            snapshot("guide-640");
+            ContactController contact = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.CONTACT));
+            fx(() -> {
+                var cards = ((javafx.scene.layout.VBox) field(contact, "pageContent")).getChildren();
+                assertEquals(4, cards.size());
+                var clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+                var previous = new javafx.scene.input.ClipboardContent();
+                for (var format : clipboard.getContentTypes()) {
+                    previous.put(format, clipboard.getContent(format));
+                }
+                try {
+                    long windows = javafx.stage.Window.getWindows().stream()
+                            .filter(javafx.stage.Window::isShowing).count();
+                    for (var node : cards) {
+                        var card = (javafx.scene.layout.VBox) node;
+                        String email = ((Label) card.getChildren().get(1)).getText();
+                        ((Button) card.getChildren().get(2)).fire();
+                        assertEquals(email, clipboard.getString());
+                        Label feedback = (Label) card.getChildren().get(3);
+                        assertEquals("Đã sao chép email", feedback.getText());
+                        assertTrue(feedback.isManaged());
+                    }
+                    assertEquals(windows, javafx.stage.Window.getWindows().stream()
+                            .filter(javafx.stage.Window::isShowing).count());
+                } finally {
+                    clipboard.setContent(previous);
+                }
+                return null;
+            });
+            snapshot("contact-640");
+        } finally {
+            fx(() -> { stage.setWidth(1200); return null; });
+        }
+    }
+
+    @Test
+    @Order(16)
+    void accountPopupSupportsOutsideClickKeyboardAndNavigation() throws Exception {
+        assertTrue(ServiceRegistry.getService().login("seller_hieu", "123456", null));
+        HomeController home = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
+        await(() -> !home.isLoading());
+        var menu = fx(() -> (com.auction.client.ui.UserMenu)
+                stage.getScene().getRoot().lookup(".user-menu-host"));
+        javafx.stage.Popup popup = field(menu, "popup");
+        fx(() -> { ((Button) field(menu, "trigger")).fire(); return null; });
+        await(popup::isShowing);
+        fx(() -> {
+            var robot = new javafx.scene.robot.Robot();
+            var previous = robot.getMousePosition();
+            var bounds = stage.getScene().getRoot().localToScreen(
+                    stage.getScene().getRoot().getBoundsInLocal());
+            robot.mouseMove(bounds.getMinX() + 10, bounds.getMinY() + 10);
+            robot.mouseClick(javafx.scene.input.MouseButton.PRIMARY);
+            robot.mouseMove(previous);
+            return null;
+        });
+        await(() -> !popup.isShowing());
+        fx(() -> {
+            stage.getScene().getRoot().getStyleClass().add("keyboard-nav");
+            ((Button) field(menu, "trigger")).fire();
+            return null;
+        });
+        try {
+            await(() -> popup.isShowing() && ((Button) field(menu, "firstMenuItem")).isFocused());
+            fx(() -> {
+                Parent root = popup.getScene().getRoot();
+                assertTrue(root.getStyleClass().contains("keyboard-nav"));
+                root.applyCss();
+                root.layout();
+                Path image = Path.of("target", "qa", "account-menu-keyboard.png");
+                ImageIO.write(SwingFXUtils.fromFXImage(root.snapshot(null, null), null),
+                        "png", image.toFile());
+                return null;
+            });
+            fx(() -> {
+                var content = (javafx.scene.layout.VBox) field(menu, "menuContent");
+                Button wallet = content.getChildren().stream()
+                        .filter(Button.class::isInstance).map(Button.class::cast)
+                        .filter(button -> button.getText().equals("Ví của tôi"))
+                        .findFirst().orElseThrow();
+                wallet.fire();
+                assertFalse(popup.isShowing());
+                assertNull(field(menu, "menuOwner"));
+                assertNull(field(menu, "menuScene"));
+                return null;
+            });
+            await(() -> ViewNavigator.Route.WALLET.getPath().equals(ViewNavigator.getCurrentPath()));
+        } finally {
+            fx(() -> {
+                stage.getScene().getRoot().getStyleClass().remove("keyboard-nav");
+                com.auction.client.ui.UserMenu.closeActive();
+                return null;
+            });
         }
     }
 }
