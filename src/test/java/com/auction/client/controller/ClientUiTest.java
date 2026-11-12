@@ -396,7 +396,35 @@ class ClientUiTest {
         assertTrue(ServiceRegistry.getService().login("admin_hieu", "123456", null));
         AdminController admin = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.ADMIN));
         await(() -> !((ProgressIndicator) field(admin, "progress")).isVisible());
-        assertFalse(fx(() -> ((TableView<?>) field(admin, "overviewTable")).getItems().isEmpty()));
+        assertFalse(fx(() -> ((TableView<?>) field(admin, "auctionTable")).getItems().isEmpty()));
+        fx(() -> {
+            TableView<Auction> table = field(admin, "auctionTable");
+            stage.getScene().getRoot().applyCss();
+            stage.getScene().getRoot().layout();
+            assertEquals(4, table.getColumns().size());
+            var row = table.lookupAll(".table-row-cell").stream()
+                    .filter(TableRow.class::isInstance).map(TableRow.class::cast)
+                    .filter(candidate -> candidate.getIndex() == 0)
+                    .findFirst().orElseThrow();
+            Button detail = row.lookupAll(".button").stream()
+                    .filter(Button.class::isInstance).map(Button.class::cast)
+                    .filter(button -> button.getText().equals("Chi tiết"))
+                    .findFirst().orElseThrow();
+            detail.fire();
+            Auction auction = table.getItems().getFirst();
+            DialogPane pane = dialogPane();
+            assertNotNull(pane);
+            String copy = pane.getContentText();
+            assertTrue(copy.contains(auction.getItemName()));
+            assertTrue(copy.contains("Người bán: " + auction.getSellerUsername()));
+            assertTrue(copy.contains("Người dẫn đầu: " + auction.getHighestBidderUsername()));
+            assertTrue(copy.contains(auction.getStartTime().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+            assertTrue(copy.contains(auction.getEndTime().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+            ((Button) pane.lookupButton(ButtonType.OK)).fire();
+            return null;
+        });
         snapshot("admin");
         fx(
                 () -> {
@@ -542,6 +570,126 @@ class ClientUiTest {
                         timer.stop();
                         return null;
                     });
+        }
+    }
+
+    private static com.auction.client.ui.UserMenu prepareAccountMenu() throws Exception {
+        assertTrue(ServiceRegistry.getService().login("seller_hieu", "123456", null));
+        HomeController home = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
+        awaitFx(() -> !home.isLoading());
+        return fx(() -> {
+            var menu = (com.auction.client.ui.UserMenu)
+                    stage.getScene().getRoot().lookup(".user-menu-host");
+            assertNotNull(menu);
+            return menu;
+        });
+    }
+
+    /** Keeps native focus, layout and auto-hide evidence in the Surefire XML. */
+    private static final class PopupDiagnostics implements AutoCloseable {
+        private final com.auction.client.ui.UserMenu menu;
+        private final javafx.stage.Popup popup;
+        private final javafx.beans.value.ChangeListener<Boolean> ownerFocus =
+                (observable, before, focused) -> log("owner.focus=" + focused);
+        private final javafx.beans.value.ChangeListener<Boolean> popupFocus =
+                (observable, before, focused) -> log("popup.focus=" + focused);
+        private final javafx.event.EventHandler<javafx.stage.WindowEvent> lifecycle = event -> {
+            log(event.getEventType().getName());
+            if (event.getEventType() == javafx.stage.WindowEvent.WINDOW_HIDING) {
+                new Exception("Popup hide origin").printStackTrace(System.out);
+            }
+        };
+        private int autoHideCount;
+        private final javafx.event.EventHandler<javafx.event.Event> autoHide = event -> {
+            autoHideCount++;
+            log("AUTO_HIDE");
+        };
+
+        PopupDiagnostics(com.auction.client.ui.UserMenu menu) throws Exception {
+            this.menu = menu;
+            popup = field(menu, "popup");
+            fx(() -> {
+                stage.focusedProperty().addListener(ownerFocus);
+                popup.focusedProperty().addListener(popupFocus);
+                popup.addEventHandler(javafx.stage.WindowEvent.ANY, lifecycle);
+                popup.setOnAutoHide(autoHide);
+                log("attached");
+                return null;
+            });
+        }
+
+        void open() throws Exception {
+            fx(() -> {
+                stage.toFront();
+                stage.requestFocus();
+                Parent root = stage.getScene().getRoot();
+                root.applyCss();
+                root.layout();
+                log("focus requested before open");
+                return null;
+            });
+            // requestFocus and toFront return before native focus events are dispatched.
+            awaitState("owner focused and header laid out", () -> {
+                Button trigger = field(menu, "trigger");
+                var bounds = trigger.localToScreen(trigger.getBoundsInLocal());
+                return stage.isShowing() && stage.isFocused()
+                        && !stage.getScene().getRoot().isNeedsLayout()
+                        && bounds != null && bounds.getWidth() > 0 && bounds.getHeight() > 0;
+            });
+            fx(() -> {
+                assertFalse(popup.isShowing());
+                assertTrue(stage.isFocused(), "owner must retain focus until activation");
+                Parent root = stage.getScene().getRoot();
+                root.applyCss();
+                root.layout();
+                log("before trigger.fire");
+                ((Button) field(menu, "trigger")).fire();
+                log("after trigger.fire");
+                assertTrue(popup.isShowing(), "Popup.show must open synchronously");
+                return null;
+            });
+            awaitState("popup stays open through a pulse", () -> popup.isShowing() && popup.isFocused());
+        }
+
+        private void log(String event) {
+            Button trigger = field(menu, "trigger");
+            Parent root = stage.getScene().getRoot();
+            System.out.println("[account-popup] " + event
+                    + " ownerShowing=" + stage.isShowing()
+                    + " ownerFocused=" + stage.isFocused()
+                    + " needsLayout=" + root.isNeedsLayout()
+                    + " triggerBounds=" + trigger.localToScreen(trigger.getBoundsInLocal())
+                    + " popupShowing=" + popup.isShowing()
+                    + " popupFocused=" + popup.isFocused()
+                    + " popupBounds=" + popup.getX() + "," + popup.getY()
+                    + "," + popup.getWidth() + "," + popup.getHeight()
+                    + " windows=" + javafx.stage.Window.getWindows().stream()
+                            .map(window -> window.getClass().getSimpleName()
+                                    + "(focused=" + window.isFocused() + ")").toList());
+        }
+
+        void awaitState(String description, BooleanSupplier condition) throws Exception {
+            try {
+                awaitFx(condition);
+            } catch (TimeoutException error) {
+                fx(() -> { log("TIMEOUT " + description); return null; });
+                fail(description, error);
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            fx(() -> {
+                com.auction.client.ui.UserMenu.closeActive();
+                stage.focusedProperty().removeListener(ownerFocus);
+                popup.focusedProperty().removeListener(popupFocus);
+                popup.removeEventHandler(javafx.stage.WindowEvent.ANY, lifecycle);
+                popup.setOnAutoHide(null);
+                assertFalse(popup.isShowing());
+                assertNull(field(menu, "menuOwner"));
+                assertNull(field(menu, "menuScene"));
+                return null;
+            });
         }
     }
 
@@ -1219,36 +1367,25 @@ class ClientUiTest {
     @Test
     @Order(13)
     void accountPopupClosesWhenItsHeaderIsRemoved() throws Exception {
-        assertTrue(ServiceRegistry.getService().login("seller_hieu", "123456", null));
-        fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
-        var menu = fx(() -> (com.auction.client.ui.UserMenu)
-                stage.getScene().getRoot().lookup(".user-menu-host"));
-        assertNotNull(menu);
-        fx(() -> { ((Button) field(menu, "trigger")).fire(); return null; });
-        awaitFx(() -> ((javafx.stage.Popup) field(menu, "popup")).isShowing());
-        fx(() -> {
-            stage.getScene().setRoot(new javafx.scene.layout.VBox());
-            return null;
-        });
-        awaitFx(() -> !((javafx.stage.Popup) field(menu, "popup")).isShowing());
+        var menu = prepareAccountMenu();
+        try (var diagnostics = new PopupDiagnostics(menu)) {
+            diagnostics.open();
+            fx(() -> {
+                stage.getScene().setRoot(new javafx.scene.layout.VBox());
+                return null;
+            });
+            diagnostics.awaitState("header removal closes popup", () -> !diagnostics.popup.isShowing());
+        }
     }
 
     @Test
     @Order(14)
     void accountPopupClosesOnFocusLossEscapeAndOwnerHide() throws Exception {
-        fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
-        var menu = fx(() -> (com.auction.client.ui.UserMenu)
-                stage.getScene().getRoot().lookup(".user-menu-host"));
+        var menu = prepareAccountMenu();
         javafx.stage.Popup popup = field(menu, "popup");
         Stage otherWindow = fx(Stage::new);
-        try {
-            fx(() -> {
-                stage.toFront();
-                stage.requestFocus();
-                ((Button) field(menu, "trigger")).fire();
-                return null;
-            });
-            awaitFx(popup::isShowing);
+        try (var diagnostics = new PopupDiagnostics(menu)) {
+            diagnostics.open();
             fx(() -> {
                 otherWindow.setTitle("Kiểm thử chuyển cửa sổ");
                 otherWindow.setScene(new javafx.scene.Scene(new javafx.scene.layout.VBox(), 240, 100));
@@ -1257,30 +1394,25 @@ class ClientUiTest {
                 otherWindow.requestFocus();
                 return null;
             });
-            awaitFx(otherWindow::isFocused);
-            awaitFx(() -> !popup.isShowing());
+            diagnostics.awaitState("other window receives native focus", otherWindow::isFocused);
+            diagnostics.awaitState("focus loss closes popup", () -> !popup.isShowing());
             fx(() -> {
                 otherWindow.close();
-                stage.toFront();
-                stage.requestFocus();
-                ((Button) field(menu, "trigger")).fire();
                 return null;
             });
-            awaitFx(popup::isShowing);
+            diagnostics.open();
             fx(() -> {
                 popup.getScene().getRoot().fireEvent(new javafx.scene.input.KeyEvent(
                         javafx.scene.input.KeyEvent.KEY_PRESSED, "", "",
                         javafx.scene.input.KeyCode.ESCAPE, false, false, false, false));
                 return null;
             });
-            awaitFx(() -> !popup.isShowing());
-            fx(() -> {
-                ((Button) field(menu, "trigger")).fire();
-                return null;
-            });
-            awaitFx(popup::isShowing);
+            diagnostics.awaitState("Escape closes popup", () -> !popup.isShowing());
+            diagnostics.awaitState("Escape returns focus to trigger",
+                    () -> ((Button) field(menu, "trigger")).isFocused());
+            diagnostics.open();
             fx(() -> { stage.hide(); return null; });
-            awaitFx(() -> !popup.isShowing());
+            diagnostics.awaitState("owner hide closes popup", () -> !popup.isShowing());
             fx(() -> {
                 assertNull(field(menu, "menuOwner"));
                 assertNull(field(menu, "menuScene"));
@@ -1288,6 +1420,162 @@ class ClientUiTest {
             });
         } finally {
             fx(() -> { otherWindow.close(); stage.show(); return null; });
+        }
+    }
+
+    @Test
+    @Order(15)
+    void conciseGuideAndContactCopyWorkAtNarrowWidth() throws Exception {
+        try {
+            GuideController guide = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.GUIDE));
+            fx(() -> {
+                stage.setWidth(640);
+                var sections = ((javafx.scene.layout.VBox) field(guide, "pageContent")).getChildren();
+                assertEquals(6, sections.size());
+                String[] ids = {"guide-start", "guide-seller", "guide-bidder", "guide-auto-bid",
+                        "guide-wallet", "guide-results"};
+                for (int i = 0; i < ids.length; i++) {
+                    var section = (javafx.scene.layout.VBox) sections.get(i);
+                    assertEquals(ids[i], section.getId());
+                    assertEquals(2, section.getChildren().size());
+                    Label copy = (Label) section.getChildren().get(1);
+                    assertTrue(copy.isWrapText());
+                    assertEquals(2, copy.getText().split("\\.\\s*").length);
+                    assertFalse(copy.getText().contains("?"));
+                }
+                return null;
+            });
+            await(() -> stage.getScene().getWidth() < 700);
+            snapshot("guide-640");
+            ContactController contact = fx(() -> ViewNavigator.navigate(ViewNavigator.Route.CONTACT));
+            fx(() -> {
+                var cards = ((javafx.scene.layout.VBox) field(contact, "pageContent")).getChildren();
+                assertEquals(4, cards.size());
+                var clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+                var previous = new javafx.scene.input.ClipboardContent();
+                for (var format : clipboard.getContentTypes()) {
+                    previous.put(format, clipboard.getContent(format));
+                }
+                try {
+                    long windows = javafx.stage.Window.getWindows().stream()
+                            .filter(javafx.stage.Window::isShowing).count();
+                    for (var node : cards) {
+                        var card = (javafx.scene.layout.VBox) node;
+                        String email = ((Label) card.getChildren().get(1)).getText();
+                        ((Button) card.getChildren().get(2)).fire();
+                        assertEquals(email, clipboard.getString());
+                        Label feedback = (Label) card.getChildren().get(3);
+                        assertEquals("Đã sao chép email", feedback.getText());
+                        assertTrue(feedback.isManaged());
+                    }
+                    assertEquals(windows, javafx.stage.Window.getWindows().stream()
+                            .filter(javafx.stage.Window::isShowing).count());
+                } finally {
+                    clipboard.setContent(previous);
+                }
+                return null;
+            });
+            snapshot("contact-640");
+        } finally {
+            fx(() -> { stage.setWidth(1200); return null; });
+        }
+    }
+
+    @Test
+    @Order(16)
+    void accountPopupSupportsOutsideClickKeyboardAndNavigation() throws Exception {
+        var menu = prepareAccountMenu();
+        javafx.stage.Popup popup = field(menu, "popup");
+        var robot = fx(javafx.scene.robot.Robot::new);
+        var previousMouse = fx(robot::getMousePosition);
+        Parent ownerRoot = fx(() -> stage.getScene().getRoot());
+        try (var diagnostics = new PopupDiagnostics(menu)) {
+            diagnostics.open();
+            var outside = fx(() -> {
+                var bounds = ownerRoot.localToScreen(ownerRoot.getBoundsInLocal());
+                assertNotNull(bounds);
+                var point = new javafx.geometry.Point2D(bounds.getMinX() + 32, bounds.getMinY() + 32);
+                assertTrue(bounds.contains(point), "click must be inside the owner content");
+                assertFalse(new javafx.geometry.Rectangle2D(popup.getX(), popup.getY(),
+                        popup.getWidth(), popup.getHeight()).contains(point),
+                        "click must be outside the account popup");
+                assertTrue(javafx.stage.Screen.getScreens().stream()
+                        .anyMatch(screen -> screen.getVisualBounds().contains(point)),
+                        "click must be on a visible screen");
+                robot.mouseMove(point);
+                diagnostics.log("Robot move requested at " + point);
+                return point;
+            });
+            // Let the native event loop process motion before sending the button events.
+            diagnostics.awaitState("Robot reaches outside-click target",
+                    () -> robot.getMousePosition().distance(outside) < 2);
+            fx(() -> {
+                assertTrue(popup.isShowing(), "popup must remain open until the outside click");
+                assertEquals(0, diagnostics.autoHideCount, "auto-hide must follow the outside click");
+                assertTrue(robot.getMousePosition().distance(outside) < 2,
+                        "pointer must remain at the outside-click target");
+                diagnostics.log("Robot click at " + robot.getMousePosition());
+                robot.mouseClick(javafx.scene.input.MouseButton.PRIMARY);
+                return null;
+            });
+            diagnostics.awaitState("native outside click auto-hides popup",
+                    () -> !popup.isShowing() && diagnostics.autoHideCount == 1);
+            // Keep the pointer at the click target until JavaFX has handled auto-hide.
+            fx(() -> {
+                robot.mouseMove(previousMouse);
+                ownerRoot.getStyleClass().add("keyboard-nav");
+                return null;
+            });
+            diagnostics.open();
+            diagnostics.awaitState("keyboard opening focuses first item",
+                    () -> popup.isShowing() && ((Button) field(menu, "firstMenuItem")).isFocused());
+            Button secondItem = fx(() -> {
+                var content = (javafx.scene.layout.VBox) field(menu, "menuContent");
+                return content.getChildren().stream()
+                        .filter(Button.class::isInstance).map(Button.class::cast)
+                        .skip(1).findFirst().orElseThrow();
+            });
+            fx(() -> {
+                robot.keyPress(javafx.scene.input.KeyCode.TAB);
+                robot.keyRelease(javafx.scene.input.KeyCode.TAB);
+                return null;
+            });
+            diagnostics.awaitState("Tab moves focus to the next menu item",
+                    () -> popup.isShowing() && secondItem.isFocused());
+            fx(() -> {
+                Parent root = popup.getScene().getRoot();
+                assertTrue(root.getStyleClass().contains("keyboard-nav"));
+                root.applyCss();
+                root.layout();
+                Path image = Path.of("target", "qa", "account-menu-keyboard.png");
+                Files.createDirectories(image.getParent());
+                ImageIO.write(SwingFXUtils.fromFXImage(root.snapshot(null, null), null),
+                        "png", image.toFile());
+                return null;
+            });
+            fx(() -> {
+                var content = (javafx.scene.layout.VBox) field(menu, "menuContent");
+                Button wallet = content.getChildren().stream()
+                        .filter(Button.class::isInstance).map(Button.class::cast)
+                        .filter(button -> button.getText().equals("Ví của tôi"))
+                        .findFirst().orElseThrow();
+                wallet.fire();
+                assertFalse(popup.isShowing());
+                assertNull(field(menu, "menuOwner"));
+                assertNull(field(menu, "menuScene"));
+                return null;
+            });
+            diagnostics.awaitState("wallet navigation completes",
+                    () -> ViewNavigator.Route.WALLET.getPath().equals(ViewNavigator.getCurrentPath()));
+        } finally {
+            fx(() -> {
+                robot.keyRelease(javafx.scene.input.KeyCode.TAB);
+                robot.mouseRelease(javafx.scene.input.MouseButton.PRIMARY);
+                robot.mouseMove(previousMouse);
+                ownerRoot.getStyleClass().remove("keyboard-nav");
+                com.auction.client.ui.UserMenu.closeActive();
+                return null;
+            });
         }
     }
 }

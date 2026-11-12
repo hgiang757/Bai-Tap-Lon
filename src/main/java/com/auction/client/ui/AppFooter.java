@@ -1,14 +1,12 @@
 package com.auction.client.ui;
 
 import com.auction.client.navigation.ViewNavigator;
-import com.auction.client.util.AppInfo;
 
 import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -28,22 +26,14 @@ public final class AppFooter extends VBox {
         content.getStyleClass().add("app-footer-content");
         content.setAlignment(Pos.CENTER);
         content.setMaxWidth(1200);
-        Label intro =
-                new Label(
-                        AppInfo.NAME
-                                + " — Sàn đấu giá trực tuyến theo thời gian thực, minh bạch và"
-                                + " thuận tiện.");
-        intro.getStyleClass().add("app-footer-intro");
-        intro.setWrapText(true);
-
         HBox links = new HBox(12);
         links.setAlignment(Pos.CENTER);
-        Button guide = linkButton("Hướng dẫn sử dụng", "book");
+        Button guide = new Button("Hướng dẫn sử dụng");
         guide.setOnAction(event -> navigate(ViewNavigator.Route.GUIDE));
-        Button contact = linkButton("Liên hệ", "mail");
+        Button contact = new Button("Liên hệ");
         contact.setOnAction(event -> navigate(ViewNavigator.Route.CONTACT));
         links.getChildren().addAll(guide, contact);
-        content.getChildren().addAll(intro, links);
+        content.getChildren().add(links);
         getChildren().add(content);
         VBox.setVgrow(content, Priority.NEVER);
     }
@@ -72,15 +62,6 @@ public final class AppFooter extends VBox {
                                 () -> scroll.getViewportBounds().getHeight(),
                                 scroll.viewportBoundsProperty()));
         scroll.setContent(page);
-    }
-
-    private Button linkButton(String text, String iconName) {
-        Button button = new Button(text);
-        Region graphic = Icons.icon(iconName, 16);
-        graphic.getStyleClass().add("icon-current");
-        button.setGraphic(graphic);
-        button.setAccessibleText(text);
-        return button;
     }
 
     private void navigate(ViewNavigator.Route route) {

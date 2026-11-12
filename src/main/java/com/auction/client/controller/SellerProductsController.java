@@ -161,27 +161,7 @@ public class SellerProductsController implements DisposableView {
         column(categoryColumn, Auction::getItemCategory);
         column(startingPrice, a -> FormatUtil.formatCurrency(a.getStartingPrice()));
         column(currentPrice, a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
-        column(state, a -> a.getStatus().name());
-        state.setCellFactory(
-                c ->
-                        new TableCell<>() {
-                            @Override
-                            protected void updateItem(String value, boolean empty) {
-                                super.updateItem(value, empty);
-                                setText(null);
-                                setGraphic(null);
-                                if (!empty && value != null) {
-                                    Label badge =
-                                            new Label(
-                                                    AuctionStatus.valueOf(value).getDescription());
-                                    badge.getStyleClass()
-                                            .addAll(
-                                                    "product-status",
-                                                    "status-" + value.toLowerCase());
-                                    setGraphic(badge);
-                                }
-                            }
-                        });
+        column(state, a -> a.getStatus().getDescription());
         column(startColumn, a -> a.getStartTime().format(formatter));
         column(endColumn, a -> a.getEndTime().format(formatter));
         actions.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId()));

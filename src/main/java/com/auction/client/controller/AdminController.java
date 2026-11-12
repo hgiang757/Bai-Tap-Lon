@@ -27,7 +27,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/** Điều khiển ba màn hình quản trị. */
+/** Quản lý người dùng và phiên đấu giá. */
 public class AdminController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
     private boolean working, refreshQueued;
@@ -45,8 +45,7 @@ public class AdminController implements DisposableView {
 
     private void refreshSelected() {
         if (usersPane.isVisible()) users();
-        else if (auctionsPane.isVisible()) auctions();
-        else overview();
+        else auctions();
     }
 
     @Override
@@ -55,12 +54,11 @@ public class AdminController implements DisposableView {
         tasks.close();
     }
 
-    @FXML private VBox content, overviewPane, usersPane, auctionsPane;
-    @FXML private Label usersCount, openCount, runningCount, finishedCount, canceledCount;
+    @FXML private VBox content, usersPane, auctionsPane;
     @FXML private TextField userSearch, auctionSearch;
     @FXML private ComboBox<String> userRole, auctionStatus;
     @FXML private TableView<AdminUser> userTable;
-    @FXML private TableView<Auction> overviewTable, auctionTable;
+    @FXML private TableView<Auction> auctionTable;
     @FXML
     private TableColumn<AdminUser, String> userName,
             userEmail,
@@ -69,21 +67,9 @@ public class AdminController implements DisposableView {
             userCreated,
             userAction;
     @FXML
-    private TableColumn<Auction, String> overviewName,
-            overviewSeller,
-            overviewPrice,
-            overviewBidder,
-            overviewState,
-            overviewStart,
-            overviewEnd;
-    @FXML
     private TableColumn<Auction, String> auctionName,
-            auctionSeller,
             auctionPrice,
-            auctionBidder,
             auctionState,
-            auctionStart,
-            auctionEnd,
             auctionAction;
     @FXML private Label title;
     @FXML private Label message;
@@ -95,7 +81,7 @@ public class AdminController implements DisposableView {
     private boolean authorized;
     private Runnable userFilter = () -> {}, auctionFilter = () -> {};
 
-    /** Kiểm tra vai trò và hiển thị tổng quan. */
+    /** Kiểm tra vai trò và tải danh sách phiên. */
     @FXML
     public void initialize() {
         message.visibleProperty().bind(message.textProperty().isNotEmpty());
@@ -114,7 +100,7 @@ public class AdminController implements DisposableView {
         userRole.valueProperty().addListener((o, a, b) -> userFilter.run());
         auctionSearch.textProperty().addListener((o, a, b) -> auctionFilter.run());
         auctionStatus.valueProperty().addListener((o, a, b) -> auctionFilter.run());
-        overview();
+        auctions();
     }
 
     private <T> void run(Callable<T> work, Consumer<T> success) {
@@ -146,40 +132,6 @@ public class AdminController implements DisposableView {
                     refreshQueued = false;
                     message.setText("Không thể thực hiện: " + error.getMessage());
                 });
-    }
-
-    private record Summary(List<AdminUser> users, List<Auction> auctions) {}
-
-    @FXML
-    private void overview() {
-        if (!authorized) return;
-        title.setText("Tổng quan");
-        run(
-                () -> new Summary(userService.listUsers(), auctionService.listAuctions()),
-                data -> {
-                    usersCount.setText(Integer.toString(data.users().size()));
-                    openCount.setText(Long.toString(count(data.auctions(), AuctionStatus.OPEN)));
-                    runningCount.setText(
-                            Long.toString(count(data.auctions(), AuctionStatus.RUNNING)));
-                    finishedCount.setText(
-                            Long.toString(count(data.auctions(), AuctionStatus.FINISHED)));
-                    canceledCount.setText(
-                            Long.toString(count(data.auctions(), AuctionStatus.CANCELED)));
-                    overviewTable.setItems(
-                            FXCollections.observableArrayList(
-                                    data.auctions().stream()
-                                            .sorted(
-                                                    (a, b) ->
-                                                            b.getStartTime()
-                                                                    .compareTo(a.getStartTime()))
-                                            .limit(10)
-                                            .toList()));
-                    showPane(overviewPane);
-                });
-    }
-
-    private long count(List<Auction> list, AuctionStatus status) {
-        return list.stream().filter(a -> a.getStatus() == status).count();
     }
 
     @FXML
@@ -312,27 +264,14 @@ public class AdminController implements DisposableView {
                                 setGraphic(new HBox(5, lock, change, delete));
                             }
                         });
-        configureAuctionTable(
-                overviewName,
-                overviewSeller,
-                overviewPrice,
-                overviewBidder,
-                overviewState,
-                overviewStart,
-                overviewEnd);
-        configureAuctionTable(
-                auctionName,
-                auctionSeller,
-                auctionPrice,
-                auctionBidder,
-                auctionState,
-                auctionStart,
-                auctionEnd);
+        column(auctionName, Auction::getItemName);
+        column(auctionPrice, a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
+        column(auctionState, a -> a.getStatus().getDescription());
         configureAuctionActions();
     }
 
     private void showPane(VBox selected) {
-        for (VBox pane : List.of(overviewPane, usersPane, auctionsPane)) {
+        for (VBox pane : List.of(usersPane, auctionsPane)) {
             pane.setVisible(pane == selected);
             pane.setManaged(pane == selected);
         }
@@ -373,23 +312,6 @@ public class AdminController implements DisposableView {
                     auctionFilter.run();
                     showPane(auctionsPane);
                 });
-    }
-
-    private void configureAuctionTable(
-            TableColumn<Auction, String> name,
-            TableColumn<Auction, String> seller,
-            TableColumn<Auction, String> price,
-            TableColumn<Auction, String> bidder,
-            TableColumn<Auction, String> state,
-            TableColumn<Auction, String> start,
-            TableColumn<Auction, String> end) {
-        column(name, Auction::getItemName);
-        column(seller, Auction::getSellerUsername);
-        column(price, a -> FormatUtil.formatCurrency(a.getCurrentPrice()));
-        column(bidder, Auction::getHighestBidderUsername);
-        column(state, a -> a.getStatus().getDescription());
-        column(start, a -> a.getStartTime().format(formatter));
-        column(end, a -> a.getEndTime().format(formatter));
     }
 
     private void configureAuctionActions() {

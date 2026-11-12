@@ -16,7 +16,6 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import com.auction.client.ui.AppHeader?>
-<?import com.auction.client.ui.AppFooter?>
 <?import javafx.scene.control.ScrollPane?>
 
 <BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
@@ -30,7 +29,6 @@
             <Button text="Tải lại" onAction="#handleReload"/>
             <VBox spacing="2.0">
                 <Label fx:id="lblBrandName" styleClass="view-title, t-h3"/>
-                <Label text="Phiên đấu giá trực tiếp đang diễn ra" styleClass="view-subtitle, t-caption"/>
             </VBox>
             <Region HBox.hgrow="ALWAYS"/>
 
@@ -52,10 +50,6 @@
                         <Label text="CHẾ ĐỘ DEV — DỮ LIỆU GIẢ" styleClass="badge-dev"/>
                         <Button text="Mô phỏng lượt đặt giá" onAction="#handleSimulateIncomingBid"/>
                     </HBox>
-                    <VBox styleClass="page-intro" style="-fx-padding: 24px 0 0 0;">
-                        <Label text="Phòng đấu giá" styleClass="page-title, t-display"/>
-                        <Label text="Theo dõi diễn biến và đặt giá theo thời gian thực." styleClass="page-subtitle, t-body"/>
-                    </VBox>
                     <FlowPane hgap="20.0" vgap="20.0" style="-fx-padding: 20px 0 0 0;">
 
             <!-- ===== CỘT TRÁI (500px) ===== -->
@@ -180,10 +174,6 @@
                     <HBox alignment="CENTER_LEFT">
                     <Label text="Biến động giá" styleClass="section-header, t-h2"/>
                         <Region HBox.hgrow="ALWAYS"/>
-                    <HBox alignment="CENTER" spacing="6.0" styleClass="live-pill">
-                        <Region styleClass="live-indicator"/>
-                        <Label text="Trực tiếp" styleClass="t-caption"/>
-                    </HBox>
                 </HBox>
                 <Label text="Giá cao nhất theo thời gian (triệu đồng)"
                        styleClass="chart-subtitle, t-small"/>
@@ -216,8 +206,8 @@
                 </VBox>
             </VBox>
                     </FlowPane>
-                    <Region VBox.vgrow="ALWAYS"/>
-                    <AppFooter/>
+
+
                 </VBox>
                 </StackPane>
             </content>

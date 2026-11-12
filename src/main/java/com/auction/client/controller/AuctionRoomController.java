@@ -20,7 +20,6 @@ import com.auction.client.util.FormatUtil;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
@@ -136,12 +135,6 @@ public class AuctionRoomController implements DisposableView {
     @FXML
     public void initialize() {
         lblBrandName.setText(AppInfo.NAME);
-        pageContent
-                .minHeightProperty()
-                .bind(
-                        Bindings.createDoubleBinding(
-                                () -> detailScroll.getViewportBounds().getHeight(),
-                                detailScroll.viewportBoundsProperty()));
         SmoothScroll.apply(detailScroll, 3.0);
         com.auction.client.ui.AppFooter.install(detailScroll, pageContent);
         tasks.dispatch(detailScroll::requestFocus);
@@ -631,7 +624,6 @@ public class AuctionRoomController implements DisposableView {
             priceSeries.getData().remove(0);
         }
         updateChartAxes();
-        styleCurrentPoint();
     }
 
     private void attachPointTooltip(
@@ -640,50 +632,19 @@ public class AuctionRoomController implements DisposableView {
             double price,
             String bidder,
             boolean auto) {
-        dataPoint
-                .nodeProperty()
-                .addListener(
-                        (observable, oldNode, newNode) -> {
-                            if (newNode != null) {
-                                newNode.getStyleClass().add("chart-point");
-                                Tooltip.install(
-                                        newNode,
-                                        new Tooltip(
-                                                FormatUtil.formatChartTime(time)
-                                                        + " · "
-                                                        + FormatUtil.formatCurrency(price)
-                                                        + " · "
-                                                        + FormatUtil.maskUsername(bidder)
-                                                        + (auto ? " · TỰ ĐỘNG" : "")));
-                                styleCurrentPoint();
-                            }
-                        });
-        if (dataPoint.getNode() != null) {
-            dataPoint.getNode().getStyleClass().add("chart-point");
+        Consumer<Node> install = node -> {
+            if (node == null) return;
+            node.getStyleClass().add("chart-point");
             Tooltip.install(
-                    dataPoint.getNode(),
+                    node,
                     new Tooltip(
                             FormatUtil.formatChartTime(time)
-                                    + " · "
-                                    + FormatUtil.formatCurrency(price)
-                                    + " · "
-                                    + FormatUtil.maskUsername(bidder)
+                                    + " · " + FormatUtil.formatCurrency(price)
+                                    + " · " + FormatUtil.maskUsername(bidder)
                                     + (auto ? " · TỰ ĐỘNG" : "")));
-        }
-    }
-
-    private void styleCurrentPoint() {
-        List<XYChart.Data<Number, Number>> data = priceSeries.getData();
-        for (int index = 0; index < data.size(); index++) {
-            Node node = data.get(index).getNode();
-            if (node == null) {
-                continue;
-            }
-            node.getStyleClass().remove("chart-point-current");
-            if (index == data.size() - 1 && !node.getStyleClass().contains("chart-point-current")) {
-                node.getStyleClass().add("chart-point-current");
-            }
-        }
+        };
+        dataPoint.nodeProperty().addListener((observable, before, node) -> install.accept(node));
+        install.accept(dataPoint.getNode());
     }
 
     private void updateChartAxes() {

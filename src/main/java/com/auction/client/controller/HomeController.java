@@ -3,8 +3,6 @@ package com.auction.client.controller;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.model.ItemCategory;
-import com.auction.client.model.User;
-import com.auction.client.model.UserRole;
 import com.auction.client.navigation.DisposableView;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.navigation.ViewTasks;
@@ -41,10 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Điều khiển trang chủ với danh sách phiên đấu giá dạng thẻ. Thay thế TableView cũ bằng FlowPane
- * card động với countdown timer thời gian thực.
- */
+/** Danh sách phiên đấu giá, tìm kiếm và lọc theo danh mục. */
 public class HomeController implements DisposableView {
     private final ViewTasks tasks = new ViewTasks();
     private final ViewTasks imageTasks = ViewTasks.images();
@@ -73,12 +68,6 @@ public class HomeController implements DisposableView {
     @FXML private Button chipLaptop;
     @FXML private Button chipOther;
     @FXML private Label lblRunningHeader;
-    @FXML private Label lblStepsHeader;
-    @FXML private Label lblUpcomingHeader;
-    @FXML private Label lblSellHeader;
-    @FXML private Label lblStepOneIcon;
-    @FXML private Label lblStepTwoIcon;
-    @FXML private Label lblStepThreeIcon;
 
     // Grid & sidebar
     @FXML private FlowPane auctionGrid;
@@ -110,12 +99,6 @@ public class HomeController implements DisposableView {
     }
 
     private void configureVisuals() {
-        pageContent
-                .minHeightProperty()
-                .bind(
-                        Bindings.createDoubleBinding(
-                                () -> dashboardScroll.getViewportBounds().getHeight(),
-                                dashboardScroll.viewportBoundsProperty()));
         SmoothScroll.apply(dashboardScroll, 3.0);
         com.auction.client.ui.AppFooter.install(dashboardScroll, pageContent);
         auctionGrid.prefWrapLengthProperty().bind(auctionGrid.widthProperty());
@@ -123,16 +106,6 @@ public class HomeController implements DisposableView {
         setIcon(lblLogoIcon, "trophy", 22, "icon-primary");
         lblBrandName.setText(AppInfo.NAME);
         setIcon(lblSearchIcon, "search", 16, "icon-muted");
-        setIcon(lblStepOneIcon, "user", 28, "icon-primary");
-        setIcon(lblStepTwoIcon, "gavel", 28, "icon-primary");
-        setIcon(lblStepThreeIcon, "bag", 28, "icon-primary");
-        setButtonIcon(chipWatch, "watch");
-        setButtonIcon(chipAll, "search");
-        setButtonIcon(chipArt, "image");
-        setButtonIcon(chipHome, "home");
-        setButtonIcon(chipCar, "car");
-        setButtonIcon(chipLaptop, "laptop");
-        setButtonIcon(chipOther, "tag");
     }
 
     private void setIcon(Label label, String name, double size, String colorClass) {
@@ -141,14 +114,6 @@ public class HomeController implements DisposableView {
         label.setGraphic(icon);
         label.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
         label.setGraphicTextGap(8);
-    }
-
-    private void setButtonIcon(Button button, String name) {
-        Region icon = Icons.icon(name, 20);
-        icon.getStyleClass().add("icon-current");
-        button.setGraphic(icon);
-        button.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
-        button.setGraphicTextGap(6);
     }
 
     private void setupSearchListener() {
@@ -361,16 +326,6 @@ public class HomeController implements DisposableView {
         lblName.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
         lblName.setTooltip(new javafx.scene.control.Tooltip(auction.getItemName()));
 
-        // Người bán
-        Label lblSeller = new Label(auction.getSellerUsername());
-        lblSeller.getStyleClass().add("text-secondary");
-        setIcon(lblSeller, "user", 14, "icon-muted");
-
-        // Số bid
-        Label lblBids = new Label(auction.getTotalBids() + " lượt đặt giá");
-        lblBids.getStyleClass().add("text-secondary");
-        setIcon(lblBids, "gavel", 14, "icon-muted");
-
         // Giá hiện tại
         Label lblPrice = new Label(FormatUtil.formatCurrency(auction.getCurrentPrice()));
         lblPrice.getStyleClass().add("auction-card-price");
@@ -380,16 +335,9 @@ public class HomeController implements DisposableView {
         lblPrice.setTooltip(new javafx.scene.control.Tooltip(lblPrice.getText()));
 
         // Nút đặt giá
-        Button btnBid =
-                new Button(
-                        auction.getStatus() == AuctionStatus.OPEN
-                                ? "Xem phiên"
-                                : auction.getStatus() == AuctionStatus.RUNNING
-                                        ? "Đặt giá"
-                                        : "Xem kết quả");
+        Button btnBid = new Button("Xem chi tiết");
         btnBid.getStyleClass().add("btn-primary");
         btnBid.setMaxWidth(Double.MAX_VALUE);
-        setButtonIcon(btnBid, "arrow-right");
         btnBid.setOnAction(e -> openAuctionDetail(auction));
         btnBid.addEventFilter(MouseEvent.MOUSE_CLICKED, MouseEvent::consume);
 
@@ -407,8 +355,6 @@ public class HomeController implements DisposableView {
                         imgBox,
                         topRow,
                         lblName,
-                        lblSeller,
-                        lblBids,
                         lblPrice,
                         flexibleSpace,
                         btnBid);
@@ -515,64 +461,6 @@ public class HomeController implements DisposableView {
         applyFilters();
     }
 
-    @FXML
-    private void handleListItem() {
-        User user = auctionService.getCurrentUser();
-        if (user != null && user.getRole() == UserRole.SELLER) {
-            try {
-                ViewNavigator.loadView(
-                        "/com/auction/client/views/seller-products-view.fxml", "Quản lý sản phẩm");
-            } catch (IOException e) {
-                showNavigationError();
-            }
-        } else {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            ViewNavigator.applyAppStylesheet(alert.getDialogPane());
-            alert.setTitle("Thông báo");
-            alert.setHeaderText("Chỉ dành cho người bán");
-            alert.setContentText(
-                    "Bạn cần có tài khoản NGƯỜI BÁN để đăng bán sản phẩm. "
-                            + "Vui lòng đăng ký tài khoản mới với vai trò Người bán.");
-            alert.showAndWait();
-        }
-    }
-
-    @FXML
-    private void handleShowFullSchedule() {
-        List<Auction> upcoming =
-                allAuctions.stream()
-                        .filter(auction -> auction.getStatus() == AuctionStatus.OPEN)
-                        .sorted(
-                                (first, second) ->
-                                        first.getStartTime().compareTo(second.getStartTime()))
-                        .collect(Collectors.toList());
-        String content =
-                upcoming.isEmpty()
-                        ? "Hiện chưa có phiên nào được lên lịch."
-                        : upcoming.stream()
-                                .map(
-                                        auction ->
-                                                auction.getItemName()
-                                                        + " — "
-                                                        + auction.getStartTime()
-                                                                .format(
-                                                                        java.time.format
-                                                                                .DateTimeFormatter
-                                                                                .ofPattern(
-                                                                                        "dd/MM/yyyy"
-                                                                                            + " HH:mm"))
-                                                        + " — Giá khởi điểm "
-                                                        + FormatUtil.formatCurrency(
-                                                                auction.getStartingPrice()))
-                                .collect(Collectors.joining("\n"));
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        ViewNavigator.applyAppStylesheet(alert.getDialogPane());
-        alert.setTitle("Lịch đấu giá");
-        alert.setHeaderText("Các phiên sắp diễn ra");
-        alert.setContentText(content);
-        alert.showAndWait();
-    }
-
     private void openAuctionDetail(Auction auction) {
         try {
             AuctionRoomController controller =
@@ -580,15 +468,6 @@ public class HomeController implements DisposableView {
                             "/com/auction/client/views/auction-room-view.fxml",
                             "Phòng đấu giá: " + auction.getItemName());
             controller.setAuction(auction);
-        } catch (IOException e) {
-            showNavigationError();
-        }
-    }
-
-    @FXML
-    private void handleOpenProductManagement() {
-        try {
-            ViewNavigator.navigate(ViewNavigator.Route.PRODUCTS);
         } catch (IOException e) {
             showNavigationError();
         }
