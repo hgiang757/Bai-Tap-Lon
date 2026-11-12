@@ -1,73 +1,47 @@
 package com.auction.server.model;
 
-public class ItemFactory {
+/**
+ * Parameterized Factory Method: create() is overridden by the selected creator.
+ * The static forCategory() selector is a Simple Factory for these creators.
+ */
+public abstract class ItemFactory {
+    public abstract Item create(String id, String name, String description, Seller owner);
 
-    public static Item forCategory(String category) {
-        if (category == null || category.isBlank()) {
-            return new Art();
-        }
-        return switch (category.trim().toUpperCase()) {
-            case "ELECTRONICS", "TECHNOLOGY", "DIGITAL" -> new Electronics();
-            case "VEHICLE", "VEHICLES", "AUTOMOTIVE", "CAR" -> new Vehicle();
-            case "ART", "JEWELRY", "REAL_ESTATE", "FASHION", "WATCHES", "COLLECTIBLES", "OTHER" -> new Art();
-            default -> new Art();
+    public static ItemFactory forCategory(String category) {
+        String input = category == null ? "" : category.trim().toUpperCase(java.util.Locale.ROOT);
+        String type = switch (input) {
+            case "TECHNOLOGY", "DIGITAL" -> "ELECTRONICS";
+            case "VEHICLES", "AUTOMOTIVE", "CAR" -> "VEHICLE";
+            case "FASHION", "WATCHES", "COLLECTIBLES" -> "ART";
+            default -> input;
         };
-    }
-
-    public static Item create(String type, String id, String name, double basePrice) {
-        return createItem(type, id, name, basePrice);
-    }
-
-    public static Item create(String type, String name, double basePrice) {
-        return createItem(type, null, name, basePrice);
-    }
-
-    public static Item createItem(String type, String name, double basePrice) {
-        return createItem(type, null, name, basePrice);
-    }
-
-    public static Item createItem(String type, String id, String name, double basePrice) {
-        return createItem(type, id, name, "", basePrice, "", null);
-    }
-
-    public static Item createItem(
-            String type,
-            String id,
-            String name,
-            String description,
-            double basePrice,
-            String imageUrl,
-            String extraInfo) {
-
-        if (type == null || type.isBlank()) {
-            throw new IllegalArgumentException("Loại sản phẩm không được để trống");
-        }
-        if (basePrice < 0) {
-            throw new IllegalArgumentException("Giá khởi điểm không được âm");
-        }
-
-        return switch (type.trim().toUpperCase()) {
-            case "ELECTRONICS", "TECHNOLOGY", "DIGITAL" -> {
-                int warranty = parseIntOrDefault(extraInfo, 12);
-                yield new Electronics(id, name, description, basePrice, imageUrl, warranty);
-            }
-            case "VEHICLE", "VEHICLES", "AUTOMOTIVE", "CAR" -> {
-                int mileage = parseIntOrDefault(extraInfo, 0);
-                yield new Vehicle(id, name, description, basePrice, imageUrl, mileage);
-            }
-            default -> {
-                String artist = (extraInfo == null || extraInfo.isBlank()) ? "Unknown Artist" : extraInfo;
-                yield new Art(id, name, description, basePrice, imageUrl, artist);
+        if (!java.util.Set.of("ELECTRONICS", "ART", "VEHICLE", "JEWELRY", "REAL_ESTATE", "OTHER")
+                .contains(type)) throw new IllegalArgumentException("Unknown category");
+        return new ItemFactory() {
+            @Override
+            public Item create(String id, String name, String description, Seller owner) {
+                return switch (type) {
+                    case "ELECTRONICS" -> new Electronics().create(id, name, description, owner);
+                    case "ART" -> new Art().create(id, name, description, owner);
+                    case "VEHICLE" -> new Vehicle().create(id, name, description, owner);
+                    default -> new CategoryItem(id, name, description, owner, type);
+                };
             }
         };
     }
 
-    private static int parseIntOrDefault(String value, int defaultVal) {
-        if (value == null || value.isBlank()) return defaultVal;
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return defaultVal;
+    private static final class CategoryItem extends Item {
+        private final String category;
+
+        CategoryItem(String id, String name, String description, Seller owner, String category) {
+            super(id, name, description, 0, "");
+            setSeller(owner);
+            this.category = category;
+        }
+
+        @Override
+        public String getCategory() {
+            return category;
         }
     }
 }

@@ -13,6 +13,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.*;
 
 class ServerIntegrationTest {
     @TempDir Path directory;
@@ -108,6 +109,42 @@ class ServerIntegrationTest {
                                     .size());
                 }
                 two.call("UNSUBSCRIBE_AUCTION", obj("auctionId", id));
+            }
+        }
+    }
+
+    @Test
+    void simultaneousEqualBidsCommitOnceAndMalformedClientDoesNotStopServer() throws Exception {
+        try (Server server = new Server("0.0.0.0", 0, directory, true)) {
+            server.start();
+            try (Peer one = new Peer(server.port()); Peer two = new Peer(server.port())) {
+                one.login("bidder_hieu", "Bidder12345");
+                two.login("bidder_vip99", "Bidder12345");
+                String auction = one.call("LIST_AUCTIONS", obj()).getAsJsonArray()
+                        .get(0).getAsJsonObject().get("id").getAsString();
+                try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
+                    CountDownLatch start = new CountDownLatch(1);
+                    List<Future<Boolean>> results = new ArrayList<>();
+                    for (Peer peer : List.of(one, two)) results.add(pool.submit(() -> {
+                        start.await();
+                        try {
+                            peer.call("PLACE_BID", obj("auctionId", auction, "amount", 2_000_000));
+                            return true;
+                        } catch (AssertionError rejected) { return false; }
+                    }));
+                    start.countDown();
+                    int accepted = 0;
+                    for (Future<Boolean> result : results) if (result.get(10, TimeUnit.SECONDS)) accepted++;
+                    assertEquals(1, accepted);
+                }
+                assertEquals(1, two.call("GET_BID_HISTORY", obj("auctionId", auction)).getAsJsonArray().size());
+                try (Peer malformed = new Peer(server.port())) {
+                    malformed.out.writeInt(Server.MAX_FRAME + 1);
+                    malformed.out.flush();
+                    assertEquals(-1, malformed.in.read());
+                }
+                one.close();
+                assertEquals(1, two.call("GET_BID_HISTORY", obj("auctionId", auction)).getAsJsonArray().size());
             }
         }
     }

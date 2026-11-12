@@ -27,6 +27,7 @@ public final class ServerServices
     private final JsonTransport transport;
     private final Path directory;
     private final Object writes = new Object(), subscriptions = new Object();
+    private final Object imageCache = new Object();
     private final Map<String, CopyOnWriteArrayList<Consumer<Bid>>> bidListeners =
             new ConcurrentHashMap<>();
     private final List<Consumer<String>> changes = new CopyOnWriteArrayList<>();
@@ -484,11 +485,24 @@ public final class ServerServices
         try {
             Path cache = directory.resolve("images");
             Files.createDirectories(cache);
-            Path file = cache.resolve(UUID.randomUUID() + ".img");
-            Files.write(file, Base64.getDecoder().decode(data));
-            file.toFile().deleteOnExit();
+            byte[] bytes = Base64.getDecoder().decode(data);
+            String hash = HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+            Path file = cache.resolve(hash + ".img");
+            synchronized (imageCache) {
+                if (!Files.exists(file)) {
+                    Path temporary = Files.createTempFile(cache, "image-", ".tmp");
+                    try {
+                        Files.write(temporary, bytes);
+                        Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE,
+                                StandardCopyOption.REPLACE_EXISTING);
+                    } finally {
+                        Files.deleteIfExists(temporary);
+                    }
+                }
+            }
             return file.toString();
-        } catch (IOException e) {
+        } catch (IOException | java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException("Không lưu được ảnh tải từ server.", e);
         }
     }
@@ -685,7 +699,12 @@ public final class ServerServices
             Bid b = bid(e.getAsJsonObject("bid"));
             for (var listener :
                     bidListeners.getOrDefault(b.getAuctionId(), new CopyOnWriteArrayList<>()))
-                listener.accept(b);
+                try {
+                    listener.accept(b);
+                } catch (RuntimeException error) {
+                    // One broken view must not suppress other observers or the change event.
+                    System.err.println("Bid listener failed: " + error.getMessage());
+                }
         }
         changed(type);
     }

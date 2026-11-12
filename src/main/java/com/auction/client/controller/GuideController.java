@@ -100,7 +100,7 @@ public class GuideController implements DisposableView {
                 "guide-wallet",
                 "Mở Ví của tôi trong menu tài khoản để nạp, rút và xem lịch sử giao dịch mô phỏng.",
                 "Tiền tạm giữ cho đấu giá dành cho các phiên bạn đang dẫn đầu; được giải phóng khi"
-                    + " bị vượt giá hoặc phiên bị hủy. Khi xử lý kết thúc phiên, mock tự trừ khoản"
+                    + " bị vượt giá hoặc phiên bị hủy. Khi kết thúc phiên, hệ thống tự trừ khoản"
                     + " tạm giữ của người thắng khỏi tổng số dư để thanh toán.");
         addSection(
                 "Câu hỏi thường gặp",

@@ -23,7 +23,8 @@ public final class AuctionTime {
     }
 
     public static boolean valid(LocalDateTime start, LocalDateTime end, LocalDateTime now) {
-        return start != null && end != null && !start.isBefore(now) && end.isAfter(start);
+        return start != null && end != null && !start.isBefore(now) && end.isAfter(start)
+                && Duration.between(start, end).compareTo(Duration.ofDays(365)) <= 0;
     }
 
     public static String summary(LocalDateTime start, LocalDateTime end) {

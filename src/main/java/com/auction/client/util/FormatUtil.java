@@ -26,15 +26,15 @@ public final class FormatUtil {
     private FormatUtil() {}
 
     /** Định dạng số tiền theo quy chuẩn Việt Nam: 185.000.000 ₫ */
-    public static String formatCurrency(long amount) {
+    public static synchronized String formatCurrency(long amount) {
         return CURRENCY_FORMAT.format(amount) + " ₫";
     }
 
-    public static String formatCurrency(double amount) {
+    public static synchronized String formatCurrency(double amount) {
         return CURRENCY_FORMAT.format(amount) + " ₫";
     }
 
-    public static String formatCompactPriceAxis(double amount) {
+    public static synchronized String formatCompactPriceAxis(double amount) {
         double absoluteAmount = Math.abs(amount);
         if (absoluteAmount >= 1_000_000_000) {
             return COMPACT_FORMAT.format(amount / 1_000_000_000) + " tỷ";

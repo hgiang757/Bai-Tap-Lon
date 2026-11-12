@@ -11,6 +11,12 @@ import javax.crypto.spec.PBEKeySpec;
 final class Passwords {
     private Passwords() {}
 
+    /** Load the crypto provider before accepting clients, rather than during a cold first login. */
+    static void warmUp() {
+        java.util.UUID.randomUUID(); // Login tokens use a lazily initialized secure generator.
+        derive("startup-check", new byte[16]); // Not a credential; this value is never stored.
+    }
+
     static String hash(String password) {
         byte[] salt = new byte[16];
         new SecureRandom().nextBytes(salt);

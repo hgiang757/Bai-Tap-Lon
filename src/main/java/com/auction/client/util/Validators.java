@@ -72,6 +72,7 @@ public final class Validators {
     public static boolean password(String value) {
         return value != null
                 && value.length() >= 8
+                && value.length() <= 128
                 && value.matches("(?s).*[A-Za-z].*")
                 && value.matches("(?s).*[0-9].*");
     }

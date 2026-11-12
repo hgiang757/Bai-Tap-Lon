@@ -113,6 +113,14 @@ class ServerUiIntegrationTest {
                 });
     }
 
+    static DialogPane productDialog() {
+        return javafx.stage.Window.getWindows().stream()
+                .filter(w -> w.isShowing() && w != stage)
+                .map(w -> w.getScene().getRoot())
+                .filter(DialogPane.class::isInstance).map(DialogPane.class::cast)
+                .findFirst().orElse(null);
+    }
+
     @Test
     void javafxScreensOperateOnTheRealServer() throws Exception {
         try (Server server = new Server("127.0.0.1", 0, directory.resolve("server"), true)) {
@@ -177,6 +185,34 @@ class ServerUiIntegrationTest {
                                                     .getItems()
                                                     .isEmpty()));
                     snapshot("server-seller");
+                    fx(() -> {
+                        Platform.runLater(() -> ((Button) field(products, "addButton")).fire());
+                        return null;
+                    });
+                    await(() -> productDialog() != null);
+                    fx(() -> {
+                        DialogPane form = productDialog();
+                        form.applyCss();
+                        form.layout();
+                        ((TextField) form.lookup("#productName")).setText("Sản phẩm từ form thật");
+                        ((TextArea) form.lookup("#productDescription")).setText("Mô tả kiểm thử qua TCP");
+                        ((ComboBox<?>) form.lookup("#productCategory")).getSelectionModel().selectFirst();
+                        ((TextField) form.lookup("#productPrice")).setText("500000");
+                        ((TextField) form.lookup("#productStep")).setText("10000");
+                        ((DatePicker) form.lookup("#productStart")).setValue(adapter.serverNow().toLocalDate().plusDays(1));
+                        ((DatePicker) form.lookup("#productEnd")).setValue(adapter.serverNow().toLocalDate().plusDays(2));
+                        ((TextField) form.lookup("#productStartTime")).setText("10:00");
+                        ((TextField) form.lookup("#productEndTime")).setText("10:00");
+                        Button save = (Button) form.lookupButton(ButtonType.OK);
+                        assertFalse(save.isDisabled());
+                        save.fire();
+                        return null;
+                    });
+                    await(() -> !products.isLoading()
+                            && ((TableView<Auction>) field(products, "table")).getItems().stream()
+                            .anyMatch(a -> a.getItemName().equals("Sản phẩm từ form thật")));
+                    assertTrue(adapter.listProducts("seller_hieu").stream()
+                            .anyMatch(a -> a.getItemName().equals("Sản phẩm từ form thật")));
                     adapter.logout();
                     login("admin_hieu", "Admin12345");
                     await(

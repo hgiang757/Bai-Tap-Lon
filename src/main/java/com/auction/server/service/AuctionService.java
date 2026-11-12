@@ -4,6 +4,7 @@ import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
 import com.auction.server.dao.AuctionRepository;
+import com.auction.server.dao.AuctionJsonMapper;
 import com.auction.server.exception.ApiException;
 import com.auction.server.model.*;
 import com.google.gson.*;
@@ -75,8 +76,8 @@ public final class AuctionService implements AutoCloseable {
                 if (demo) seedDemo();
                 repository.save(state);
             }
-            if (number(state, "schemaVersion") != 1)
-                throw new IOException("Unsupported data schema");
+            AuctionStateValidator.validate(state);
+            Passwords.warmUp();
         } catch (IOException | RuntimeException e) {
             repository.close();
             throw e;
@@ -356,6 +357,7 @@ public final class AuctionService implements AutoCloseable {
         } catch (IOException e) {
             state = before;
             events.clear();
+            System.err.println("State commit failed: " + e.getMessage());
             throw error("STORAGE_ERROR", "Unable to commit; operation rolled back");
         }
         for (JsonObject event : events)
@@ -484,7 +486,7 @@ public final class AuctionService implements AutoCloseable {
         copy.remove("bids");
         copy.remove("imageBase64");
         copy.addProperty("hasImage", !text(a, "imageBase64").isEmpty());
-        copy.addProperty("minNextBid", number(a, "currentPrice") + number(a, "minBidStep"));
+        copy.addProperty("minNextBid", AuctionJsonMapper.auction(a).minimumNextBid());
         return copy;
     }
 
@@ -711,13 +713,7 @@ public final class AuctionService implements AutoCloseable {
     }
 
     private void validateBidder(JsonObject user, JsonObject a) {
-        if (text(user, "role").equals("ADMIN") || text(user, "id").equals(text(a, "sellerId")))
-            throw error("FORBIDDEN", "Cannot bid on this product");
-        if (LocalDateTime.parse(text(a, "startTime")).isAfter(now()))
-            throw error("AUCTION_NOT_STARTED", "Auction has not started");
-        if (!text(a, "status").equals("RUNNING")
-                || !now().isBefore(LocalDateTime.parse(text(a, "endTime"))))
-            throw error("AUCTION_CLOSED", "Auction is closed");
+        AuctionJsonMapper.auction(a).requireBidder(text(user, "id"), text(user, "role"), now());
     }
 
     // 5. Đặt giá: kiểm tra phiên/quyền/giá/tiền, chấp nhận bid rồi chạy auto-bid.
@@ -725,8 +721,7 @@ public final class AuctionService implements AutoCloseable {
         JsonObject a = auction(p);
         validateBidder(user, a);
         long amount = money(p, "amount");
-        if (amount < number(a, "currentPrice") + number(a, "minBidStep"))
-            throw error("BID_TOO_LOW", "Bid must reach current price plus minimum step");
+        AuctionJsonMapper.auction(a).requireMinimumBid(amount);
         if (availableForAuction(user, a) < amount)
             throw error("INSUFFICIENT_FUNDS", "Insufficient available funds");
         acceptBid(a, user, amount, false);
@@ -747,21 +742,9 @@ public final class AuctionService implements AutoCloseable {
                     previousAmount,
                     text(a, "id"));
         log(user, "BID_HOLD", amount, text(a, "id"));
-        JsonObject bid =
-                obj(
-                        "id",
-                        id(),
-                        "auctionId",
-                        text(a, "id"),
-                        "bidderUsername",
-                        text(user, "username"),
-                        "amount",
-                        amount,
-                        "timestamp",
-                        now(),
-                        "auto",
-                        automatic);
-        a.getAsJsonArray("bids").add(bid);
+        BidTransaction bid =
+                new BidTransaction(id(), text(a, "id"), text(user, "username"), amount, now(), automatic);
+        a.getAsJsonArray("bids").add(AuctionJsonMapper.bid(bid));
         a.addProperty("totalBids", a.getAsJsonArray("bids").size());
         LocalDateTime end = LocalDateTime.parse(text(a, "endTime"));
         LocalDateTime extended = new AntiSnipingPolicy().computeNewEndTime(end, now());
@@ -785,7 +768,7 @@ public final class AuctionService implements AutoCloseable {
         validateBidder(user, a);
         long max = money(p, "maxBid"), increment = money(p, "increment");
         if (increment < number(a, "minBidStep")
-                || max < number(a, "currentPrice") + number(a, "minBidStep"))
+                || max < AuctionJsonMapper.auction(a).minimumNextBid())
             throw error("VALIDATION_ERROR", "Invalid auto-bid step or maximum");
         if (availableForAuction(user, a) < max)
             throw error("INSUFFICIENT_FUNDS", "Maximum exceeds available budget");
@@ -832,7 +815,7 @@ public final class AuctionService implements AutoCloseable {
                 if (!r.get("active").getAsBoolean()
                         || text(r, "userId").equals(text(a, "highestBidderId"))) continue;
                 JsonObject user = collection("users").getAsJsonObject(text(r, "userId"));
-                long minimum = number(a, "currentPrice") + number(a, "minBidStep"),
+                long minimum = AuctionJsonMapper.auction(a).minimumNextBid(),
                         max = number(r, "maxBid");
                 if (minimum > max) {
                     r.addProperty("active", false);
@@ -853,6 +836,9 @@ public final class AuctionService implements AutoCloseable {
                                                 other != r
                                                         && other.get("active").getAsBoolean()
                                                         && number(other, "maxBid") == max
+                                                        && availableForAuction(
+                                                                        collection("users").getAsJsonObject(text(other, "userId")), a)
+                                                                >= max
                                                         && number(other, "order")
                                                                 < number(r, "order"))) {
                     r.addProperty("active", false);

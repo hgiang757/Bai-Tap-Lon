@@ -118,6 +118,7 @@ public final class AppHeader extends HBox {
             } else account = menu;
         } else {
             Button login = new Button("Đăng nhập");
+            login.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
             login.getStyleClass().add("btn-primary");
             login.setOnAction(
                     e -> {

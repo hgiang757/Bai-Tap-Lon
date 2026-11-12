@@ -311,7 +311,7 @@ public class AuthController implements DisposableView {
                 txtPassword,
                 errPassword,
                 showPasswordError,
-                "Mật khẩu tối thiểu 8 ký tự, gồm chữ và số.");
+                "Mật khẩu dài 8–128 ký tự, gồm chữ và số.");
         passwordHint.setVisible(isRegisterMode && !showPasswordError);
         passwordHint.setManaged(isRegisterMode && !showPasswordError);
         boolean showConfirm = isRegisterMode && (touchedConfirm || !txtConfirm.getText().isEmpty());

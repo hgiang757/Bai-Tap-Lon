@@ -322,6 +322,18 @@ class ClientUiTest {
                     ((TextField) form.lookup("#productEndTime")).setText("10:00");
                     Button save = (Button) form.lookupButton(ButtonType.OK);
                     assertFalse(save.isDisabled());
+                    ((TextField) form.lookup("#productName")).setText("x".repeat(201));
+                    assertTrue(save.isDisabled(), "Names over the server limit must be blocked");
+                    ((TextField) form.lookup("#productName")).setText("UI product created");
+                    ((TextArea) form.lookup("#productDescription")).setText("x".repeat(10001));
+                    assertTrue(save.isDisabled(), "Descriptions over the server limit must be blocked");
+                    ((TextArea) form.lookup("#productDescription")).setText("Sản phẩm kiểm thử giao diện");
+                    ((DatePicker) form.lookup("#productEnd"))
+                            .setValue(java.time.LocalDate.now().plusDays(367));
+                    assertTrue(save.isDisabled(), "Auctions longer than 365 days must be blocked");
+                    ((DatePicker) form.lookup("#productEnd"))
+                            .setValue(java.time.LocalDate.now().plusDays(2));
+                    assertFalse(save.isDisabled());
                     save.fire();
                     return null;
                 });
@@ -973,6 +985,12 @@ class ClientUiTest {
                         root.applyCss();
                         root.layout();
                         FlowPane grid = field(home, "auctionGrid");
+                        Button login = root.lookupAll(".button").stream()
+                                .filter(Button.class::isInstance).map(Button.class::cast)
+                                .filter(button -> button.getText().equals("Đăng nhập"))
+                                .findFirst().orElseThrow();
+                        assertTrue(login.getWidth() >= login.prefWidth(-1) - 1,
+                                "The sign-in label must remain readable at 640px");
                         for (var node : grid.getChildren()) {
                             var card = (javafx.scene.layout.VBox) node;
                             assertTrue(card.getWidth() <= grid.getWidth() + 1);
@@ -1196,5 +1214,80 @@ class ClientUiTest {
                     stage.setHeight(800);
                     return null;
                 });
+    }
+
+    @Test
+    @Order(13)
+    void accountPopupClosesWhenItsHeaderIsRemoved() throws Exception {
+        assertTrue(ServiceRegistry.getService().login("seller_hieu", "123456", null));
+        fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
+        var menu = fx(() -> (com.auction.client.ui.UserMenu)
+                stage.getScene().getRoot().lookup(".user-menu-host"));
+        assertNotNull(menu);
+        fx(() -> { ((Button) field(menu, "trigger")).fire(); return null; });
+        awaitFx(() -> ((javafx.stage.Popup) field(menu, "popup")).isShowing());
+        fx(() -> {
+            stage.getScene().setRoot(new javafx.scene.layout.VBox());
+            return null;
+        });
+        awaitFx(() -> !((javafx.stage.Popup) field(menu, "popup")).isShowing());
+    }
+
+    @Test
+    @Order(14)
+    void accountPopupClosesOnFocusLossEscapeAndOwnerHide() throws Exception {
+        fx(() -> ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD));
+        var menu = fx(() -> (com.auction.client.ui.UserMenu)
+                stage.getScene().getRoot().lookup(".user-menu-host"));
+        javafx.stage.Popup popup = field(menu, "popup");
+        Stage otherWindow = fx(Stage::new);
+        try {
+            fx(() -> {
+                stage.toFront();
+                stage.requestFocus();
+                ((Button) field(menu, "trigger")).fire();
+                return null;
+            });
+            awaitFx(popup::isShowing);
+            fx(() -> {
+                otherWindow.setTitle("Kiểm thử chuyển cửa sổ");
+                otherWindow.setScene(new javafx.scene.Scene(new javafx.scene.layout.VBox(), 240, 100));
+                otherWindow.show();
+                otherWindow.toFront();
+                otherWindow.requestFocus();
+                return null;
+            });
+            awaitFx(otherWindow::isFocused);
+            awaitFx(() -> !popup.isShowing());
+            fx(() -> {
+                otherWindow.close();
+                stage.toFront();
+                stage.requestFocus();
+                ((Button) field(menu, "trigger")).fire();
+                return null;
+            });
+            awaitFx(popup::isShowing);
+            fx(() -> {
+                popup.getScene().getRoot().fireEvent(new javafx.scene.input.KeyEvent(
+                        javafx.scene.input.KeyEvent.KEY_PRESSED, "", "",
+                        javafx.scene.input.KeyCode.ESCAPE, false, false, false, false));
+                return null;
+            });
+            awaitFx(() -> !popup.isShowing());
+            fx(() -> {
+                ((Button) field(menu, "trigger")).fire();
+                return null;
+            });
+            awaitFx(popup::isShowing);
+            fx(() -> { stage.hide(); return null; });
+            awaitFx(() -> !popup.isShowing());
+            fx(() -> {
+                assertNull(field(menu, "menuOwner"));
+                assertNull(field(menu, "menuScene"));
+                return null;
+            });
+        } finally {
+            fx(() -> { otherWindow.close(); stage.show(); return null; });
+        }
     }
 }
