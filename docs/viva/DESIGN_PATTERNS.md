@@ -132,3 +132,14 @@ Action strings trong `handleAction()` và `commandId` là định tuyến và ch
 **Không phải Command GoF** có object lệnh với execute/undo. Chưa đề xuất thêm vì
 chưa có yêu cầu undo, hàng đợi command nghiệp vụ hoặc strategy bid thay thế. Hệ
 thống không có undo bid đã commit; rollback do lưu thất bại là việc khác.
+
+## PriorityQueue trong auto-bid Server thật
+
+`BiddingLogic.processAutoBids()` dùng PriorityQueue ứng viên và lấy từng luật bằng
+`remove()`, không duyệt iterator của heap để suy ra thứ tự. Danh sách `rules` đã
+sắp ổn định theo `order`; vị trí trong danh sách là priority của heap, nên cả các
+luật cũ có cùng order vẫn giữ thứ tự trước đây. Mỗi vòng chọn một bid hợp lệ,
+kiểm tra trần/ngân sách và bỏ leader; vòng kế tiếp xét lại từ ưu tiên đầu. Cùng
+monitor và transaction của AuctionService, không thêm queue/network thread. Đây
+là cấu trúc dữ liệu theo yêu cầu PDF, không phải một Design Pattern mới. Mock
+`AutoBidEngine` vẫn có PriorityQueue riêng cho fixture GUI.

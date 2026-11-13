@@ -82,7 +82,8 @@ public final class ServerServices
 
     private JsonObject response(String action, String command, JsonObject payload) {
         String session = token;
-        if (!session.isEmpty())
+        // Authentication must also work while the previous server session is expired.
+        if (!session.isEmpty() && !action.equals("LOGIN") && !action.equals("REGISTER"))
             synchronized (subscriptions) {
                 long generation = transport.generation();
                 if (generation != subscribedGeneration) {

@@ -12,6 +12,7 @@ import com.auction.client.service.BidSubmissionTracker.Phase;
 import com.auction.client.service.ServiceRegistry;
 import com.auction.client.service.mock.MockAuctionClientService;
 import com.auction.client.ui.Icons;
+import com.auction.client.ui.AuctionBidHistoryView;
 import com.auction.client.ui.ProductImages;
 import com.auction.client.ui.RoundedClip;
 import com.auction.client.ui.SmoothScroll;
@@ -21,10 +22,8 @@ import com.auction.client.util.FormatUtil;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
-import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
@@ -32,19 +31,15 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import javafx.util.StringConverter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -116,8 +111,7 @@ public class AuctionRoomController implements DisposableView {
 
     private final AuctionClientService auctionService = ServiceRegistry.getService();
     private Auction currentAuction;
-    private static final int MAX_CHART_POINTS = 30;
-    private XYChart.Series<Number, Number> priceSeries;
+    private AuctionBidHistoryView historyView;
     private Consumer<Bid> realtimeBidConsumer;
     private Timeline countdownTimer;
     private com.auction.client.model.AutoBid myAutoBid;
@@ -139,11 +133,12 @@ public class AuctionRoomController implements DisposableView {
         com.auction.client.ui.AppFooter.install(detailScroll, pageContent);
         tasks.dispatch(detailScroll::requestFocus);
         auctionService.addChangeListener(serverChanges);
-        setupChart();
+        historyView = new AuctionBidHistoryView(
+                priceChart, xAxisTime, yAxisPrice, lblNoBids, lvRecentBids);
+        RoundedClip.apply(chartContainer, 12);
         setupQuickBidButtons();
         txtBidAmount.setOnAction(event -> handlePlaceBid());
         setupAutoBid();
-        setupPlaceholder();
         RoundedClip.apply(productImageContainer, 12);
         checkDevMode();
         hideAlert();
@@ -163,70 +158,6 @@ public class AuctionRoomController implements DisposableView {
                         lblAvailableBalance.setText(
                                 "Số tiền có thể sử dụng: " + FormatUtil.formatCurrency(balance)),
                 error -> lblAvailableBalance.setText("Không thể tải số tiền có thể sử dụng."));
-    }
-
-    private void setupChart() {
-        priceSeries = new XYChart.Series<>();
-        priceChart.getData().clear();
-        priceChart.getData().add(priceSeries);
-        priceChart.setAnimated(false);
-        priceChart.setLegendVisible(false);
-        priceChart.setTitle(null);
-        xAxisTime.setLabel("");
-        yAxisPrice.setLabel("");
-        xAxisTime.setAnimated(false);
-        yAxisPrice.setAnimated(false);
-        xAxisTime.setAutoRanging(false);
-        yAxisPrice.setAutoRanging(false);
-        xAxisTime.setForceZeroInRange(false);
-        yAxisPrice.setForceZeroInRange(false);
-        xAxisTime.setTickMarkVisible(false);
-        yAxisPrice.setTickMarkVisible(false);
-        yAxisPrice.setMinorTickVisible(false);
-        xAxisTime.setTickLabelRotation(0);
-        xAxisTime.setTickLabelFormatter(
-                new StringConverter<>() {
-                    @Override
-                    public String toString(Number value) {
-                        if (value == null
-                                || priceSeries == null
-                                || priceSeries.getData().isEmpty()) {
-                            return "";
-                        }
-                        return FormatUtil.formatChartTime(
-                                java.time.LocalDateTime.ofInstant(
-                                        java.time.Instant.ofEpochMilli(value.longValue()),
-                                        java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
-                    }
-
-                    @Override
-                    public Number fromString(String value) {
-                        return 0;
-                    }
-                });
-        yAxisPrice.setTickLabelFormatter(
-                new StringConverter<>() {
-                    @Override
-                    public String toString(Number value) {
-                        return value == null
-                                ? ""
-                                : FormatUtil.formatCompactPriceAxis(value.doubleValue());
-                    }
-
-                    @Override
-                    public Number fromString(String value) {
-                        return 0;
-                    }
-                });
-    }
-
-    /** Hiển thị dòng thông báo khi danh sách lịch sử đặt giá trống (Sửa lỗi A.3) */
-    private void setupPlaceholder() {
-        Label placeholder = new Label("Chưa có lượt đặt giá");
-        placeholder.getStyleClass().add("empty-placeholder");
-        lvRecentBids.setPlaceholder(placeholder);
-        com.auction.client.ui.RoundedClip.apply(lvRecentBids, 12);
-        com.auction.client.ui.RoundedClip.apply(chartContainer, 12);
     }
 
     /** Chỉ hiển thị nút mô phỏng khi đang sử dụng MockAuctionClientService (Sửa lỗi A.4) */
@@ -269,8 +200,7 @@ public class AuctionRoomController implements DisposableView {
         lblCountdown.getStyleClass().remove("countdown-label-urgent");
         if (!lblCountdown.getStyleClass().contains("countdown-label"))
             lblCountdown.getStyleClass().add("countdown-label");
-        priceSeries.getData().clear();
-        lvRecentBids.getItems().clear();
+        historyView.clear();
         ViewNavigator.setCurrentAuctionId(id);
         renderAuctionDetails();
         showAlert("Đang tải dữ liệu phiên…", false);
@@ -307,14 +237,15 @@ public class AuctionRoomController implements DisposableView {
         refreshing = true;
         renderAuctionDetails();
         String id = requestedAuctionId;
-        var stamp = submissions.reading(bidKey);
+        var key = bidKey;
+        var stamp = submissions.reading(key);
         tasks.submit(
                 "room",
                 () -> {
-                    if (submissions.phase(bidKey) == Phase.UNKNOWN
+                    if (submissions.phase(key) == Phase.UNKNOWN
                             && auctionService.recoverPendingCommands())
-                        submissions.reconciled(bidKey);
-                    var readStamp = submissions.reading(bidKey);
+                        submissions.reconciled(key);
+                    var readStamp = submissions.reading(key);
                     var snapshot = auctionService.getRoomSnapshot(id);
                     Auction auction = snapshot.auction();
                     if (auction == null || !id.equals(auction.getId()))
@@ -332,7 +263,7 @@ public class AuctionRoomController implements DisposableView {
                     }
                     currentAuction = data.auction();
                     auctionReady = true;
-                    loadBidHistory(data.history());
+                    historyView.render(currentAuction, data.history(), auctionService.serverNow());
                     updateCountdown();
                     submissions.refreshed(data.stamp());
                     refreshing = false;
@@ -516,47 +447,6 @@ public class AuctionRoomController implements DisposableView {
             txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
     }
 
-    private void loadBidHistory(List<Bid> bids) {
-        priceSeries.getData().clear();
-        lvRecentBids.getItems().clear();
-
-        if (bids.isEmpty()) {
-            LocalDateTime startTime =
-                    currentAuction.getStartTime() == null
-                            ? auctionService.serverNow()
-                            : currentAuction.getStartTime();
-            addPricePoint(startTime, currentAuction.getStartingPrice(), null, false);
-            lblNoBids.setVisible(true);
-            lblNoBids.setManaged(true);
-        } else {
-            List<Bid> chronologicalBids = new ArrayList<>(bids);
-            chronologicalBids.sort(
-                    Comparator.comparing(
-                            Bid::getTimestamp, Comparator.nullsFirst(Comparator.naturalOrder())));
-            for (Bid bid : chronologicalBids) {
-                LocalDateTime time =
-                        bid.getTimestamp() == null
-                                ? auctionService.serverNow()
-                                : bid.getTimestamp();
-                addPricePoint(time, bid.getAmount(), bid.getBidderUsername(), bid.isAuto());
-                lvRecentBids.getItems().add(0, formatBid(bid));
-            }
-            lblNoBids.setVisible(false);
-            lblNoBids.setManaged(false);
-        }
-        updateChartAxes();
-    }
-
-    private String formatBid(Bid bid) {
-        String maskedName = FormatUtil.maskUsername(bid.getBidderUsername());
-        return (bid.isAuto() ? "TỰ ĐỘNG · " : "")
-                + maskedName
-                + "  ·  "
-                + bid.getFormattedTime()
-                + "  ·  "
-                + FormatUtil.formatCurrency(bid.getAmount());
-    }
-
     private void registerRealtimeObserver() {
         var scope = tasks;
         realtimeBidConsumer = bid -> scope.dispatch(() -> applyBidNotification(bid));
@@ -602,79 +492,9 @@ public class AuctionRoomController implements DisposableView {
         String text = String.format("%02d:%02d:%02d", hours, mins, secs);
         lblCountdown.setText(upcoming ? "Mở sau " + text : text);
         // Màu đỏ khi còn < 5 phút
-        if (!upcoming && seconds < 300) {
-            lblCountdown.getStyleClass().removeAll("countdown-label");
-            if (!lblCountdown.getStyleClass().contains("countdown-label-urgent")) {
-                lblCountdown.getStyleClass().add("countdown-label-urgent");
-            }
-        }
-    }
-
-    private void addPricePoint(LocalDateTime time, double price, String bidder, boolean auto) {
-        XYChart.Data<Number, Number> dataPoint =
-                new XYChart.Data<>(
-                        time.atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh"))
-                                .toInstant()
-                                .toEpochMilli(),
-                        price,
-                        time);
-        priceSeries.getData().add(dataPoint);
-        attachPointTooltip(dataPoint, time, price, bidder, auto);
-        while (priceSeries.getData().size() > MAX_CHART_POINTS) {
-            priceSeries.getData().remove(0);
-        }
-        updateChartAxes();
-    }
-
-    private void attachPointTooltip(
-            XYChart.Data<Number, Number> dataPoint,
-            LocalDateTime time,
-            double price,
-            String bidder,
-            boolean auto) {
-        Consumer<Node> install = node -> {
-            if (node == null) return;
-            node.getStyleClass().add("chart-point");
-            Tooltip.install(
-                    node,
-                    new Tooltip(
-                            FormatUtil.formatChartTime(time)
-                                    + " · " + FormatUtil.formatCurrency(price)
-                                    + " · " + FormatUtil.maskUsername(bidder)
-                                    + (auto ? " · TỰ ĐỘNG" : "")));
-        };
-        dataPoint.nodeProperty().addListener((observable, before, node) -> install.accept(node));
-        install.accept(dataPoint.getNode());
-    }
-
-    private void updateChartAxes() {
-        if (priceSeries == null || priceSeries.getData().isEmpty()) {
-            return;
-        }
-        double minPrice = Double.POSITIVE_INFINITY;
-        double maxPrice = Double.NEGATIVE_INFINITY;
-        for (XYChart.Data<Number, Number> point : priceSeries.getData()) {
-            double price = point.getYValue().doubleValue();
-            minPrice = Math.min(minPrice, price);
-            maxPrice = Math.max(maxPrice, price);
-        }
-
-        double first = priceSeries.getData().getFirst().getXValue().doubleValue();
-        double last = priceSeries.getData().getLast().getXValue().doubleValue();
-        double span = Math.max(1000, last - first);
-        xAxisTime.setLowerBound(first - span * 0.05);
-        xAxisTime.setUpperBound(last + span * 0.05);
-        xAxisTime.setTickUnit(Math.max(1000, span / 5));
-
-        double priceRange = maxPrice - minPrice;
-        if (priceRange <= 0) {
-            priceRange = Math.max(Math.abs(maxPrice) * 0.1, 1);
-        }
-        double lowerBound = Math.max(0, minPrice - priceRange * 0.05);
-        double upperBound = maxPrice + priceRange * 0.1;
-        yAxisPrice.setLowerBound(lowerBound);
-        yAxisPrice.setUpperBound(upperBound);
-        yAxisPrice.setTickUnit((upperBound - lowerBound) / 4);
+        lblCountdown.getStyleClass().removeAll("countdown-label", "countdown-label-urgent");
+        lblCountdown.getStyleClass().add(
+                !upcoming && seconds < 300 ? "countdown-label-urgent" : "countdown-label");
     }
 
     /** Observer của service có thể gọi từ luồng nền; callback cũ bị chặn sau dispose. */

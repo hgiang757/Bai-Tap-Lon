@@ -127,5 +127,14 @@ Kiểm chứng: `AuctionTest`, `ItemFactoryTest`, `AuctionJsonMapperTest` và
 `AuctionServiceTest`. Không tuyên bố mọi setter của DTO UI bảo vệ được toàn bộ
 invariant nghiệp vụ; server mới là nơi thực thi luật chính thức.
 
-Xem [báo cáo refactor](../OOP_SERVICE_REFACTOR_REPORT.md) để đối chiếu PDF,
+Xem [báo cáo refactor](../archive/OOP_SERVICE_REFACTOR_REPORT.md) để đối chiếu PDF,
 trách nhiệm service, dữ liệu thật và kết quả test sau sửa.
+
+## Composition tại phòng đấu giá
+
+Controller sở hữu `AuctionBidHistoryView`, truyền các control đã inject từ FXML
+vào constructor. `render(Auction, List<Bid>, LocalDateTime)` chỉ lo biểu diễn một
+snapshot; không biết Controller, ServerServices hay repository. Đây là composition
+với trách nhiệm hiển thị rõ ràng, không thêm cây kế thừa để giảm LOC. Luật giá,
+quyền và ví vẫn nằm tại Server. Giữ Mock phục vụ test GUI có điều khiển và ví dụ
+Singleton; mặc định chạy thật không khởi tạo kho giả.

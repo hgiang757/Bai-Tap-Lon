@@ -122,9 +122,18 @@ final class BiddingLogic {
                         .filter(r -> text(r, "auctionId").equals(text(a, "id")))
                         .sorted(Comparator.comparingLong(r -> number(r, "order")))
                         .toList();
+        Map<JsonObject, Integer> priority = new IdentityHashMap<>();
+        for (int i = 0; i < rules.size(); i++) priority.put(rules.get(i), i);
+        PriorityQueue<JsonObject> registered =
+                new PriorityQueue<>(Comparator.comparingInt(priority::get));
+        registered.addAll(rules);
         for (int round = 0; round < 10_000; round++) {
             boolean placed = false;
-            for (JsonObject r : rules) {
+            // Poll the registration priority; a heap's iterator is not priority ordered.
+            // List index preserves the previous stable order even for legacy equal-order rules.
+            PriorityQueue<JsonObject> candidates = new PriorityQueue<>(registered);
+            while (!candidates.isEmpty()) {
+                JsonObject r = candidates.remove();
                 Auction auction = AuctionJsonMapper.auction(a);
                 if (!r.get("active").getAsBoolean()
                         || auction.isLeading(text(r, "userId"))) continue;

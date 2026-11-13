@@ -132,3 +132,12 @@ Kiểm thử tiêu biểu: `FullStackTest` (ảnh/quản trị/ví/retry/nhiều
 `AuctionServiceTest` (nghiệp vụ/lưu trữ), `AntiSnipingPolicyTest` (mốc thời gian),
 `ClientUiTest` và `ServerUiIntegrationTest` (thao tác màn hình).
 Đọc tên và nội dung test trước khi giải thích; không chỉ dựa vào số test xanh.
+
+## Rà soát Client hiện tại
+
+Đọc [báo cáo ổn định Client](FINAL_CLIENT_STABILITY_REPORT.md) cho quyết định giữ
+sáu lớp Mock, tách AuctionBidHistoryView và số liệu kiểm thử mới. Trace thêm
+`AuctionBidHistoryView.render`, `AuctionRoomController.refreshAuction` (chụp key),
+`WalletController.reload/showTransactionDialog` (khóa đọc/ghi riêng) và
+`BiddingLogic.processAutoBids` (PriorityQueue Server thật). Dữ liệu nhóm tự tạo
+qua UI là dữ liệu JSON nghiệp vụ; không tự seed/reset và không dùng làm fixture.

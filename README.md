@@ -4,15 +4,19 @@
 JSON. Server là nơi duy nhất quản lý nghiệp vụ và lưu `data/state.json` bền vững.
 Dự án hiện JSON-only, không cần MySQL hoặc biến cấu hình database.
 
-Bộ kiểm kê ngày 12/11/2026 gồm [trách nhiệm từng file](docs/PROJECT_FILE_INVENTORY.md),
-[thống kê code trước/sau](docs/CODE_STATISTICS.md) và
-[thao tác dọn dẹp cùng kết quả kiểm thử mới](docs/CLEANUP_REPORT.md).
+Bộ kiểm kê ngày 12/11/2026 gồm [trách nhiệm từng file](docs/archive/PROJECT_FILE_INVENTORY.md),
+[thống kê code trước/sau](docs/archive/CODE_STATISTICS.md) và
+[thao tác dọn dẹp cùng kết quả kiểm thử mới](docs/archive/CLEANUP_REPORT.md).
 
 Lần refactor OOP/service tiếp theo được ghi tại
-[báo cáo OOP và service](docs/OOP_SERVICE_REFACTOR_REPORT.md), gồm đối chiếu PDF,
+[báo cáo OOP và service](docs/archive/OOP_SERVICE_REFACTOR_REPORT.md), gồm đối chiếu PDF,
 method đã chuyển, LOC, hash dữ liệu và kết quả kiểm thử hiện tại.
 
-Đợt tối giản JavaFX được ghi trong [báo cáo hoàn thiện cuối](docs/FINAL_SIMPLIFICATION_REPORT.md),
+Kết quả rà soát Client hiện tại: [ổn định Client và dữ liệu](docs/FINAL_CLIENT_STABILITY_REPORT.md).
+Bộ Mock chỉ được tạo khi chủ động chọn `auction.mode=mock`; mặc định registry và launcher
+đều dùng ServerServices, lỗi kết nối không chuyển sang dữ liệu giả.
+
+Đợt tối giản JavaFX trước được ghi trong [báo cáo hoàn thiện cuối](docs/FINAL_SIMPLIFICATION_REPORT.md),
 gồm số liệu mới, kiểm tra mock/legacy và checklist thử nghiệm trên hai máy Windows.
 
 ## Chạy trên Windows
@@ -49,7 +53,7 @@ Client và server chạy riêng. MVC nằm ở controller/FXML/model. Adapter cl
 TCP; Server điều phối request, AuctionService giữ transaction và gọi AuthLogic,
 ProductLogic, BiddingLogic, WalletLogic, SettlementLogic; AuctionRepository
 đọc/ghi JSON. Giữ cây kế thừa User/Item, Factory, Singleton và Observer.
-Đọc [bộ tài liệu bảo vệ và kết quả rà soát](docs/viva/AUDIT_AND_RESULTS.md),
+Đọc [bộ tài liệu bảo vệ và kết quả rà soát](docs/archive/AUDIT_AND_RESULTS.md),
 [OOP](docs/viva/OOP_EXPLANATION.md), [kiến trúc](docs/viva/ARCHITECTURE.md),
 [patterns](docs/viva/DESIGN_PATTERNS.md), [concurrency](docs/viva/CONCURRENCY_EXPLANATION.md),
 [câu hỏi vấn đáp](docs/viva/VIVA_QUESTIONS.md) và [kịch bản demo](docs/viva/PRESENTATION_GUIDE.md).
@@ -85,7 +89,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1 Client -Mock
 (quy tắc whitespace cơ bản, chưa phải toàn bộ Google Java Style). Để đo một lượt
 coverage mới không cộng dồn dữ liệu cũ, dùng `mvn -B clean verify` và bật UI tests
 nếu máy có desktop; CI Linux đã dùng Xvfb. Coverage được báo cáo trung thực cho
-toàn dự án; xem kết quả và phạm vi kiểm thử trong `docs/viva/AUDIT_AND_RESULTS.md`.
+toàn dự án; xem kết quả và phạm vi kiểm thử trong `docs/archive/AUDIT_AND_RESULTS.md`.
 
 Test server dùng dữ liệu tạm, không dùng data/state.json thật. Dữ liệu demo trong
 fixture test không được tạo bởi script chạy chính thức. Không dùng Mock để kiểm

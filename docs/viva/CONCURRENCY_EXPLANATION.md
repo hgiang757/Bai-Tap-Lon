@@ -124,3 +124,21 @@ Khóa toàn cục và snapshot toàn bộ khiến các phiên phải chờ nhau,
 thể tăng độ trễ. Đây là đánh đổi rõ ràng cho quy mô bài tập, chưa kiểm thử tải lớn
 hoặc nhiều server ghi phân tán. Không thay cơ chế concurrency đã có test chỉ vì
 muốn thêm Lock hoặc tăng số pattern.
+
+## Hai lỗi callback đã sửa trong Client
+
+`AuctionRoomController.refreshAuction()` chụp `bidKey` vào biến `key` trước khi
+submit: worker cũ chỉ reconciled đúng người dùng/phiên nó đã bắt đầu. Đóng scope
+chặn UI callback cũ; việc chụp key còn ngăn chính worker chưa bị hủy sửa tracker
+của phòng mới. Test `oldRecoveryCannotReconcileAnotherRoomUnknownCommand` chặn
+đối soát bằng latch rồi chuyển phòng, giữ UNKNOWN của phòng mới.
+
+`WalletController.reload()` dùng khóa ViewTasks `wallet-read`; nạp/rút dùng
+`wallet-write`. Push WALLET_CHANGED đến trước ACK có thể bắt đầu đọc ví mới mà
+không thay thế callback đóng dialog của lệnh ghi. Giao dịch không bị hủy/gửi lại;
+ServerUiIntegrationTest kiểm tra form nạp tiền và snapshot sau restart.
+
+`ServerServices.response()` bỏ bước đăng ký feed bằng token cũ cho LOGIN/REGISTER.
+Sau restart, thao tác xác thực có thể tạo phiên mới ngay; các request cần quyền
+vẫn bị kiểm tra token. `FullStackTest.loginAfterRestartDoesNotRequireAnExpiredSessionReadFirst`
+kiểm chứng không phải gửi một request lỗi trước rồi mới đăng nhập được.

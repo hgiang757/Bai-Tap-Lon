@@ -10,6 +10,7 @@ JSON dùng cho cả thông điệp và snapshot, không có MySQL/JDBC/Spring/RE
 |---|---|---|
 | View | `src/main/resources/com/auction/client/views/*.fxml`, `css/app.css` | Bố cục và kiểu hiển thị |
 | Controller | `client/controller/*Controller` | Đọc form, trạng thái UI, gọi service nền, cập nhật UI |
+| History view helper | AuctionBidHistoryView | Render cùng snapshot vào chart và danh sách, không I/O |
 | Model UI | `client/model/Auction`, Bid, User, Item | DTO để render, không phải nguồn dữ liệu chính thức |
 | Service contract | `client/service/*Service` | Hợp đồng bid/ví/sản phẩm/admin, tách controller khỏi TCP |
 | Adapter/network | ServerServices, ServerMapper, JsonTransport, JsonProtocol | Token, commandId, frame, pending request, push/reconnect |
@@ -33,6 +34,8 @@ server. Không phát hiện controller ghi trực tiếp state.json của server
 flowchart LR
   subgraph ClientA[Tiến trình Client A]
     VA[FXML và CSS] --> CA[JavaFX Controller]
+    CA --> HV[AuctionBidHistoryView]
+    HV --> VA
     CA --> TA[ViewTasks]
     TA --> SA[Service interfaces / ServerServices]
     SA --> NA[JsonTransport]
@@ -250,3 +253,18 @@ nên không làm rơi lịch sử hoặc commandId.
 Client chỉ lưu pending và cache ảnh dưới thư mục người dùng, không mở JSON server.
 Session token chỉ ở RAM, restart cần đăng nhập lại. JSON là lựa chọn File I/O rõ
 ràng cho quy mô bài tập; không thay thế transaction, lock hoặc kiểm thử.
+
+## Phòng đấu giá sau rà soát Client 13/11/2026
+
+`AuctionRoomController` giữ FXML, bid/auto-bid, BidSubmissionTracker, countdown,
+observer và điều hướng. `client/ui/AuctionBidHistoryView` nhận một Auction, toàn bộ
+history và giờ Server qua `render()`, sắp bid theo thời gian, thay đồng bộ danh sách
+và biểu đồ, chỉ giữ 30 điểm cuối trên chart. Helper không gọi mạng, không quản lý
+listener/timer; mọi lời gọi từ callback FX của ViewTasks. `clear()` bỏ dữ liệu
+phòng cũ trước khi tải phòng mới.
+
+`ServiceRegistry.validateMode()` mặc định Server, khởi tạo lazy cả sáu dịch vụ từ
+cùng ServerServices. Chỉ chế độ mock được chọn tường minh mới tạo MockDataStore.
+`Main.start()` dùng registry, không cần đặt lại mặc định. Giữ Mock cho test GUI
+kiểm soát timeout/hàng đợi/lifecycle; dữ liệu nhóm tạo qua UI trên Server là JSON
+nghiệp vụ, không phải Mock. Xem [báo cáo mới](../FINAL_CLIENT_STABILITY_REPORT.md).
