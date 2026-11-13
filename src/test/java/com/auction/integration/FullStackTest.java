@@ -221,6 +221,17 @@ class FullStackTest {
     }
 
     @Test
+    void loginAfterRestartDoesNotRequireAnExpiredSessionReadFirst() throws Exception {
+        buyer.deposit("bidder_hieu", 10000);
+        int port = server.port();
+        server.close();
+        server = new Server("127.0.0.1", port, directory.resolve("server"), false);
+        server.start();
+        assertTrue(buyer.login("bidder_hieu", "Bidder12345", null));
+        assertEquals(100_010_000, buyer.getAvailable("bidder_hieu"));
+    }
+
+    @Test
     void coldServerJvmCanAuthenticateWithinTheNormalClientTimeout() throws Exception {
         server.close();
         Path log = directory.resolve("cold-server.log");

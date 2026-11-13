@@ -113,6 +113,7 @@ class ClientUiTest {
 
     @BeforeAll
     static void startToolkit() throws Exception {
+        System.setProperty("auction.mode", "mock");
         CountDownLatch started = new CountDownLatch(1);
         Platform.startup(
                 () -> {
@@ -717,6 +718,7 @@ class ClientUiTest {
     private static final class ControlledAuctionService
             extends com.auction.client.service.mock.MockAuctionClientService {
         volatile ReadGate gate;
+        volatile ReadGate recoveryGate;
         final CountDownLatch sent = new CountDownLatch(1), finish = new CountDownLatch(1);
         final java.util.concurrent.atomic.AtomicInteger bids =
                 new java.util.concurrent.atomic.AtomicInteger();
@@ -724,6 +726,15 @@ class ClientUiTest {
 
         ControlledAuctionService(boolean timeout) {
             this.timeout = timeout;
+        }
+
+        @Override
+        public boolean recoverPendingCommands() {
+            ReadGate recovery = recoveryGate;
+            if (recovery == null || !recovery.claimed.compareAndSet(false, true)) return false;
+            recovery.entered.countDown();
+            waitFor(recovery.release);
+            return true;
         }
 
         @Override
@@ -1577,5 +1588,91 @@ class ClientUiTest {
                 return null;
             });
         }
+    }
+
+    @Test
+    @Order(17)
+    void oldRecoveryCannotReconcileAnotherRoomUnknownCommand() throws Exception {
+        var original = ServiceRegistry.getService();
+        var fake = new ControlledAuctionService(false);
+        ReadGate recovery = new ReadGate(false);
+        try {
+            AuctionRoomController room = controlledRoom(fake);
+            var tracker = ServiceRegistry.getBidSubmissions();
+            var oldKey = new com.auction.client.service.BidSubmissionTracker.Key("bidder_hieu", "AUC-103");
+            var newKey = new com.auction.client.service.BidSubmissionTracker.Key("bidder_hieu", "AUC-101");
+            tracker.uncertain(tracker.begin(oldKey));
+            tracker.uncertain(tracker.begin(newKey));
+            fake.recoveryGate = recovery;
+            fx(() -> { invoke(room, "handleReload"); return null; });
+            assertTrue(recovery.entered.await(3, TimeUnit.SECONDS));
+            fx(() -> { room.loadAuction("AUC-101"); return null; });
+            awaitFx(room::isReady);
+            recovery.release.countDown();
+            awaitFx(() -> tracker.phase(oldKey)
+                    == com.auction.client.service.BidSubmissionTracker.Phase.AWAITING_REFRESH);
+            fx(() -> {
+                assertEquals(com.auction.client.service.BidSubmissionTracker.Phase.UNKNOWN, tracker.phase(newKey));
+                assertAllPriceControlsLocked(room);
+                assertEquals("AUC-101", ((Auction) field(room, "currentAuction")).getId());
+                return null;
+            });
+            assertEquals(0, fake.bids.get());
+        } finally {
+            recovery.release.countDown();
+            fx(() -> { ViewNavigator.disposeCurrentView(); return null; });
+            ServiceRegistry.setService(original);
+        }
+    }
+
+    @Test
+    @Order(18)
+    void historySnapshotOrdersCapsAndReplacesPointsAndExtensionClearsUrgency() throws Exception {
+        assertTrue(ServiceRegistry.getService().login("bidder_hieu", "123456", null));
+        AuctionRoomController room = fx(() -> {
+            AuctionRoomController loaded = ViewNavigator.loadView(
+                    "/com/auction/client/views/auction-room-view.fxml", "History snapshot");
+            loaded.loadAuction("AUC-103");
+            return loaded;
+        });
+        awaitFx(room::isReady);
+        fx(() -> {
+            Auction auction = field(room, "currentAuction");
+            var deadline = auction.getEndTime();
+            try {
+                auction.setEndTime(ServiceRegistry.getService().serverNow().plusSeconds(240));
+                invoke(room, "updateCountdown");
+                Label countdown = field(room, "lblCountdown");
+                assertTrue(countdown.getStyleClass().contains("countdown-label-urgent"));
+                auction.setEndTime(ServiceRegistry.getService().serverNow().plusSeconds(350));
+                invoke(room, "updateCountdown");
+                assertFalse(countdown.getStyleClass().contains("countdown-label-urgent"));
+                assertTrue(countdown.getStyleClass().contains("countdown-label"));
+            } finally {
+                auction.setEndTime(deadline);
+            }
+            com.auction.client.ui.AuctionBidHistoryView view = field(room, "historyView");
+            var now = ServiceRegistry.getService().serverNow();
+            var bids = new java.util.ArrayList<Bid>();
+            for (int i = 34; i >= 0; i--)
+                bids.add(new Bid("history-" + i, auction.getId(), "user_" + i, 1000 + i, now.plusSeconds(i)));
+            view.render(auction, bids, now);
+            LineChart<Number, Number> chart = field(room, "priceChart");
+            var points = chart.getData().getFirst().getData();
+            assertEquals(30, points.size());
+            assertEquals(1005, points.getFirst().getYValue().intValue());
+            assertEquals(1034, points.getLast().getYValue().intValue());
+            ListView<String> history = field(room, "lvRecentBids");
+            assertEquals(35, history.getItems().size());
+            assertTrue(history.getItems().getFirst().contains("1.034"));
+            view.render(auction, java.util.List.of(bids.getFirst()), now);
+            assertEquals(1, points.size(), "A fresh snapshot replaces rather than duplicates points");
+            assertEquals(1, history.getItems().size());
+            view.render(auction, java.util.List.of(), now);
+            assertEquals(1, points.size(), "An empty history still displays the starting price");
+            assertTrue(history.getItems().isEmpty());
+            assertTrue(((Label) field(room, "lblNoBids")).isVisible());
+            return null;
+        });
     }
 }

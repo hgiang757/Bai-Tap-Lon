@@ -2,7 +2,7 @@
 
 Mỗi thành viên luyện cùng một luồng, sau đó đổi người trình bày để bảo đảm hiểu
 toàn bộ. Không chỉ chia mỗi người học một thư mục. Số liệu cuối và phạm vi đã
-kiểm thử nằm trong [AUDIT_AND_RESULTS.md](AUDIT_AND_RESULTS.md).
+kiểm thử nằm trong [AUDIT_AND_RESULTS.md](../archive/AUDIT_AND_RESULTS.md).
 
 ## Giới thiệu — 1 phút
 
@@ -96,7 +96,7 @@ Test socket không có nghĩa đã thử hai máy LAN. Test fixture cũ có dữ
 Tạo hoặc dùng phiên thử khác để không lẫn kết quả cuộc bid đồng thời. A bật auto-bid
 với trần đủ tiền, increment >=100.000; B đặt giá. Quan sát bid auto, không vượt trần
 và không tự vượt giá chính mình. Nếu thử cùng trần, cho A đăng ký sớm hơn và chỉ
-luật order trong service; không nói server dùng PriorityQueue như mock.
+PriorityQueue lấy luật theo thứ tự order trong service thật.
 
 Với phiên kết thúc trong khoảng cuối 30 giây, đặt một bid hợp lệ; endTime phải tăng
 thêm 60 giây từ deadline cũ, cả hai client cập nhật. Chỉ chạy trên dữ liệu thử.
@@ -139,3 +139,17 @@ coverage chỉ đo code được chạy và không chứng minh không còn bug.
 - Không hứa event luôn đến sau ACK: event được enqueue trước khi service trả response.
 - Không hứa Server constructor private hoặc backend đã bỏ toàn bộ JsonObject.
 - Khi cần minh chứng, mở test cụ thể và assertion thay vì trả lời bằng tên pattern.
+
+## Điểm thay đổi cần trình bày ở lần rà soát Client
+
+Mở `AuctionBidHistoryView.render()` để giải thích chart và history được dựng từ
+cùng snapshot sau push. Mở `refreshAuction()` để chỉ biến key được chụp trước
+khi chạy nền; đổi phòng không đối soát nhầm lệnh UNKNOWN. Mở WalletController để
+chỉ hai khóa đọc/ghi khác nhau, vì event có thể đến trước ACK.
+
+Dữ liệu do nhóm tự đăng ký/tạo qua Server thật được lưu trong state.json và còn
+sau restart cùng thư mục. Chuẩn bị lịch OPEN vào đúng buổi bảo vệ, kết thúc sau
+phần trình bày có dự phòng; không tạo phiên “bắt đầu ngay” nhiều ngày trước.
+Quy trình sao lưu/khôi phục nằm ở [hướng dẫn nhiều Client](../../MULTI_CLIENT_SETUP.md).
+Bằng chứng test và giới hạn (một JavaFX window + adapter đối thủ, chưa thử hai máy)
+nằm ở [báo cáo mới](../FINAL_CLIENT_STABILITY_REPORT.md).

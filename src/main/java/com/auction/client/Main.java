@@ -18,7 +18,6 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         try {
-            System.setProperty("auction.mode", System.getProperty("auction.mode", "server"));
             com.auction.client.service.ServiceRegistry.validateMode();
             com.auction.client.service.ServiceRegistry.getService()
                     .addChangeListener(

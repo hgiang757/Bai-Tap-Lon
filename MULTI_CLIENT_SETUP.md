@@ -85,3 +85,37 @@ Chỉ ghi PASS sau khi quan sát, dùng dữ liệu thử và sao lưu trước:
 [Báo cáo hiện tại](docs/archive/JSON_ONLY_REFACTOR.md) phân biệt test socket một máy và LAN
 nhiều máy chưa thực hiện. Khóa chung và snapshot toàn bộ phù hợp bài tập nhỏ;
 TCP chưa TLS, chưa kiểm chứng tải lớn. Các báo cáo cũ được giữ làm lịch sử.
+
+## Chuẩn bị và giữ bộ dữ liệu demo do nhóm tự tạo
+
+Đăng ký Seller và ít nhất hai Bidder qua giao diện thật, nạp tiền giả lập vào ví,
+rồi Seller tạo sản phẩm có ảnh, giá khởi điểm, bước giá và lịch. Những dữ liệu này
+là dữ liệu nghiệp vụ JSON trên Server, khác với Mock trong RAM và fixture JUnit
+trong `@TempDir`. Client thoát/logout không xóa dữ liệu này.
+
+Chuẩn bị trước buổi bảo vệ bằng các phiên **OPEN có lịch bắt đầu đúng ngày/giờ
+bảo vệ**, kết thúc sau thời lượng trình bày với khoảng dự phòng. Không bật “Bắt đầu
+ngay” từ vài ngày trước: ô này đặt đầu phiên vào phút kế tiếp, và phiên hết giờ sẽ
+được scheduler đóng/thanh toán khi Server chạy hoặc restart. Trước buổi bảo vệ
+kiểm tra ngày, giờ Việt Nam trên Server, start/end và trạng thái từng phiên. Chỉ
+sửa lịch qua Seller khi phiên OPEN chưa có bid; nếu đã chạy/hết giờ, tạo phiên mới
+qua UI, không sửa timestamp trong JSON hoặc reset snapshot.
+
+Sao lưu sau khi chuẩn bị xong:
+
+1. Đóng Client và dừng Server bằng Ctrl+C; kiểm tra tiến trình Server đã thoát.
+2. Sao chép `data/state.json` vào thư mục riêng ngoài Git, đặt tên kèm ngày/giờ.
+   Nếu chạy với `-Dauction.data=...`, dùng đúng thư mục đó thay cho `data`.
+3. Dùng `Get-FileHash -Algorithm SHA256` cho file gốc và bản sao; chỉ chấp nhận
+   khi hash khớp. Ghi đường dẫn và hash riêng; không đưa nội dung snapshot lên Git.
+4. Khi khôi phục, dừng Server, sao lưu hiện trạng trước, rồi chép snapshot đã xác
+   minh vào đúng thư mục dữ liệu. Không khôi phục file `.tmp`, file pending của
+   Client hoặc `server.lock` thay cho `state.json`.
+5. Mở Server lại cùng thư mục, đăng nhập lại các Client; kiểm tra tên phiên, ảnh,
+   giá, bid history, ví và tiền đang giữ. Không kỳ vọng bản sao lưu giữ phiên còn
+   RUNNING mãi: deadline vẫn là giờ thực, phiên hết giờ được xử lý bình thường.
+
+Khi diễn tập, dùng thư mục QA riêng qua `-Dauction.data=<thư-mục-thử>` với
+`-Dauction.demo=false`; giữ lại thư mục đó để restart. Không dùng dữ liệu thật làm
+fixture JUnit, không khởi động một Server thử trên `data/state.json`. Dữ liệu cá
+nhân, backup, mật khẩu và ảnh cache không được commit. Giữ `data/` trong `.gitignore`.

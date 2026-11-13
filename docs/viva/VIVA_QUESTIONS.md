@@ -111,12 +111,13 @@ AntiSnipingPolicy, handleAction. **Dễ sai:** thấy chữ “command” hoặc
 transaction server. **Code:** handlePlaceBid, BiddingLogic.placeBid, Auction.
 **Dễ sai:** tin nút disable là đủ bảo vệ quyền hoặc coi UI validation là dữ liệu chính thức.
 
-### 15. Vì sao chưa tách AuctionService thành nhiều manager?
+### 15. Vì sao AuctionService vẫn giữ khóa và commit sau khi tách helper?
 
-**Đáp nhanh:** ví, bid, rules và command receipt phải commit/rollback cùng nhau.
-**Kỹ thuật:** tách luật thuần sang Auction là cải thiện nhỏ; chia transaction hoặc
-lock không có căn cứ dễ phá tính nhất quán. **Code:** execute, commit, Auction.
-**Dễ sai:** nói class dài luôn sai hoặc khẳng định service hiện không còn nhiều trách nhiệm.
+**Đáp nhanh:** AuthLogic, ProductLogic, BiddingLogic, WalletLogic và SettlementLogic
+chia luật nghiệp vụ, còn ví/bid/rules/receipt phải commit hoặc rollback cùng nhau.
+**Kỹ thuật:** các helper dùng AuctionContext dưới cùng monitor; chỉ facade được
+save/publish. **Code:** execute, commit, AuctionContext và năm helper.
+**Dễ sai:** nói chưa tách helper hoặc chia nhỏ luôn cả transaction/lock.
 
 ## Socket
 
@@ -310,9 +311,9 @@ hoặc nói CI GitHub xanh dù mới chỉ chạy Maven local.
 **Đáp nhanh:** sắp rules theo order đăng ký, bỏ leader, chọn bid đủ tiền không vượt
 maxBid, lặp đến khi không còn lượt hợp lệ.
 **Kỹ thuật:** increment >= minBidStep, bằng trần ưu tiên luật sớm; giới hạn 10.000
-vòng, vượt thì rollback giao dịch thay vì lưu dở. Server dùng list sắp xếp, mock
-dùng PriorityQueue. **Code:** setAuto, processAutoBids, AutoBidEngine.
-**Dễ sai:** nói server thật có PriorityQueue hoặc tự bid tiếp vào chính leader.
+vòng, vượt thì rollback giao dịch thay vì lưu dở. Server dùng PriorityQueue theo thứ tự đăng ký ổn định; mock
+có PriorityQueue riêng. **Code:** setAuto, processAutoBids, AutoBidEngine.
+**Dễ sai:** duyệt iterator của PriorityQueue rồi cho rằng đã theo thứ tự ưu tiên, hoặc tự bid tiếp vào chính leader.
 
 ### 40. Anti-sniping và số dư giữ tiền hoạt động thế nào?
 
@@ -324,3 +325,18 @@ lần; đúng deadline không nhận bid nữa. **Code:** AntiSnipingPolicy, acc
 heldBalance, settle; AntiSnipingPolicyTest.
 **Dễ sai:** cộng 60 vào lúc bid thay vì deadline hiện tại, hoặc trừ balance hai
 lần ở cả hold và payment.
+
+## Câu hỏi bổ sung về Client và dữ liệu demo
+
+**Vì sao giữ Mock?** ClientUiTest dùng nó để điều khiển timeout, hàng đợi, callback
+và observer bằng latch; sáu suite service còn dùng fixture riêng. Xóa lúc này
+đòi thay nhiều test trước khi có độ bao phủ tương đương. Chế độ mặc định và
+launcher dùng ServerServices, lỗi mạng không chuyển Mock.
+
+**Vì sao chỉ tách một helper?** AuctionBidHistoryView có đầu vào rõ ràng và chỉ
+render. Timer/auto-bid/bid cùng phụ thuộc trạng thái khóa và vòng đời phòng, vẫn
+giữ ở controller để dễ lần theo thay vì chia callback qua nhiều lớp.
+
+**Dữ liệu demo có phải mock không?** Tài khoản, ảnh, phiên, bid và ví tạo qua
+Server là dữ liệu JSON nghiệp vụ; restart giữ chúng, nhưng phiên hết deadline
+vẫn phải đóng/thanh toán. Fixture JUnit nằm ở @TempDir và không dùng data thật.

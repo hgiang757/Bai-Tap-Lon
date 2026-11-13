@@ -21,7 +21,6 @@ import javafx.scene.layout.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /** Điều khiển trang ví mô phỏng. */
@@ -213,7 +212,8 @@ public class WalletController implements DisposableView {
             return;
         }
         loading = true;
-        run(
+        tasks.submit(
+                "wallet-read",
                 () -> wallet.getSnapshot(username),
                 data -> {
                     loading = false;
@@ -349,7 +349,8 @@ public class WalletController implements DisposableView {
                         return;
                     }
                     submit.setDisable(true);
-                    run(
+                    tasks.submit(
+                            "wallet-write",
                             () -> {
                                 if (deposit) wallet.deposit(username, n);
                                 else wallet.withdraw(username, n);
@@ -365,10 +366,6 @@ public class WalletController implements DisposableView {
                             });
                 });
         dialog.showAndWait();
-    }
-
-    private <T> void run(Callable<T> work, Consumer<T> success, Consumer<Throwable> failure) {
-        tasks.submit("wallet", work, success, failure);
     }
 
     private void showError(String text) {

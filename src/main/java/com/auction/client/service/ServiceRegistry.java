@@ -6,7 +6,7 @@ import java.util.Objects;
 
 /** Bộ dịch vụ dùng chung. Thay cả bộ khi tích hợp adapter để không trộn mock/server. */
 public final class ServiceRegistry {
-    private static Services services = mockServices();
+    private static Services services;
     private static BidSubmissionTracker bidSubmissions = new BidSubmissionTracker();
 
     private ServiceRegistry() {}
@@ -50,31 +50,36 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void validateMode() {
-        String mode = System.getProperty("auction.mode", "mock").trim();
+        String mode = System.getProperty("auction.mode", "server").trim();
         if (!"mock".equalsIgnoreCase(mode) && !"server".equalsIgnoreCase(mode))
             throw new IllegalStateException("Chế độ không hợp lệ: " + mode);
         if ("server".equalsIgnoreCase(mode)
-                && !(services.auction()
-                        instanceof com.auction.client.service.server.ServerServices)) {
+                && (services == null
+                        || !(services.auction()
+                                instanceof com.auction.client.service.server.ServerServices))) {
             var adapter = new com.auction.client.service.server.ServerServices();
             services = new Services(adapter, adapter, adapter, adapter, adapter, adapter);
             bidSubmissions = new BidSubmissionTracker();
         } else if ("mock".equalsIgnoreCase(mode)
-                && services.auction()
-                        instanceof com.auction.client.service.server.ServerServices adapter) {
-            adapter.close();
+                && (services == null
+                        || services.auction()
+                                instanceof com.auction.client.service.server.ServerServices)) {
+            close();
             services = mockServices();
             bidSubmissions = new BidSubmissionTracker();
         }
     }
 
     public static synchronized void close() {
-        if (services.auction() instanceof com.auction.client.service.server.ServerServices adapter)
+        if (services != null
+                && services.auction()
+                        instanceof com.auction.client.service.server.ServerServices adapter)
             adapter.close();
+        services = null;
     }
 
     public static String modeLabel() {
-        return "server".equalsIgnoreCase(System.getProperty("auction.mode", "mock"))
+        return "server".equalsIgnoreCase(System.getProperty("auction.mode", "server").trim())
                 ? "SERVER"
                 : "MOCK";
     }
@@ -110,6 +115,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized BidSubmissionTracker getBidSubmissions() {
+        validateMode();
         return bidSubmissions;
     }
 
@@ -122,12 +128,14 @@ public final class ServiceRegistry {
             UserAdminService users,
             AuctionAdminService auctions) {
         Services next = new Services(auction, wallet, autoBid, products, users, auctions);
-        if (services.auction() != auction) bidSubmissions = new BidSubmissionTracker();
+        if (services == null || services.auction() != auction)
+            bidSubmissions = new BidSubmissionTracker();
         services = next;
     }
 
     // Giữ tên public cũ để tương thích nơi tích hợp. Việc thay riêng không được trộn mock/server.
     public static synchronized void setService(AuctionClientService service) {
+        validateMode();
         setServices(
                 service,
                 services.wallet(),
@@ -138,6 +146,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void setWalletService(WalletService service) {
+        validateMode();
         setServices(
                 services.auction(),
                 service,
@@ -148,6 +157,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void setAutoBidService(AutoBidService service) {
+        validateMode();
         setServices(
                 services.auction(),
                 services.wallet(),
@@ -158,6 +168,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void setProductService(ProductService service) {
+        validateMode();
         setServices(
                 services.auction(),
                 services.wallet(),
@@ -168,6 +179,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void setUserAdminService(UserAdminService service) {
+        validateMode();
         setServices(
                 services.auction(),
                 services.wallet(),
@@ -178,6 +190,7 @@ public final class ServiceRegistry {
     }
 
     public static synchronized void setAuctionAdminService(AuctionAdminService service) {
+        validateMode();
         setServices(
                 services.auction(),
                 services.wallet(),
