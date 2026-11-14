@@ -18,6 +18,7 @@ import com.auction.client.model.TransactionType;
 import com.auction.client.model.UserRole;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.service.ServiceRegistry;
+import com.auction.client.ui.SellerProductFormView;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,11 +28,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javafx.animation.Animation;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -1668,6 +1672,201 @@ class ClientUiTest {
     ((TextField) form.lookup("#productEndTime")).setText("10:00");
   }
 
+  // runLater and AnimationTimer callbacks do not guarantee that CSS/layout has run.
+  // Wait for two clean post-layout pulses, never for the geometry assertion to pass.
+  private static void awaitSceneLayout(BooleanSupplier ready, Supplier<String> diagnostics)
+      throws Exception {
+    CompletableFuture<Void> done = new CompletableFuture<>();
+    Scene scene = fx(stage::getScene);
+    Runnable listener =
+        new Runnable() {
+          private int cleanPulses;
+
+          @Override
+          public void run() {
+            try {
+              cleanPulses =
+                  ready.getAsBoolean() && !layoutPending(scene.getRoot()) ? cleanPulses + 1 : 0;
+              if (cleanPulses >= 2) {
+                done.complete(null);
+              } else {
+                Platform.requestNextPulse();
+              }
+            } catch (Throwable error) {
+              done.completeExceptionally(error);
+            }
+          }
+        };
+    fx(
+        () -> {
+          scene.addPostLayoutPulseListener(listener);
+          Platform.requestNextPulse();
+          return null;
+        });
+    try {
+      done.get(8, TimeUnit.SECONDS);
+    } catch (TimeoutException error) {
+      fail("JavaFX CSS/layout did not settle\n" + fx(diagnostics::get), error);
+    } finally {
+      fx(
+          () -> {
+            scene.removePostLayoutPulseListener(listener);
+            return null;
+          });
+    }
+  }
+
+  private static boolean layoutPending(Parent parent) {
+    if (parent.isNeedsLayout()) {
+      return true;
+    }
+    return parent.getChildrenUnmodifiable().stream()
+        .filter(node -> node.isManaged() && node.isVisible())
+        .filter(Parent.class::isInstance)
+        .map(Parent.class::cast)
+        .anyMatch(ClientUiTest::layoutPending);
+  }
+
+  private static String sellerLayoutDiagnostics(int requestedWidth, SellerProductFormView form) {
+    ScrollPane scroll = field(form, "scroll");
+    Button save = field(form, "save");
+    Label validation = field(form, "validation");
+    return sellerWindowMetrics(requestedWidth)
+        + "\nroot="
+        + layoutMetrics(stage.getScene().getRoot())
+        + "\nformHost="
+        + layoutMetrics(form.getParent())
+        + "\nform="
+        + layoutMetrics(form)
+        + "\nfooter="
+        + layoutMetrics(field(form, "footer"))
+        + "\nscroll="
+        + layoutMetrics(scroll)
+        + "\nviewport="
+        + scroll.getViewportBounds()
+        + "\ncontent="
+        + layoutMetrics(scroll.getContent())
+        + "\ncolumns="
+        + layoutMetrics(field(form, "columns"))
+        + "\ninformation="
+        + layoutMetrics(field(form, "information"))
+        + "\nscheduling="
+        + layoutMetrics(field(form, "scheduling"))
+        + "\nvalidation="
+        + layoutMetrics(validation)
+        + ", text="
+        + validation.getText()
+        + "\nsave="
+        + layoutMetrics(save)
+        + "\ncancel="
+        + layoutMetrics(field(form, "cancel"));
+  }
+
+  private static String sellerWindowMetrics(int requestedWidth) {
+    return "Seller layout requested="
+        + requestedWidth
+        + "x"
+        + (requestedWidth == 640 ? 640 : requestedWidth == 960 ? 720 : 800)
+        + ", stage="
+        + stage.getWidth()
+        + "x"
+        + stage.getHeight()
+        + ", scene="
+        + stage.getScene().getWidth()
+        + "x"
+        + stage.getScene().getHeight()
+        + ", outputScale="
+        + stage.getOutputScaleX()
+        + "x"
+        + stage.getOutputScaleY()
+        + ", renderScale="
+        + stage.getRenderScaleX()
+        + "x"
+        + stage.getRenderScaleY();
+  }
+
+  private static String layoutMetrics(javafx.scene.Node node) {
+    String size =
+        node instanceof javafx.scene.layout.Region region
+            ? "size="
+                + region.getWidth()
+                + "x"
+                + region.getHeight()
+                + ", needsLayout="
+                + region.isNeedsLayout()
+                + ", "
+            : "";
+    return size
+        + "layout="
+        + node.getLayoutBounds()
+        + ", local="
+        + node.getBoundsInLocal()
+        + ", scene="
+        + node.localToScene(node.getBoundsInLocal());
+  }
+
+  private static void assertSellerLayout(int width, SellerProductFormView activeForm, String state)
+      throws Exception {
+    Supplier<String> details = () -> state + "\n" + sellerLayoutDiagnostics(width, activeForm);
+    awaitSceneLayout(() -> true, details);
+    fx(
+        () -> {
+          String diagnostics = details.get();
+          Button save = field(activeForm, "save");
+          ScrollPane scroll = field(activeForm, "scroll");
+          var footer = (javafx.scene.layout.HBox) field(activeForm, "footer");
+          var bounds = save.localToScene(save.getBoundsInLocal());
+          System.out.println(
+              sellerWindowMetrics(width)
+                  + ", state="
+                  + state
+                  + ", save="
+                  + bounds
+                  + ", formWidth="
+                  + activeForm.getWidth()
+                  + ", footerWidth="
+                  + footer.getWidth()
+                  + ", scrollWidth="
+                  + scroll.getWidth()
+                  + ", viewportWidth="
+                  + scroll.getViewportBounds().getWidth()
+                  + ", layoutPending="
+                  + layoutPending(stage.getScene().getRoot()));
+          assertTrue(bounds.getMaxY() <= stage.getScene().getHeight() + 1, diagnostics);
+          assertTrue(bounds.getMaxX() <= stage.getScene().getWidth() + 1, diagnostics);
+          for (javafx.scene.Node node :
+              java.util.List.<javafx.scene.Node>of(
+                  field(activeForm, "footer"), field(activeForm, "cancel"), save)) {
+            var visible = node.localToScene(node.getBoundsInLocal());
+            assertTrue(visible.getMinX() >= -1 && visible.getMinY() >= -1, diagnostics);
+            assertTrue(visible.getMaxX() <= stage.getScene().getWidth() + 1, diagnostics);
+            assertTrue(visible.getMaxY() <= stage.getScene().getHeight() + 1, diagnostics);
+          }
+          Label validation = field(activeForm, "validation");
+          assertTrue(validation.isWrapText(), diagnostics);
+          assertTrue(validation.getWidth() < footer.getWidth(), diagnostics);
+          if (state.equals("long-save-error")) {
+            assertTrue(
+                validation.getHeight() > validation.getFont().getSize() * 2,
+                "Long error must wrap onto multiple lines\n" + diagnostics);
+          }
+          assertTrue(
+              scroll.getContent().getBoundsInLocal().getWidth()
+                  <= scroll.getViewportBounds().getWidth() + 1,
+              "Form must fit the viewport\n" + diagnostics);
+          assertFalse(
+              scroll.lookupAll(".scroll-bar").stream()
+                  .filter(ScrollBar.class::isInstance)
+                  .map(ScrollBar.class::cast)
+                  .anyMatch(
+                      bar ->
+                          bar.isVisible()
+                              && bar.getOrientation() == javafx.geometry.Orientation.HORIZONTAL),
+              "Form must not need a horizontal scrollbar\n" + diagnostics);
+          return null;
+        });
+  }
+
   @Test
   @Order(19)
   void sellerPaneStaysInMainWindowAndCleansUpOnCancelEscapeAndNavigation() throws Exception {
@@ -1677,39 +1876,76 @@ class ClientUiTest {
     await(() -> !seller.isLoading());
     int before = ServiceRegistry.getProductService().listProducts("seller_hieu").size();
     try {
+      Supplier<String> resizeDetails =
+          () ->
+              "stage="
+                  + stage.getWidth()
+                  + "x"
+                  + stage.getHeight()
+                  + ", scene="
+                  + stage.getScene().getWidth()
+                  + "x"
+                  + stage.getScene().getHeight()
+                  + ", outputScale="
+                  + stage.getOutputScaleX()
+                  + "x"
+                  + stage.getOutputScaleY()
+                  + ", root="
+                  + layoutMetrics(stage.getScene().getRoot());
+      awaitSceneLayout(() -> true, resizeDetails);
+      // Measure window decorations on this platform; Stage dimensions include them.
+      double frameWidth = fx(() -> stage.getWidth() - stage.getScene().getWidth());
+      double frameHeight = fx(() -> stage.getHeight() - stage.getScene().getHeight());
       for (int width : new int[] {1200, 960, 640}) {
+        int height = width == 640 ? 640 : width == 960 ? 720 : 800;
         fx(
             () -> {
               stage.setWidth(width);
-              stage.setHeight(width == 640 ? 640 : width == 960 ? 720 : 800);
+              stage.setHeight(height);
               return null;
             });
-        awaitFx(() -> Math.abs(stage.getWidth() - width) < 2);
+        awaitSceneLayout(
+            () ->
+                Math.abs(stage.getWidth() - width) < 1
+                    && Math.abs(stage.getHeight() - height) < 1
+                    && Math.abs(stage.getScene().getWidth() - (width - frameWidth)) < 1
+                    && Math.abs(stage.getScene().getHeight() - (height - frameHeight)) < 1,
+            () -> "Resize requested=" + width + "x" + height + ", " + resizeDetails.get());
         fx(
             () -> {
               ((Button) field(seller, "addButton")).fire();
               return null;
             });
         await(() -> productForm() != null);
+        SellerProductFormView activeForm = fx(() -> field(seller, "activeForm"));
+        awaitSceneLayout(() -> true, () -> sellerLayoutDiagnostics(width, activeForm));
         fx(
             () -> {
-              Parent form = productForm();
+              Parent form = activeForm;
               assertSame(stage, form.getScene().getWindow());
-              var activeForm =
-                  (com.auction.client.ui.SellerProductFormView) field(seller, "activeForm");
+              String diagnostics = sellerLayoutDiagnostics(width, activeForm);
               var left = (javafx.scene.layout.VBox) field(activeForm, "information");
               var right = (javafx.scene.layout.VBox) field(activeForm, "scheduling");
               var priceGroup = (javafx.scene.layout.VBox) field(activeForm, "priceGroup");
               var stepGroup = (javafx.scene.layout.VBox) field(activeForm, "stepGroup");
               if (width >= 960) {
                 assertEquals(
-                    left.getLayoutY(), right.getLayoutY(), 1, "Wide form must use two columns");
+                    left.getLayoutY(),
+                    right.getLayoutY(),
+                    1,
+                    "Wide form must use two columns\n" + diagnostics);
                 assertEquals(
-                    priceGroup.getLayoutY(), stepGroup.getLayoutY(), 1, "Price fields share a row");
+                    priceGroup.getLayoutY(),
+                    stepGroup.getLayoutY(),
+                    1,
+                    "Price fields share a row\n" + diagnostics);
               } else {
-                assertTrue(right.getLayoutY() > left.getLayoutY(), "Narrow form stacks columns");
                 assertTrue(
-                    stepGroup.getLayoutY() > priceGroup.getLayoutY(), "Narrow form stacks prices");
+                    right.getLayoutY() > left.getLayoutY(),
+                    "Narrow form stacks columns\n" + diagnostics);
+                assertTrue(
+                    stepGroup.getLayoutY() > priceGroup.getLayoutY(),
+                    "Narrow form stacks prices\n" + diagnostics);
               }
               assertEquals(
                   1,
@@ -1729,17 +1965,30 @@ class ClientUiTest {
               assertTrue(save.isDisabled());
               assertTrue(
                   ((Label) form.lookup("#productValidation")).getText().contains("bước giá"));
-              ((TextField) form.lookup("#productStep")).setText("10000");
-              var bounds = save.localToScene(save.getBoundsInLocal());
-              assertTrue(bounds.getMaxY() <= stage.getScene().getHeight() + 1);
-              assertTrue(bounds.getMaxX() <= stage.getScene().getWidth() + 1);
-              ScrollPane scroll = (ScrollPane) form.lookup("#productFormScroll");
-              assertTrue(
-                  scroll.getContent().getBoundsInLocal().getWidth()
-                      <= scroll.getViewportBounds().getWidth() + 1,
-                  "Form must fit the viewport");
               return null;
             });
+        assertSellerLayout(width, activeForm, "invalid-step");
+        fx(
+            () -> {
+              activeForm.showSaveError(
+                  "Không thể lưu sản phẩm. Vui lòng kiểm tra và thử lại. ".repeat(4));
+              return null;
+            });
+        assertSellerLayout(width, activeForm, "long-save-error");
+        fx(
+            () -> {
+              activeForm.setBusy(true);
+              return null;
+            });
+        assertSellerLayout(width, activeForm, "busy");
+        fx(
+            () -> {
+              activeForm.setBusy(false);
+              ((TextField) activeForm.lookup("#productStep")).setText("10000");
+              assertFalse(((Button) activeForm.lookup("#productSave")).isDisabled());
+              return null;
+            });
+        assertSellerLayout(width, activeForm, "valid");
         snapshot(
             "seller-form-"
                 + width
