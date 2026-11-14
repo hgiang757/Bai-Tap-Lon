@@ -1,7 +1,7 @@
 # Giải thích OOP bằng code của dự án
 
 Đọc cùng [sơ đồ lớp](ARCHITECTURE.md). Dưới đây luôn phân biệt model server với
-`client/model` là DTO cho giao diện. Mốc dòng chính xác nằm trong [CODE_MAP.md](CODE_MAP.md);
+`client/model` là DTO cho giao diện. Tên file/method nằm trong [CODE_MAP.md](CODE_MAP.md);
 tên method là điểm tìm kiếm ổn định nếu số dòng thay đổi.
 
 ## 1. Encapsulation — đóng gói
@@ -72,8 +72,8 @@ thực tế lúc chạy. Có override chưa đủ làm ví dụ thuyết phục:
 - `ProductLogic.createAuction()`: `ItemFactory.forCategory(...).create(...)` trả
   `Item`; `item.getCategory()` gọi Electronics/Art/Vehicle/CategoryItem tương ứng.
 - `AuctionRoomController.handlePlaceBid()`: gọi `AuctionClientService.placeBid()`;
-  runtime là ServerServices trong chế độ thật hoặc MockAuctionClientService khi
-  chủ động thử UI. Không cần controller tự mở Socket.
+  runtime production luôn là ServerServices; test có thể tiêm fixture
+  MockAuctionClientService từ src/test. Không cần controller tự mở Socket.
 
 ```java
 List<User> users = List.of(new Bidder("b", "buyer", "hash"),
@@ -137,4 +137,9 @@ vào constructor. `render(Auction, List<Bid>, LocalDateTime)` chỉ lo biểu di
 snapshot; không biết Controller, ServerServices hay repository. Đây là composition
 với trách nhiệm hiển thị rõ ràng, không thêm cây kế thừa để giảm LOC. Luật giá,
 quyền và ví vẫn nằm tại Server. Giữ Mock phục vụ test GUI có điều khiển và ví dụ
-Singleton; mặc định chạy thật không khởi tạo kho giả.
+Singleton trong nguồn test, không trình bày nó là production; ứng dụng chính chỉ dùng TCP.
+
+Seller dùng composition tương tự: SellerProductFormView (FXML + bản nháp) sở hữu
+AuctionScheduleInput và ProductImagePicker. Controller nhận Draft qua Consumer,
+gọi service nền rồi trả trạng thái busy/lỗi cho View. closeForm/dispose đóng scope
+preview. Các helper không giữ session, transport, quyền hoặc transaction Server.

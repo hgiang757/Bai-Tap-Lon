@@ -5,37 +5,32 @@
 <?import javafx.scene.layout.*?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.AdminController">
     <top>
+        <VBox>
         <AppHeader spacing="16" styleClass="top-bar">
             <Label text="Digital Auction — Quản trị" styleClass="view-title"/>
             <Region HBox.hgrow="ALWAYS"/>
         </AppHeader>
-    </top>
-    <left>
-        <VBox spacing="10" prefWidth="260" styleClass="sidebar-card">
-            <padding>
-                <Insets top="24" right="16" bottom="24" left="16"/>
-            </padding>
-            <Label text="Quản trị" styleClass="section-header"/>
-            <Button text="Quản lý người dùng" maxWidth="Infinity" onAction="#users"/>
-            <Button text="Quản lý phiên đấu giá" maxWidth="Infinity" onAction="#auctions"/>
-            <Region VBox.vgrow="ALWAYS"/>
-            <Button text="Đăng xuất" maxWidth="Infinity" onAction="#logout"/>
+            <FlowPane hgap="12" vgap="10" styleClass="admin-navigation, form-controls">
+                <Button text="Quản lý người dùng" onAction="#users"/>
+                <Button text="Quản lý phiên đấu giá" onAction="#auctions"/>
+                <Button text="Đăng xuất" onAction="#logout"/>
+            </FlowPane>
         </VBox>
-    </left>
+    </top>
     <center>
         <VBox spacing="14" styleClass="dashboard-content">
             <padding>
                 <Insets top="25" right="30" bottom="25" left="30"/>
             </padding>
-            <Label fx:id="title" styleClass="page-title"/>
+            <Label fx:id="title" styleClass="page-title" wrapText="true" minHeight="-Infinity"/>
             <Label fx:id="message" styleClass="alert-error" wrapText="true"/>
             <ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/>
             <VBox fx:id="content" spacing="12" VBox.vgrow="ALWAYS">
                 <VBox fx:id="usersPane" spacing="12" visible="false" managed="false" VBox.vgrow="ALWAYS">
-                    <HBox spacing="10">
+                    <FlowPane hgap="10" vgap="10" styleClass="form-controls">
                         <TextField fx:id="userSearch" promptText="Tìm tên đăng nhập hoặc email" prefWidth="320" HBox.hgrow="ALWAYS"/>
                         <ComboBox fx:id="userRole"/>
-                    </HBox>
+                    </FlowPane>
                     <TableView fx:id="userTable" fixedCellSize="44" VBox.vgrow="ALWAYS">
                         <columnResizePolicy>
                             <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY"/>
@@ -54,13 +49,13 @@
                     </TableView>
                 </VBox>
                 <VBox fx:id="auctionsPane" spacing="12" visible="false" managed="false" VBox.vgrow="ALWAYS">
-                    <HBox spacing="10">
+                    <FlowPane hgap="10" vgap="10" styleClass="form-controls">
                         <TextField fx:id="auctionSearch" promptText="Tìm tên phiên"/>
                         <ComboBox fx:id="auctionStatus"/>
-                    </HBox>
+                    </FlowPane>
                     <TableView fx:id="auctionTable" fixedCellSize="44" VBox.vgrow="ALWAYS">
                         <columnResizePolicy>
-                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY"/>
                         </columnResizePolicy>
                         <placeholder>
                             <Label text="Chưa có dữ liệu"/>

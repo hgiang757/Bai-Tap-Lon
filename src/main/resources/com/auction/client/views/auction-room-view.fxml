@@ -44,12 +44,6 @@
                 <StackPane alignment="TOP_CENTER">
                 <VBox fx:id="pageContent" spacing="0.0" maxWidth="1200.0" styleClass="dashboard-content">
                     <padding><Insets top="0.0" right="32.0" bottom="0.0" left="32.0"/></padding>
-                    <HBox fx:id="devModeBox" alignment="CENTER_RIGHT" spacing="10.0" visible="false"
-                          managed="false" style="-fx-padding: 12px 0 0 0;">
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label text="CHẾ ĐỘ DEV — DỮ LIỆU GIẢ" styleClass="badge-dev"/>
-                        <Button text="Mô phỏng lượt đặt giá" onAction="#handleSimulateIncomingBid"/>
-                    </HBox>
                     <FlowPane hgap="20.0" vgap="20.0" style="-fx-padding: 20px 0 0 0;">
 
             <!-- ===== CỘT TRÁI (500px) ===== -->
@@ -121,7 +115,7 @@
                            styleClass="status-explanation"/>
 
                     <!-- Form đặt giá -->
-                    <VBox spacing="8.0">
+                    <VBox spacing="8.0" styleClass="form-controls">
                         <Label fx:id="lblAvailableBalance" text="Số tiền có thể sử dụng: —" wrapText="true" styleClass="text-secondary"/>
                         <Label fx:id="lblBidState" wrapText="true" styleClass="text-secondary" visible="false" managed="false"/>
                         <Label text="Số tiền đặt giá (₫)" styleClass="form-label"/>
@@ -150,7 +144,7 @@
                         </HBox>
                     </VBox>
                 </VBox>
-                <VBox fx:id="autoBidCard" spacing="10.0" styleClass="card-panel">
+                <VBox fx:id="autoBidCard" spacing="10.0" styleClass="card-panel, form-controls">
                     <Label fx:id="lblAutoTitle" text="Đặt giá tự động" styleClass="section-header, t-h2"/>
                     <Label text="Hệ thống tự trả giá thay bạn khi có người trả cao hơn, không bao giờ vượt giá tối đa." wrapText="true" styleClass="text-secondary"/>
                     <Label text="Giá tối đa (₫)" styleClass="form-label"/>
@@ -183,12 +177,12 @@
                                maxHeight="304.0" title="" legendVisible="false"
                                animated="false" createSymbols="true">
                         <xAxis>
-                            <NumberAxis fx:id="xAxisTime" label="" animated="false"
+                            <NumberAxis fx:id="timeAxis" label="" animated="false"
                                         autoRanging="false" forceZeroInRange="false"
                                         tickMarkVisible="false"/>
                         </xAxis>
                         <yAxis>
-                            <NumberAxis fx:id="yAxisPrice" label="" animated="false"
+                            <NumberAxis fx:id="priceAxis" label="" animated="false"
                                         autoRanging="false" forceZeroInRange="false"
                                         minorTickVisible="false" tickMarkVisible="false"/>
                         </yAxis>

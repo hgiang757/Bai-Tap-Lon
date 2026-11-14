@@ -263,8 +263,33 @@ và biểu đồ, chỉ giữ 30 điểm cuối trên chart. Helper không gọi
 listener/timer; mọi lời gọi từ callback FX của ViewTasks. `clear()` bỏ dữ liệu
 phòng cũ trước khi tải phòng mới.
 
-`ServiceRegistry.validateMode()` mặc định Server, khởi tạo lazy cả sáu dịch vụ từ
-cùng ServerServices. Chỉ chế độ mock được chọn tường minh mới tạo MockDataStore.
-`Main.start()` dùng registry, không cần đặt lại mặc định. Giữ Mock cho test GUI
-kiểm soát timeout/hàng đợi/lifecycle; dữ liệu nhóm tạo qua UI trên Server là JSON
-nghiệp vụ, không phải Mock. Xem [báo cáo mới](../FINAL_CLIENT_STABILITY_REPORT.md).
+`ServiceRegistry.validateMode()` chỉ chấp nhận Server, khởi tạo lazy cả sáu dịch vụ
+từ cùng một ServerServices và không fallback. Các setter cho phép dependency injection;
+mọi thành phần TCP phải là cùng adapter/session. `FixtureServices.install()` thuộc
+src/test và tiêm bộ mô phỏng cô lập để giữ test timeout, UNKNOWN, listener và lifecycle.
+Sáu class Mock/AutoBidEngine không nằm trong production JAR.
+
+SellerProductsController giữ listPane/editorHost, quyền và tác vụ service. form() nạp
+SellerProductFormView từ seller-product-form.fxml; View chỉ trả Draft, không gọi Server.
+AuctionScheduleInput đọc lịch/giờ theo Supplier giờ Server; ProductImagePicker sở hữu
+scope preview ảnh. closeForm/dispose gọi close để bỏ task/handler của bản nháp.
+Lưu chạy nền; lỗi nằm ở footer và giữ draft. Bắt đầu ngay được lấy lại giờ Server sau
+I/O ảnh, sát lúc gửi lệnh; Server tiếp tục kiểm tra quyền, trạng thái và dữ liệu.
+ViewNavigator.prepareDialog gắn owner/modality và đóng dialog khi trang/owner đổi.
+HomeController chia tab đang/sắp mở và kết quả/lịch sử; chỉ render card của tab đang chọn.
+Không xóa dữ liệu JSON để thay đổi hiển thị. Xem [báo cáo hiện tại](../SELLER_UI_MOCK_CLEANUP_REPORT.md).
+
+## Menu tài khoản trong Scene chính
+
+ViewNavigator.loadView bọc FXML trong một StackPane. Khi nhấn nút tài khoản,
+UserMenu.openMenu gắn menuPane làm sibling của trang; nhấn lại hoặc chọn mục gọi
+hideMenu để gỡ pane và unbind chiều cao. Menu cuộn nếu cửa sổ không đủ cao, không
+đổi kích thước trang, không có Stage/Popup riêng và không tự đóng theo focus/click
+ngoài/ESC. Button vẫn dùng hành vi bàn phím JavaFX chuẩn. Trạng thái mở lấy từ
+menuPane.getParent, activeMenu chỉ trỏ tới menu cần cleanup.
+
+Navigation/dispose, tháo header, logout hoặc WINDOW_HIDDEN đều cleanup menu.
+setPrimaryStage chỉ giữ một handler ẩn cửa sổ; không có focus listener cho menu.
+Dialog khác vẫn giữ owner/modality và ESC mặc định, form Seller vẫn giữ ESC.
+Ba test accountMenu* kiểm toggle/Space, cùng Scene, kích thước, logout/hide/detach
+và nhiều lần điều hướng. Xem [kết quả tối giản](../FINAL_SIMPLIFICATION_AND_REQUIREMENTS.md).

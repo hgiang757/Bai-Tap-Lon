@@ -1,22 +1,26 @@
 package com.auction.server.model;
 
+/** Represents the administrative role in the server user hierarchy. */
 public class Admin extends User {
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    public Admin() {
-        super();
-    }
+  /** Initializes the shared fields of this admin domain object. */
+  public Admin() {
+    super();
+  }
 
-    public Admin(String id, String name, String passwordHash) {
-        super(id, name, passwordHash);
-    }
+  /** Initializes the shared fields of this admin domain object. */
+  public Admin(String id, String name, String passwordHash) {
+    super(id, name, passwordHash);
+  }
 
-    public Admin(String id, String name, String passwordHash, String email) {
-        super(id, name, passwordHash, email, 0.0);
-    }
+  /** Initializes the shared fields of this admin domain object. */
+  public Admin(String id, String name, String passwordHash, String email) {
+    super(id, name, passwordHash, email, 0.0);
+  }
 
-    @Override
-    public String getRoleName() {
-        return "ADMIN";
-    }
+  @Override
+  public String getRoleName() {
+    return "ADMIN";
+  }
 }

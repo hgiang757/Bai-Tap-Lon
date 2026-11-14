@@ -3,7 +3,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerProductsController">
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.auction.client.controller.SellerProductsController" styleClass="seller-products-page">
     <top>
         <AppHeader spacing="16" styleClass="top-bar">
             <Button text="Về trang chủ" onAction="#handleBackToHome"/>
@@ -16,15 +16,17 @@
             <padding>
                 <Insets top="25" right="30" bottom="25" left="30"/>
             </padding>
+            <Label fx:id="message" styleClass="alert-error" wrapText="true"/>
+            <ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/>
+            <StackPane VBox.vgrow="ALWAYS" minHeight="0">
+            <VBox fx:id="listPane" spacing="16">
             <Label text="Sản phẩm của tôi" styleClass="page-title"/>
-            <FlowPane hgap="10" vgap="10">
+            <FlowPane hgap="10" vgap="10" styleClass="form-controls">
                 <TextField fx:id="search" promptText="Tìm theo tên" HBox.hgrow="ALWAYS"/>
                 <ComboBox fx:id="status"/>
                 <ComboBox fx:id="category"/>
                 <Button fx:id="addButton" text="Thêm sản phẩm" styleClass="btn-primary" onAction="#add"/>
             </FlowPane>
-            <Label fx:id="message" styleClass="alert-error" wrapText="true"/>
-            <ProgressIndicator fx:id="progress" maxWidth="30" maxHeight="30" visible="false" managed="false"/>
             <TableView fx:id="table" fixedCellSize="52" VBox.vgrow="ALWAYS">
                 <columnResizePolicy>
                     <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY"/>
@@ -44,6 +46,9 @@
                     <TableColumn fx:id="actions" text="Thao tác" prefWidth="230" minWidth="220"/>
                 </columns>
             </TableView>
+            </VBox>
+            <BorderPane fx:id="editorHost" id="productForm" visible="false" managed="false" minWidth="0" minHeight="0"/>
+            </StackPane>
         </VBox>
     </center>
 </BorderPane>

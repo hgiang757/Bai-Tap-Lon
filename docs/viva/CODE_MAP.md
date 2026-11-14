@@ -1,181 +1,181 @@
 # Bản đồ code hiện tại sau tối giản giao diện
 
 Mốc 13/11/2026 (UTC+7). Sinh từ source thực tế, không lấy số dòng của báo cáo cũ.
-Tên method là điểm tìm kiếm ổn định. Xem [báo cáo Client](../FINAL_CLIENT_STABILITY_REPORT.md).
+Sau chuẩn hóa Google Style, liên kết dùng file và tên method để tránh số dòng lịch sử bị lệch. Xem [báo cáo Client](../FINAL_CLIENT_STABILITY_REPORT.md).
 
 ## Các điểm nên mở khi trình bày
 
 | File | Vị trí và chữ ký hiện tại |
 |---|---|
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java#L16) | Dòng 16: `public Entity() {` |
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java#L22) | Dòng 22: `public Entity(String id) {` |
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java#L26) | Dòng 26: `public Entity(String id, String name) {` |
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java#L33) | Dòng 33: `public String getId() {` |
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java#L42) | Dòng 42: `public String getName() {` |
-| [server/model/User.java](../../src/main/java/com/auction/server/model/User.java#L28) | Dòng 28: `public abstract String getRoleName();` |
-| [server/model/Item.java](../../src/main/java/com/auction/server/model/Item.java#L26) | Dòng 26: `public abstract String getCategory();` |
-| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java#L8) | Dòng 8: `public abstract Item create(String id, String name, String description, Seller owner);` |
-| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java#L22) | Dòng 22: `public Item create(String id, String name, String description, Seller owner) {` |
-| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java#L10) | Dòng 10: `public static ItemFactory forCategory(String category) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L30) | Dòng 30: `public long minimumNextBid() {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L35) | Dòng 35: `public void requireBidder(String userId, String role, LocalDateTime time) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L45) | Dòng 45: `public void requireMinimumBid(long amount) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L83) | Dòng 83: `public Auction withBid(String bidderId, long amount) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L70) | Dòng 70: `public long heldBy(String userId) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L51) | Dòng 51: `public void requireAutoBid(long maximum, long increment) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L56) | Dòng 56: `public void requireEditable() {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L61) | Dòng 61: `public void requireCancelable() {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L74) | Dòng 74: `public boolean hasExpired(LocalDateTime time) {` |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java#L78) | Dòng 78: `public boolean shouldStart(LocalDateTime time) {` |
-| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java#L18) | Dòng 18: `public static Auction auction(JsonObject json) {` |
-| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java#L33) | Dòng 33: `public static void applyBid(JsonObject target, Auction accepted, String username) {` |
-| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java#L40) | Dòng 40: `public static JsonObject bid(BidTransaction bid) {` |
-| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java#L98) | Dòng 98: `public synchronized JsonObject execute(` |
-| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java#L196) | Dòng 196: `private JsonObject commit(JsonObject before, JsonObject response) {` |
-| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java#L216) | Dòng 216: `public synchronized void tick() {` |
-| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java#L221) | Dòng 221: `private JsonElement handleAction(String action, String token, JsonObject user, JsonObject p) {` |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java#L39) | Dòng 39: `JsonObject authenticatedUser(String token) {` |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java#L57) | Dòng 57: `JsonObject createUser(` |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java#L98) | Dòng 98: `JsonObject login(JsonObject p) {` |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java#L122) | Dòng 122: `JsonObject register(JsonObject p) {` |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java#L143) | Dòng 143: `JsonObject manageUser(JsonObject actor, JsonObject p, String action) {` |
-| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java#L50) | Dòng 50: `private JsonObject validateProduct(JsonObject p) {` |
-| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java#L115) | Dòng 115: `JsonObject createAuction(JsonObject user, JsonObject p) {` |
-| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java#L149) | Dòng 149: `JsonObject updateAuction(JsonObject user, JsonObject p) {` |
-| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java#L30) | Dòng 30: `JsonObject placeBid(JsonObject user, JsonObject p) {` |
-| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java#L42) | Dòng 42: `private void acceptBid(JsonObject a, JsonObject user, long amount, boolean automatic) {` |
-| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java#L75) | Dòng 75: `JsonObject setAuto(JsonObject user, JsonObject p) {` |
-| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java#L119) | Dòng 119: `private void processAutoBids(JsonObject a) {` |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java#L19) | Dòng 19: `JsonObject wallet(JsonObject user) {` |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java#L32) | Dòng 32: `long heldBalance(String userId) {` |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java#L39) | Dòng 39: `long availableForAuction(JsonObject u, JsonObject a) {` |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java#L82) | Dòng 82: `JsonObject transfer(JsonObject user, JsonObject p, boolean deposit) {` |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java#L46) | Dòng 46: `void log(JsonObject user, String type, long amount, String auctionId) {` |
-| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java#L21) | Dòng 21: `void refreshAuctions() {` |
-| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java#L43) | Dòng 43: `private void settle(JsonObject a) {` |
-| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java#L63) | Dòng 63: `JsonObject cancel(JsonObject user, JsonObject p) {` |
-| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java#L82) | Dòng 82: `JsonObject snapshot(JsonObject a) {` |
-| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java#L91) | Dòng 91: `void event(String type, JsonObject auction, String userId) {` |
-| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java#L26) | Dòng 26: `public AuctionRepository(Path directory) throws IOException {` |
-| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java#L51) | Dòng 51: `public synchronized JsonObject load() throws IOException {` |
-| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java#L93) | Dòng 93: `public synchronized void save(JsonObject state) throws IOException {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L26) | Dòng 26: `public static synchronized Server getInstance() throws IOException {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L46) | Dòng 46: `public Server(String host, int port, Path data, boolean demo) throws IOException {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L67) | Dòng 67: `public void start() {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L82) | Dòng 82: `private void accept() {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L102) | Dòng 102: `private void publish(JsonObject event) {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L150) | Dòng 150: `void readLoop() {` |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java#L137) | Dòng 137: `void writeLoop() {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L235) | Dòng 235: `private JsonElement write(String action, JsonObject payload) {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L217) | Dòng 217: `private JsonObject replay(JsonObject command) {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L662) | Dòng 662: `public void registerBidListener(String id, Consumer<Bid> listener) {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L691) | Dòng 691: `private void onEvent(JsonObject e) {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L145) | Dòng 145: `public void close() throws IOException {` |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java#L714) | Dòng 714: `public void close() {` |
-| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java#L89) | Dòng 89: `public JsonObject call(String action, String token, String commandId, JsonObject payload) {` |
-| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java#L124) | Dòng 124: `private void read(Connection c) {` |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java#L450) | Dòng 450: `private void registerRealtimeObserver() {` |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java#L501) | Dòng 501: `public void onBidReceived(Bid bid) {` |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java#L522) | Dòng 522: `private void handlePlaceBid() {` |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java#L805) | Dòng 805: `private void detachAuction() {` |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java#L814) | Dòng 814: `public void dispose() {` |
-| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java#L77) | Dòng 77: `public <T> boolean submit(` |
-| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java#L132) | Dòng 132: `public void dispatch(Runnable action) {` |
-| [client/service/mock/MockDataStore.java](../../src/main/java/com/auction/client/service/mock/MockDataStore.java#L142) | Dòng 142: `private MockDataStore() {` |
-| [client/service/mock/MockDataStore.java](../../src/main/java/com/auction/client/service/mock/MockDataStore.java#L158) | Dòng 158: `public static MockDataStore getInstance() {` |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public Entity() {` |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public Entity(String id) {` |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public Entity(String id, String name) {` |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public String getId() {` |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public String getName() {` |
+| [server/model/User.java](../../src/main/java/com/auction/server/model/User.java) | `public abstract String getRoleName();` |
+| [server/model/Item.java](../../src/main/java/com/auction/server/model/Item.java) | `public abstract String getCategory();` |
+| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java) | `public abstract Item create(String id, String name, String description, Seller owner);` |
+| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java) | `public Item create(String id, String name, String description, Seller owner) {` |
+| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java) | `public static ItemFactory forCategory(String category) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public long minimumNextBid() {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public void requireBidder(String userId, String role, LocalDateTime time) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public void requireMinimumBid(long amount) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public Auction withBid(String bidderId, long amount) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public long heldBy(String userId) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public void requireAutoBid(long maximum, long increment) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public void requireEditable() {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public void requireCancelable() {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public boolean hasExpired(LocalDateTime time) {` |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public boolean shouldStart(LocalDateTime time) {` |
+| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java) | `public static Auction auction(JsonObject json) {` |
+| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java) | `public static void applyBid(JsonObject target, Auction accepted, String username) {` |
+| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java) | `public static JsonObject bid(BidTransaction bid) {` |
+| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `public synchronized JsonObject execute(` |
+| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `private JsonObject commit(JsonObject before, JsonObject response) {` |
+| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `public synchronized void tick() {` |
+| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `private JsonElement handleAction(String action, String token, JsonObject user, JsonObject p) {` |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `JsonObject authenticatedUser(String token) {` |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `JsonObject createUser(` |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `JsonObject login(JsonObject p) {` |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `JsonObject register(JsonObject p) {` |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `JsonObject manageUser(JsonObject actor, JsonObject p, String action) {` |
+| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java) | `private JsonObject validateProduct(JsonObject p) {` |
+| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java) | `JsonObject createAuction(JsonObject user, JsonObject p) {` |
+| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java) | `JsonObject updateAuction(JsonObject user, JsonObject p) {` |
+| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `JsonObject placeBid(JsonObject user, JsonObject p) {` |
+| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `private void acceptBid(JsonObject a, JsonObject user, long amount, boolean automatic) {` |
+| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `JsonObject setAuto(JsonObject user, JsonObject p) {` |
+| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `private void processAutoBids(JsonObject a) {` |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `JsonObject wallet(JsonObject user) {` |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `long heldBalance(String userId) {` |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `long availableForAuction(JsonObject u, JsonObject a) {` |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `JsonObject transfer(JsonObject user, JsonObject p, boolean deposit) {` |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `void log(JsonObject user, String type, long amount, String auctionId) {` |
+| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java) | `void refreshAuctions() {` |
+| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java) | `private void settle(JsonObject a) {` |
+| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java) | `JsonObject cancel(JsonObject user, JsonObject p) {` |
+| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java) | `JsonObject snapshot(JsonObject a) {` |
+| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java) | `void event(String type, JsonObject auction, String userId) {` |
+| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java) | `public AuctionRepository(Path directory) throws IOException {` |
+| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java) | `public synchronized JsonObject load() throws IOException {` |
+| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java) | `public synchronized void save(JsonObject state) throws IOException {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `public static synchronized Server getInstance() throws IOException {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `private Server(String host, int port, Path data, boolean demo) throws IOException {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `public void start() {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `private void accept() {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `private void publish(JsonObject event) {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `void readLoop() {` |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `void writeLoop() {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `private JsonElement write(String action, JsonObject payload) {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `private JsonObject replay(JsonObject command) {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `public void registerBidListener(String id, Consumer<Bid> listener) {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `private void onEvent(JsonObject e) {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `public void close() throws IOException {` |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `public void close() {` |
+| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java) | `public JsonObject call(String action, String token, String commandId, JsonObject payload) {` |
+| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java) | `private void read(Connection c) {` |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `private void registerRealtimeObserver() {` |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `public void onBidReceived(Bid bid) {` |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `private void handlePlaceBid() {` |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `private void detachAuction() {` |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `public void dispose() {` |
+| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java) | `public <T> boolean submit(` |
+| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java) | `public void dispatch(Runnable action) {` |
+| [test: client/fixture/MockDataStore.java](../../src/test/java/com/auction/client/fixture/MockDataStore.java) | `private MockDataStore() {` |
+| [test: client/fixture/MockDataStore.java](../../src/test/java/com/auction/client/fixture/MockDataStore.java) | `public static MockDataStore getInstance() {` |
 
 ## Kiểm kê toàn bộ file Java production
 
 | File | Khai báo có tên (kể cả nested) | Trách nhiệm |
 |---|---|---|
-| [client/App.java](../../src/main/java/com/auction/client/App.java) | `public class App {` (dòng 7) | Entry point, giao thức dùng chung hoặc exception |
-| [client/controller/AdminController.java](../../src/main/java/com/auction/client/controller/AdminController.java) | `public class AdminController implements DisposableView {` (dòng 31) | Hai bảng quản trị người dùng/phiên, ViewTasks và kiểm tra vai trò |
-| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `public class AuctionRoomController implements DisposableView {` (dòng 50)<br>`private record RoomData(` (dòng 228) | Điều phối JavaFX và gọi service qua ViewTasks |
-| [client/controller/AuthController.java](../../src/main/java/com/auction/client/controller/AuthController.java) | `public class AuthController implements DisposableView {` (dòng 39) | Điều phối JavaFX và gọi service qua ViewTasks |
-| [client/controller/ContactController.java](../../src/main/java/com/auction/client/controller/ContactController.java) | `public class ContactController {` (dòng 24)<br>`private record TeamMember(String name, String email) {}` (dòng 106) | Đọc contacts.properties, sao chép email và feedback tại card |
-| [client/controller/GuideController.java](../../src/main/java/com/auction/client/controller/GuideController.java) | `public class GuideController {` (dòng 15) | Sáu hướng dẫn ngắn và điều hướng quay lại |
-| [client/controller/HomeController.java](../../src/main/java/com/auction/client/controller/HomeController.java) | `public class HomeController implements DisposableView {` (dòng 43)<br>`private static class CountdownEntry {` (dòng 497) | Điều phối JavaFX và gọi service qua ViewTasks |
-| [client/controller/SellerProductsController.java](../../src/main/java/com/auction/client/controller/SellerProductsController.java) | `public class SellerProductsController implements DisposableView {` (dòng 41)<br>`private record Products(List<Auction> rows, Map<String, String> paths) {}` (dòng 244) | Điều phối JavaFX và gọi service qua ViewTasks |
-| [client/controller/WalletController.java](../../src/main/java/com/auction/client/controller/WalletController.java) | `public class WalletController implements DisposableView {` (dòng 27) | Điều phối JavaFX và gọi service qua ViewTasks |
-| [client/Main.java](../../src/main/java/com/auction/client/Main.java) | `public class Main extends Application {` (dòng 15) | Entry point, giao thức dùng chung hoặc exception |
-| [client/model/AdminUser.java](../../src/main/java/com/auction/client/model/AdminUser.java) | `public class AdminUser {` (dòng 6) | DTO hiển thị |
-| [client/model/Auction.java](../../src/main/java/com/auction/client/model/Auction.java) | `public class Auction implements Serializable {` (dòng 8) | DTO hiển thị |
-| [client/model/AuctionStatus.java](../../src/main/java/com/auction/client/model/AuctionStatus.java) | `public enum AuctionStatus {` (dòng 4) | DTO hiển thị |
-| [client/model/AutoBid.java](../../src/main/java/com/auction/client/model/AutoBid.java) | `public final class AutoBid {` (dòng 6) | DTO hiển thị |
-| [client/model/Bid.java](../../src/main/java/com/auction/client/model/Bid.java) | `public class Bid implements Serializable {` (dòng 8) | DTO hiển thị |
-| [client/model/Item.java](../../src/main/java/com/auction/client/model/Item.java) | `public class Item implements Serializable {` (dòng 7) | DTO hiển thị |
-| [client/model/ItemCategory.java](../../src/main/java/com/auction/client/model/ItemCategory.java) | `public enum ItemCategory {` (dòng 6) | DTO hiển thị |
-| [client/model/Transaction.java](../../src/main/java/com/auction/client/model/Transaction.java) | `public record Transaction(` (dòng 7) | DTO hiển thị |
-| [client/model/TransactionType.java](../../src/main/java/com/auction/client/model/TransactionType.java) | `public enum TransactionType {` (dòng 4) | DTO hiển thị |
-| [client/model/User.java](../../src/main/java/com/auction/client/model/User.java) | `public class User implements Serializable {` (dòng 6) | DTO hiển thị |
-| [client/model/UserRole.java](../../src/main/java/com/auction/client/model/UserRole.java) | `public enum UserRole {` (dòng 4) | DTO hiển thị |
-| [client/navigation/DisposableView.java](../../src/main/java/com/auction/client/navigation/DisposableView.java) | `public interface DisposableView {` (dòng 4) | Điều hướng, tác vụ nền và vòng đời view |
-| [client/navigation/ViewNavigator.java](../../src/main/java/com/auction/client/navigation/ViewNavigator.java) | `public final class ViewNavigator {` (dòng 21)<br>`public enum Route {` (dòng 25)<br>`private static final class View {` (dòng 240) | Điều hướng, tác vụ nền và vòng đời view |
-| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java) | `public final class ViewTasks implements AutoCloseable {` (dòng 22)<br>`public static final class NotSubmittedException extends RejectedExecutionException {` (dòng 68) | Điều hướng, tác vụ nền và vòng đời view |
-| [client/service/AuctionAdminService.java](../../src/main/java/com/auction/client/service/AuctionAdminService.java) | `public interface AuctionAdminService {` (dòng 8) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/AuctionClientService.java](../../src/main/java/com/auction/client/service/AuctionClientService.java) | `public interface AuctionClientService {` (dòng 17) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/AuctionRoomSnapshot.java](../../src/main/java/com/auction/client/service/AuctionRoomSnapshot.java) | `public record AuctionRoomSnapshot(Auction auction, List<Bid> history) {` (dòng 8) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/AutoBidException.java](../../src/main/java/com/auction/client/service/AutoBidException.java) | `public class AutoBidException extends RuntimeException {` (dòng 4) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/AutoBidService.java](../../src/main/java/com/auction/client/service/AutoBidService.java) | `public interface AutoBidService {` (dòng 6) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/BidResult.java](../../src/main/java/com/auction/client/service/BidResult.java) | `public class BidResult {` (dòng 6) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/BidSubmissionTracker.java](../../src/main/java/com/auction/client/service/BidSubmissionTracker.java) | `public final class BidSubmissionTracker {` (dòng 10)<br>`public enum Phase {` (dòng 11)<br>`public record Key(String username, String auctionId) {}` (dòng 18)<br>`public record Ticket(Key key, long command) {}` (dòng 20)<br>`public record ReadStamp(Key key, long revision, Phase phase) {}` (dòng 22)<br>`private static final class Entry {` (dòng 24) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/mock/AutoBidEngine.java](../../src/main/java/com/auction/client/service/mock/AutoBidEngine.java) | `public final class AutoBidEngine {` (dòng 9) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/mock/MockAuctionClientService.java](../../src/main/java/com/auction/client/service/mock/MockAuctionClientService.java) | `public class MockAuctionClientService implements AuctionClientService {` (dòng 25) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/mock/MockAutoBidService.java](../../src/main/java/com/auction/client/service/mock/MockAutoBidService.java) | `public final class MockAutoBidService implements AutoBidService {` (dòng 11) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/mock/MockDataStore.java](../../src/main/java/com/auction/client/service/mock/MockDataStore.java) | `public final class MockDataStore {` (dòng 9)<br>`record Hold(String username, long amount) {}` (dòng 57) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/mock/MockManagementService.java](../../src/main/java/com/auction/client/service/mock/MockManagementService.java) | `public class MockManagementService` (dòng 19) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/mock/MockWalletService.java](../../src/main/java/com/auction/client/service/mock/MockWalletService.java) | `public final class MockWalletService implements WalletService {` (dòng 11) | Dữ liệu/logic giả phục vụ UI development và test |
-| [client/service/ProductService.java](../../src/main/java/com/auction/client/service/ProductService.java) | `public interface ProductService {` (dòng 9) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java) | `public final class JsonTransport implements AutoCloseable {` (dòng 13)<br>`private final class Connection {` (dòng 35) | Adapter/socket, DTO mapping và đối soát commandId phía client |
-| [client/service/server/ServerError.java](../../src/main/java/com/auction/client/service/server/ServerError.java) | `public final class ServerError extends IllegalStateException {` (dòng 4) | Adapter/socket, DTO mapping và đối soát commandId phía client |
-| [client/service/server/ServerMapper.java](../../src/main/java/com/auction/client/service/server/ServerMapper.java) | `final class ServerMapper {` (dòng 8) | Adapter/socket, DTO mapping và đối soát commandId phía client |
-| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `public final class ServerServices` (dòng 19)<br>`private record CommandLock(` (dòng 141) | Adapter/socket, DTO mapping và đối soát commandId phía client |
-| [client/service/ServiceRegistry.java](../../src/main/java/com/auction/client/service/ServiceRegistry.java) | `public final class ServiceRegistry {` (dòng 8)<br>`private record Services(` (dòng 14) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/UserAdminService.java](../../src/main/java/com/auction/client/service/UserAdminService.java) | `public interface UserAdminService {` (dòng 9) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/WalletException.java](../../src/main/java/com/auction/client/service/WalletException.java) | `public class WalletException extends RuntimeException {` (dòng 4) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/WalletService.java](../../src/main/java/com/auction/client/service/WalletService.java) | `public interface WalletService {` (dòng 8) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/service/WalletSnapshot.java](../../src/main/java/com/auction/client/service/WalletSnapshot.java) | `public record WalletSnapshot(` (dòng 7) | Hợp đồng service hoặc quy tắc dùng chung |
-| [client/ui/AppFooter.java](../../src/main/java/com/auction/client/ui/AppFooter.java) | `public final class AppFooter extends VBox {` (dòng 19) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/AppHeader.java](../../src/main/java/com/auction/client/ui/AppHeader.java) | `public final class AppHeader extends HBox {` (dòng 11) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/Icons.java](../../src/main/java/com/auction/client/ui/Icons.java) | `public final class Icons {` (dòng 12) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/PasswordFieldWithToggle.java](../../src/main/java/com/auction/client/ui/PasswordFieldWithToggle.java) | `public final class PasswordFieldWithToggle {` (dòng 10) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/ProductImages.java](../../src/main/java/com/auction/client/ui/ProductImages.java) | `public final class ProductImages {` (dòng 18) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/RoundedClip.java](../../src/main/java/com/auction/client/ui/RoundedClip.java) | `public final class RoundedClip {` (dòng 6) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/SmoothScroll.java](../../src/main/java/com/auction/client/ui/SmoothScroll.java) | `public final class SmoothScroll {` (dòng 11) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/ui/UserMenu.java](../../src/main/java/com/auction/client/ui/UserMenu.java) | `public final class UserMenu extends HBox {` (dòng 31) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/util/AppInfo.java](../../src/main/java/com/auction/client/util/AppInfo.java) | `public final class AppInfo {` (dòng 3) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/util/AuctionTime.java](../../src/main/java/com/auction/client/util/AuctionTime.java) | `public final class AuctionTime {` (dòng 11) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/util/FormatUtil.java](../../src/main/java/com/auction/client/util/FormatUtil.java) | `public final class FormatUtil {` (dòng 12) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [client/util/Validators.java](../../src/main/java/com/auction/client/util/Validators.java) | `public final class Validators {` (dòng 7) | Thành phần UI hoặc tiện ích trình bày/validation |
-| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java) | `public final class AuctionJsonMapper {` (dòng 15) | JSON v1 sang Auction và merge bid, bảo toàn trường mở rộng |
-| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java) | `public final class AuctionRepository implements AutoCloseable {` (dòng 19) | Load/save JSON bền vững và lock dữ liệu |
-| [server/exception/ApiException.java](../../src/main/java/com/auction/server/exception/ApiException.java) | `public final class ApiException extends RuntimeException {` (dòng 4) | Entry point, giao thức dùng chung hoặc exception |
-| [server/model/Admin.java](../../src/main/java/com/auction/server/model/Admin.java) | `public class Admin extends User {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Art.java](../../src/main/java/com/auction/server/model/Art.java) | `public class Art extends Item {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public record Auction(` (dòng 11) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/AuctionStatus.java](../../src/main/java/com/auction/server/model/AuctionStatus.java) | `public enum AuctionStatus {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Bidder.java](../../src/main/java/com/auction/server/model/Bidder.java) | `public class Bidder extends User {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/BidTransaction.java](../../src/main/java/com/auction/server/model/BidTransaction.java) | `public record BidTransaction(` (dòng 6) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Electronics.java](../../src/main/java/com/auction/server/model/Electronics.java) | `public class Electronics extends Item {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public abstract class Entity implements Serializable {` (dòng 8) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Item.java](../../src/main/java/com/auction/server/model/Item.java) | `public abstract class Item extends Entity {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java) | `public abstract class ItemFactory {` (dòng 7)<br>`private static final class CategoryItem extends Item {` (dòng 33) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Seller.java](../../src/main/java/com/auction/server/model/Seller.java) | `public class Seller extends User {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/User.java](../../src/main/java/com/auction/server/model/User.java) | `public abstract class User extends Entity {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/UserRole.java](../../src/main/java/com/auction/server/model/UserRole.java) | `public enum UserRole {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/model/Vehicle.java](../../src/main/java/com/auction/server/model/Vehicle.java) | `public class Vehicle extends Item {` (dòng 3) | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
-| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `public final class Server implements AutoCloseable {` (dòng 21)<br>`private final class Client implements AutoCloseable {` (dòng 121) | TCP request handler, subscriptions, queue và scheduler |
-| [server/service/AntiSnipingPolicy.java](../../src/main/java/com/auction/server/service/AntiSnipingPolicy.java) | `public final class AntiSnipingPolicy {` (dòng 12) | Hợp đồng service hoặc quy tắc dùng chung |
-| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java) | `final class AuctionContext {` (dòng 18) | Snapshot JSON, thời gian, projection và buffer sự kiện dùng chung |
-| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `public final class AuctionService implements AutoCloseable {` (dòng 21) | Facade duy nhất giữ monitor, commandId, commit/rollback và publish |
-| [server/service/AuctionStateValidator.java](../../src/main/java/com/auction/server/service/AuctionStateValidator.java) | `final class AuctionStateValidator {` (dòng 10) | Kiểm tra cấu trúc và liên kết snapshot trước khi phục vụ |
-| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `final class AuthLogic {` (dòng 14)<br>`private record Session(String userId, Instant expires) {}` (dòng 19) | Credentials, sessions, đăng ký và quản trị tài khoản |
-| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `final class BiddingLogic {` (dòng 16) | Bid thủ công/tự động, một luồng acceptBid và anti-sniping |
-| [server/service/Passwords.java](../../src/main/java/com/auction/server/service/Passwords.java) | `final class Passwords {` (dòng 11) | Hợp đồng service hoặc quy tắc dùng chung |
-| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java) | `final class ProductLogic {` (dòng 16) | Sản phẩm, danh mục, lịch đấu giá, ảnh và quyền seller |
-| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java) | `final class SettlementLogic {` (dòng 11) | Mở/đóng phiên, thanh toán một lần và hủy của admin |
-| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `final class WalletLogic {` (dòng 11) | Tiền giữ/khả dụng, nạp/rút và lịch sử ví trong transaction |
-| [shared/JsonProtocol.java](../../src/main/java/com/auction/shared/JsonProtocol.java) | `public final class JsonProtocol {` (dòng 9) | Entry point, giao thức dùng chung hoặc exception |
+| [client/App.java](../../src/main/java/com/auction/client/App.java) | `public class App {` | Entry point, giao thức dùng chung hoặc exception |
+| [client/controller/AdminController.java](../../src/main/java/com/auction/client/controller/AdminController.java) | `public class AdminController implements DisposableView {` | Hai bảng quản trị người dùng/phiên, ViewTasks và kiểm tra vai trò |
+| [client/controller/AuctionRoomController.java](../../src/main/java/com/auction/client/controller/AuctionRoomController.java) | `public class AuctionRoomController implements DisposableView {`<br>`private record RoomData(` | Điều phối JavaFX và gọi service qua ViewTasks |
+| [client/controller/AuthController.java](../../src/main/java/com/auction/client/controller/AuthController.java) | `public class AuthController implements DisposableView {` | Điều phối JavaFX và gọi service qua ViewTasks |
+| [client/controller/ContactController.java](../../src/main/java/com/auction/client/controller/ContactController.java) | `public class ContactController {`<br>`private record TeamMember(String name, String email) {}` | Đọc contacts.properties, sao chép email và feedback tại card |
+| [client/controller/GuideController.java](../../src/main/java/com/auction/client/controller/GuideController.java) | `public class GuideController {` | Sáu hướng dẫn ngắn và điều hướng quay lại |
+| [client/controller/HomeController.java](../../src/main/java/com/auction/client/controller/HomeController.java) | `public class HomeController implements DisposableView {`<br>`private static class CountdownEntry {` | Điều phối JavaFX và gọi service qua ViewTasks |
+| [client/controller/SellerProductsController.java](../../src/main/java/com/auction/client/controller/SellerProductsController.java) | `public class SellerProductsController implements DisposableView {`<br>`private record Products(List<Auction> rows, Map<String, String> paths) {}` | Điều phối JavaFX và gọi service qua ViewTasks |
+| [client/controller/WalletController.java](../../src/main/java/com/auction/client/controller/WalletController.java) | `public class WalletController implements DisposableView {` | Điều phối JavaFX và gọi service qua ViewTasks |
+| [client/Main.java](../../src/main/java/com/auction/client/Main.java) | `public class Main extends Application {` | Entry point, giao thức dùng chung hoặc exception |
+| [client/model/AdminUser.java](../../src/main/java/com/auction/client/model/AdminUser.java) | `public class AdminUser {` | DTO hiển thị |
+| [client/model/Auction.java](../../src/main/java/com/auction/client/model/Auction.java) | `public class Auction implements Serializable {` | DTO hiển thị |
+| [client/model/AuctionStatus.java](../../src/main/java/com/auction/client/model/AuctionStatus.java) | `public enum AuctionStatus {` | DTO hiển thị |
+| [client/model/AutoBid.java](../../src/main/java/com/auction/client/model/AutoBid.java) | `public final class AutoBid {` | DTO hiển thị |
+| [client/model/Bid.java](../../src/main/java/com/auction/client/model/Bid.java) | `public class Bid implements Serializable {` | DTO hiển thị |
+| [client/model/Item.java](../../src/main/java/com/auction/client/model/Item.java) | `public class Item implements Serializable {` | DTO hiển thị |
+| [client/model/ItemCategory.java](../../src/main/java/com/auction/client/model/ItemCategory.java) | `public enum ItemCategory {` | DTO hiển thị |
+| [client/model/Transaction.java](../../src/main/java/com/auction/client/model/Transaction.java) | `public record Transaction(` | DTO hiển thị |
+| [client/model/TransactionType.java](../../src/main/java/com/auction/client/model/TransactionType.java) | `public enum TransactionType {` | DTO hiển thị |
+| [client/model/User.java](../../src/main/java/com/auction/client/model/User.java) | `public class User implements Serializable {` | DTO hiển thị |
+| [client/model/UserRole.java](../../src/main/java/com/auction/client/model/UserRole.java) | `public enum UserRole {` | DTO hiển thị |
+| [client/navigation/DisposableView.java](../../src/main/java/com/auction/client/navigation/DisposableView.java) | `public interface DisposableView {` | Điều hướng, tác vụ nền và vòng đời view |
+| [client/navigation/ViewNavigator.java](../../src/main/java/com/auction/client/navigation/ViewNavigator.java) | `public final class ViewNavigator {`<br>`public enum Route {`<br>`private static final class View {` | Điều hướng, tác vụ nền và vòng đời view |
+| [client/navigation/ViewTasks.java](../../src/main/java/com/auction/client/navigation/ViewTasks.java) | `public final class ViewTasks implements AutoCloseable {`<br>`public static final class NotSubmittedException extends RejectedExecutionException {` | Điều hướng, tác vụ nền và vòng đời view |
+| [client/service/AuctionAdminService.java](../../src/main/java/com/auction/client/service/AuctionAdminService.java) | `public interface AuctionAdminService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/AuctionClientService.java](../../src/main/java/com/auction/client/service/AuctionClientService.java) | `public interface AuctionClientService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/AuctionRoomSnapshot.java](../../src/main/java/com/auction/client/service/AuctionRoomSnapshot.java) | `public record AuctionRoomSnapshot(Auction auction, List<Bid> history) {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/AutoBidException.java](../../src/main/java/com/auction/client/service/AutoBidException.java) | `public class AutoBidException extends RuntimeException {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/AutoBidService.java](../../src/main/java/com/auction/client/service/AutoBidService.java) | `public interface AutoBidService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/BidResult.java](../../src/main/java/com/auction/client/service/BidResult.java) | `public class BidResult {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/BidSubmissionTracker.java](../../src/main/java/com/auction/client/service/BidSubmissionTracker.java) | `public final class BidSubmissionTracker {`<br>`public enum Phase {`<br>`public record Key(String username, String auctionId) {}`<br>`public record Ticket(Key key, long command) {}`<br>`public record ReadStamp(Key key, long revision, Phase phase) {}`<br>`private static final class Entry {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [test: client/fixture/AutoBidEngine.java](../../src/test/java/com/auction/client/fixture/AutoBidEngine.java) | `public final class AutoBidEngine {` | Fixture chỉ dùng trong test, không đóng gói production |
+| [test: client/fixture/MockAuctionClientService.java](../../src/test/java/com/auction/client/fixture/MockAuctionClientService.java) | `public class MockAuctionClientService implements AuctionClientService {` | Fixture chỉ dùng trong test, không đóng gói production |
+| [test: client/fixture/MockAutoBidService.java](../../src/test/java/com/auction/client/fixture/MockAutoBidService.java) | `public final class MockAutoBidService implements AutoBidService {` | Fixture chỉ dùng trong test, không đóng gói production |
+| [test: client/fixture/MockDataStore.java](../../src/test/java/com/auction/client/fixture/MockDataStore.java) | `public final class MockDataStore {`<br>`record Hold(String username, long amount) {}` | Fixture chỉ dùng trong test, không đóng gói production |
+| [test: client/fixture/MockManagementService.java](../../src/test/java/com/auction/client/fixture/MockManagementService.java) | `public class MockManagementService` | Fixture chỉ dùng trong test, không đóng gói production |
+| [test: client/fixture/MockWalletService.java](../../src/test/java/com/auction/client/fixture/MockWalletService.java) | `public final class MockWalletService implements WalletService {` | Fixture chỉ dùng trong test, không đóng gói production |
+| [client/service/ProductService.java](../../src/main/java/com/auction/client/service/ProductService.java) | `public interface ProductService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/server/JsonTransport.java](../../src/main/java/com/auction/client/service/server/JsonTransport.java) | `public final class JsonTransport implements AutoCloseable {`<br>`private final class Connection {` | Adapter/socket, DTO mapping và đối soát commandId phía client |
+| [client/service/server/ServerError.java](../../src/main/java/com/auction/client/service/server/ServerError.java) | `public final class ServerError extends IllegalStateException {` | Adapter/socket, DTO mapping và đối soát commandId phía client |
+| [client/service/server/ServerMapper.java](../../src/main/java/com/auction/client/service/server/ServerMapper.java) | `final class ServerMapper {` | Adapter/socket, DTO mapping và đối soát commandId phía client |
+| [client/service/server/ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | `public final class ServerServices`<br>`private record CommandLock(` | Adapter/socket, DTO mapping và đối soát commandId phía client |
+| [client/service/ServiceRegistry.java](../../src/main/java/com/auction/client/service/ServiceRegistry.java) | `public final class ServiceRegistry {`<br>`private record Services(` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/UserAdminService.java](../../src/main/java/com/auction/client/service/UserAdminService.java) | `public interface UserAdminService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/WalletException.java](../../src/main/java/com/auction/client/service/WalletException.java) | `public class WalletException extends RuntimeException {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/WalletService.java](../../src/main/java/com/auction/client/service/WalletService.java) | `public interface WalletService {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/service/WalletSnapshot.java](../../src/main/java/com/auction/client/service/WalletSnapshot.java) | `public record WalletSnapshot(` | Hợp đồng service hoặc quy tắc dùng chung |
+| [client/ui/AppFooter.java](../../src/main/java/com/auction/client/ui/AppFooter.java) | `public final class AppFooter extends VBox {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/AppHeader.java](../../src/main/java/com/auction/client/ui/AppHeader.java) | `public final class AppHeader extends HBox {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/Icons.java](../../src/main/java/com/auction/client/ui/Icons.java) | `public final class Icons {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/PasswordFieldWithToggle.java](../../src/main/java/com/auction/client/ui/PasswordFieldWithToggle.java) | `public final class PasswordFieldWithToggle {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/ProductImages.java](../../src/main/java/com/auction/client/ui/ProductImages.java) | `public final class ProductImages {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/RoundedClip.java](../../src/main/java/com/auction/client/ui/RoundedClip.java) | `public final class RoundedClip {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/SmoothScroll.java](../../src/main/java/com/auction/client/ui/SmoothScroll.java) | `public final class SmoothScroll {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/ui/UserMenu.java](../../src/main/java/com/auction/client/ui/UserMenu.java) | `public final class UserMenu extends HBox {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/util/AppInfo.java](../../src/main/java/com/auction/client/util/AppInfo.java) | `public final class AppInfo {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/util/AuctionTime.java](../../src/main/java/com/auction/client/util/AuctionTime.java) | `public final class AuctionTime {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/util/FormatUtil.java](../../src/main/java/com/auction/client/util/FormatUtil.java) | `public final class FormatUtil {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [client/util/Validators.java](../../src/main/java/com/auction/client/util/Validators.java) | `public final class Validators {` | Thành phần UI hoặc tiện ích trình bày/validation |
+| [server/dao/AuctionJsonMapper.java](../../src/main/java/com/auction/server/dao/AuctionJsonMapper.java) | `public final class AuctionJsonMapper {` | JSON v1 sang Auction và merge bid, bảo toàn trường mở rộng |
+| [server/dao/AuctionRepository.java](../../src/main/java/com/auction/server/dao/AuctionRepository.java) | `public final class AuctionRepository implements AutoCloseable {` | Load/save JSON bền vững và lock dữ liệu |
+| [server/exception/ApiException.java](../../src/main/java/com/auction/server/exception/ApiException.java) | `public class ApiException extends RuntimeException {` | Entry point, giao thức dùng chung hoặc exception |
+| [server/model/Admin.java](../../src/main/java/com/auction/server/model/Admin.java) | `public class Admin extends User {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Art.java](../../src/main/java/com/auction/server/model/Art.java) | `public class Art extends Item {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Auction.java](../../src/main/java/com/auction/server/model/Auction.java) | `public record Auction(` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/AuctionStatus.java](../../src/main/java/com/auction/server/model/AuctionStatus.java) | `public enum AuctionStatus {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Bidder.java](../../src/main/java/com/auction/server/model/Bidder.java) | `public class Bidder extends User {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/BidTransaction.java](../../src/main/java/com/auction/server/model/BidTransaction.java) | `public record BidTransaction(` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Electronics.java](../../src/main/java/com/auction/server/model/Electronics.java) | `public class Electronics extends Item {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Entity.java](../../src/main/java/com/auction/server/model/Entity.java) | `public abstract class Entity implements Serializable {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Item.java](../../src/main/java/com/auction/server/model/Item.java) | `public abstract class Item extends Entity {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/ItemFactory.java](../../src/main/java/com/auction/server/model/ItemFactory.java) | `public abstract class ItemFactory {`<br>`private static final class CategoryItem extends Item {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Seller.java](../../src/main/java/com/auction/server/model/Seller.java) | `public class Seller extends User {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/User.java](../../src/main/java/com/auction/server/model/User.java) | `public abstract class User extends Entity {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/UserRole.java](../../src/main/java/com/auction/server/model/UserRole.java) | `public enum UserRole {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/model/Vehicle.java](../../src/main/java/com/auction/server/model/Vehicle.java) | `public class Vehicle extends Item {` | Domain; xem OOP_EXPLANATION để phân biệt vai trò production và API cũ |
+| [server/network/Server.java](../../src/main/java/com/auction/server/network/Server.java) | `public final class Server implements AutoCloseable {`<br>`private final class Client implements AutoCloseable {` | TCP request handler, subscriptions, queue và scheduler |
+| [server/service/AntiSnipingPolicy.java](../../src/main/java/com/auction/server/service/AntiSnipingPolicy.java) | `public final class AntiSnipingPolicy {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [server/service/AuctionContext.java](../../src/main/java/com/auction/server/service/AuctionContext.java) | `final class AuctionContext {` | Snapshot JSON, thời gian, projection và buffer sự kiện dùng chung |
+| [server/service/AuctionService.java](../../src/main/java/com/auction/server/service/AuctionService.java) | `public final class AuctionService implements AutoCloseable {` | Facade duy nhất giữ monitor, commandId, commit/rollback và publish |
+| [server/service/AuctionStateValidator.java](../../src/main/java/com/auction/server/service/AuctionStateValidator.java) | `final class AuctionStateValidator {` | Kiểm tra cấu trúc và liên kết snapshot trước khi phục vụ |
+| [server/service/AuthLogic.java](../../src/main/java/com/auction/server/service/AuthLogic.java) | `final class AuthLogic {`<br>`private record Session(String userId, Instant expires) {}` | Credentials, sessions, đăng ký và quản trị tài khoản |
+| [server/service/BiddingLogic.java](../../src/main/java/com/auction/server/service/BiddingLogic.java) | `final class BiddingLogic {` | Bid thủ công/tự động, một luồng acceptBid và anti-sniping |
+| [server/service/Passwords.java](../../src/main/java/com/auction/server/service/Passwords.java) | `final class Passwords {` | Hợp đồng service hoặc quy tắc dùng chung |
+| [server/service/ProductLogic.java](../../src/main/java/com/auction/server/service/ProductLogic.java) | `final class ProductLogic {` | Sản phẩm, danh mục, lịch đấu giá, ảnh và quyền seller |
+| [server/service/SettlementLogic.java](../../src/main/java/com/auction/server/service/SettlementLogic.java) | `final class SettlementLogic {` | Mở/đóng phiên, thanh toán một lần và hủy của admin |
+| [server/service/WalletLogic.java](../../src/main/java/com/auction/server/service/WalletLogic.java) | `final class WalletLogic {` | Tiền giữ/khả dụng, nạp/rút và lịch sử ví trong transaction |
+| [shared/JsonProtocol.java](../../src/main/java/com/auction/shared/JsonProtocol.java) | `public final class JsonProtocol {` | Entry point, giao thức dùng chung hoặc exception |
 
 ## Các phương thức kiểm thử
 
@@ -183,41 +183,92 @@ Một method parameterized có thể tạo nhiều test case trong Surefire. S�
 
 | File | Method kiểm thử |
 |---|---|
-| [ClientUiTest.java](../../src/test/java/com/auction/client/controller/ClientUiTest.java) | `registerLoginSearchAndNavigation` (dòng 147)<br>`bidHistoryChartAndRepeatedRoomLifecycle` (dòng 200)<br>`allRoutesLoadWithAuthorizedRoles` (dòng 293)<br>`mockAutoBidValidationIsKnownRejectionAndCanBeCorrected` (dòng 440)<br>`queueRejectionRestoresBidUiWithoutPretendingItWasSent` (dòng 496)<br>`timeoutAndPendingOrFailedReadNeverUnlockOrResend` (dòng 808)<br>`responseRequiresReadStartedAfterResponseAndReadFailureKeepsLock` (dòng 910)<br>`leavingOrChangingRoomCannotForgetInFlightCommandOrApplyOldCallback` (dòng 980)<br>`homeShowsEveryRunningAndOnlyOpenUpcomingWithoutDuplicates` (dòng 1068)<br>`homeDistinguishesLoadingFailureEmptyAndFilteredResults` (dòng 1184)<br>`walletShowsFullLongAmountAndExactTooltipAtBothWidths` (dòng 1274)<br>`authStylesAreAppliedAndRegisterScrollsOnSmallWindow` (dòng 1338)<br>`accountPopupClosesWhenItsHeaderIsRemoved` (dòng 1380)<br>`accountPopupClosesOnFocusLossEscapeAndOwnerHide` (dòng 1394)<br>`conciseGuideAndContactCopyWorkAtNarrowWidth` (dòng 1439)<br>`accountPopupSupportsOutsideClickKeyboardAndNavigation` (dòng 1497) |
-| [ImageTasksTest.java](../../src/test/java/com/auction/client/navigation/ImageTasksTest.java) | `blockedAndFullImageQueueDoesNotBlockBusinessCommands` (dòng 14)<br>`closingImageScopeRemovesQueuedWorkAndInterruptsOnlyItsRunningRead` (dòng 67)<br>`changingFilterOrReusingCellDropsOldQueuedAndAlreadyDeliveredImages` (dòng 115)<br>`oneFailedImageDoesNotDisableLaterLoads` (dòng 134)<br>`rejectedBusinessWorkReportsNotSentAndAcceptedMutationSurvivesClose` (dòng 155) |
-| [ViewTasksTest.java](../../src/test/java/com/auction/client/navigation/ViewTasksTest.java) | `lateReadCannotReplaceNewerResult` (dòng 16)<br>`leavingViewSuppressesAlreadyQueuedCallbacksAndObserverEvents` (dòng 26)<br>`leavingViewDoesNotCancelOrRetrySubmittedMutation` (dòng 36)<br>`failureGoesToUiAndClosedScopeRejectsNewWork` (dòng 54) |
-| [BidSubmissionTrackerTest.java](../../src/test/java/com/auction/client/service/BidSubmissionTrackerTest.java) | `timeoutStaysUnknownEvenAfterSuccessfulFreshHistoryRead` (dòng 14)<br>`readStartedBeforeCommandOrBeforeResponseCannotUnlock` (dòng 23)<br>`failedReadDoesNotUnlockAndOldCommandCannotChangeNewCommand` (dòng 38)<br>`unknownIsIsolatedByUserAndAuctionAndOnlyQueueRejectionMeansNotSent` (dòng 53) |
-| [MockAuctionBidAccessTest.java](../../src/test/java/com/auction/client/service/MockAuctionBidAccessTest.java) | `guestAndSellerCannotBid` (dòng 14) |
-| [MockAuthIntegrationTest.java](../../src/test/java/com/auction/client/service/MockAuthIntegrationTest.java) | `registeredAccountSharesManagementState` (dòng 12)<br>`sampleLoginUsesTheSameStoreAsManagement` (dòng 34) |
-| [MockAutoBidServiceTest.java](../../src/test/java/com/auction/client/service/MockAutoBidServiceTest.java) | `earlierRegistrationWinsEqualMaximumAndNeverExceedsIt` (dòng 50)<br>`earlierRegistrationWithoutBudgetDoesNotBlockAnAffordableRival` (dòng 67)<br>`noSelfOutbiddingAndStopsAtCeiling` (dòng 80)<br>`notifiesListenersOnOtherServiceInstances` (dòng 98)<br>`validatesLimitsAndCancellation` (dòng 113)<br>`concurrentManualBidsRemainMonotonicAndHoldOneWinner` (dòng 145) |
-| [MockManagementServiceTest.java](../../src/test/java/com/auction/client/service/MockManagementServiceTest.java) | `adminCannotLockOrDeleteSelf` (dòng 14)<br>`cancellationRequiresReasonAndOnlyAllowsOpenOrRunning` (dòng 27)<br>`sellerCannotDeleteBidOnOrOtherSellerAuction` (dòng 45) |
-| [MockSharedStoreTest.java](../../src/test/java/com/auction/client/service/MockSharedStoreTest.java) | `productChangesAndStatusesAreVisibleToAuctionService` (dòng 15)<br>`categoriesRecognizeLegacyAndCurrentNames` (dòng 91) |
-| [MockWalletServiceTest.java](../../src/test/java/com/auction/client/service/MockWalletServiceTest.java) | `depositWithdrawAndValidation` (dòng 16)<br>`holdsReleaseAndPaymentAreAtomic` (dòng 33)<br>`cancellationReleasesFunds` (dòng 64)<br>`concurrentDepositsDoNotLoseUpdates` (dòng 85) |
-| [ServiceRegistryTest.java](../../src/test/java/com/auction/client/service/ServiceRegistryTest.java) | `unsupportedModeDoesNotFallBackToMock` (dòng 66)<br>`replacingOnlyAuctionCannotSilentlyKeepOtherMocks` (dòng 79) |
-| [ProductImagesIoTest.java](../../src/test/java/com/auction/client/ui/ProductImagesIoTest.java) | `canceledAndExpiredLocalReadStopsWithoutSleeping` (dòng 19)<br>`stalledHttpBodyHasReadTimeoutAndDoesNotWaitForever` (dòng 38) |
-| [ProductImagesTest.java](../../src/test/java/com/auction/client/ui/ProductImagesTest.java) | `saoChepAnhVaXuLyDuongDanSai` (dòng 15) |
-| [UiResourcesTest.java](../../src/test/java/com/auction/client/ui/UiResourcesTest.java) | `decorativeResourcesAreAbsentAndProductSupportRemains` (dòng 9) |
-| [AuctionTimeTest.java](../../src/test/java/com/auction/client/util/AuctionTimeTest.java) | `parsesStrictTime` (dòng 12)<br>`summarizesDuration` (dòng 19)<br>`validatesBounds` (dòng 27) |
-| [FormatUtilTest.java](../../src/test/java/com/auction/client/util/FormatUtilTest.java) | `walletLongAmountsKeepEveryDigit` (dòng 9)<br>`concurrentCurrencyAndChartFormattingKeepsExactValues` (dòng 16) |
-| [ValidatorsTest.java](../../src/test/java/com/auction/client/util/ValidatorsTest.java) | `acceptsValidEmails` (dòng 29)<br>`rejectsInvalidEmails` (dòng 57)<br>`rejectsOversizedEmails` (dòng 70)<br>`acceptsUsernames` (dòng 76)<br>`rejectsUsernames` (dòng 82)<br>`acceptsPasswords` (dòng 88)<br>`rejectsPasswords` (dòng 94)<br>`acceptsMatchingPasswords` (dòng 100)<br>`rejectsMismatchedPasswords` (dòng 106) |
-| [FullStackTest.java](../../src/test/java/com/auction/integration/FullStackTest.java) | `sellerUploadsImageBidderReadsItAndAdminManagesProduct` (dòng 53)<br>`sellerValidationIdentifiesTheRejectedFieldAndLeavesProductsUnchanged` (dòng 99)<br>`twoAdaptersReceiveLiveBidWalletAndAutoBidWithoutMock` (dòng 116)<br>`failingBidObserverDoesNotSuppressOtherObserversOrGeneralChanges` (dòng 133)<br>`registrationLoginDepositWithdrawAndAdminLockReachBackend` (dòng 153)<br>`pendingCommandSurvivesClientRestartAndIsAppliedOnlyOnce` (dòng 178)<br>`unavailableServerDoesNotReturnMockData` (dòng 203)<br>`reconnectAfterServerRestartRequiresLoginAndRetainsMoney` (dòng 211)<br>`coldServerJvmCanAuthenticateWithinTheNormalClientTimeout` (dòng 235)<br>`requestTimeoutAlsoClosesAConnectionWhosePeerStopsReading` (dòng 281)<br>`lostBidAcknowledgementRetriesTheSameCommandNotAnotherBid` (dòng 302) |
-| [ServerUiIntegrationTest.java](../../src/test/java/com/auction/integration/ServerUiIntegrationTest.java) | `javafxScreensOperateOnTheRealServer` (dòng 125) |
-| [AuctionJsonMapperTest.java](../../src/test/java/com/auction/server/dao/AuctionJsonMapperTest.java) | `readsLegacyAuctionWithoutMutatingHistoryImagesOrExtensionFields` (dòng 19)<br>`applyingDomainBidUpdatesOnlyTheLeaderPriceAndCount` (dòng 37)<br>`writesExactLegacyBidFieldsAndIntegerMoney` (dòng 58) |
-| [AuctionRepositoryTest.java](../../src/test/java/com/auction/server/dao/AuctionRepositoryTest.java) | `committedSnapshotSurvivesRestartAndIgnoresUncommittedTemporaryFile` (dòng 19)<br>`secondRepositoryCannotWriteTheSameDataDirectory` (dòng 34)<br>`corruptFileIsNeverResetOrOverwritten` (dòng 48)<br>`writeFailurePreservesCommittedFileAndCanBeRetried` (dòng 60)<br>`savingRequiresSuccessfulLoadAndAnOpenRepository` (dòng 77) |
-| [AuctionTest.java](../../src/test/java/com/auction/server/model/AuctionTest.java) | `minimumStepAppliesToFirstBidAndAllowsLargerJumps` (dòng 25)<br>`participantRoleAndOwnershipAreEnforcedOnServer` (dòng 34)<br>`startIsInclusiveAndEndIsExclusive` (dòng 43)<br>`onlyRunningStatusAcceptsBids` (dòng 53)<br>`acceptedBidChangesOneLeaderWithoutMutatingThePreviousSnapshot` (dòng 58)<br>`settledAuctionsKeepTheirWinnerButReleaseTheHold` (dòng 76)<br>`autoBidRequiresBothTheMinimumIncrementAndTheNextPrice` (dòng 85)<br>`editCancelAndSchedulerRulesRespectTypedStatus` (dòng 94)<br>`evenAnOpenAuctionCannotBeEditedOnceItHasBidHistory` (dòng 109) |
-| [ItemFactoryTest.java](../../src/test/java/com/auction/server/model/ItemFactoryTest.java) | `createsCorrectCategoryAndPreservesProductAndOwner` (dòng 14)<br>`rejectsUnknownCategoryInsteadOfSilentlyCreatingOther` (dòng 31)<br>`acceptsCategoryAliasesIntroducedOnMain` (dòng 38)<br>`userRoleDispatchUsesTheRuntimeSubclass` (dòng 51) |
-| [ServerIntegrationTest.java](../../src/test/java/com/auction/server/network/ServerIntegrationTest.java) | `twoRealSocketsReceivePushAndReconnectReplaysOnlyOneBid` (dòng 80)<br>`simultaneousEqualBidsCommitOnceAndMalformedClientDoesNotStopServer` (dòng 117)<br>`oversizedFrameIsRejectedBeforeAllocation` (dòng 153) |
-| [AntiSnipingPolicyTest.java](../../src/test/java/com/auction/server/service/AntiSnipingPolicyTest.java) | `bidFarFromEnd_doesNotExtend` (dòng 20)<br>`bidInLastSeconds_extends` (dòng 27)<br>`bidExactlyAtThreshold_extends` (dòng 34)<br>`bidAfterEnd_doesNotExtend` (dòng 39)<br>`invalidConfig_throws` (dòng 45) |
-| [AuctionServiceTest.java](../../src/test/java/com/auction/server/service/AuctionServiceTest.java) | `credentialsAreHashedAndPublicDtosAreSafe` (dòng 119)<br>`registerValidatesRoleUniquenessAndPassword` (dòng 132)<br>`walletHoldsOutbidReleaseAndWithdrawAreConsistent` (dòng 154)<br>`firstBidRequiresStepAndIntegerAndSellerCannotBidOwnProduct` (dòng 166)<br>`scheduledAuctionsCannotReceiveEarlyBidsAndOpenAutomatically` (dòng 176)<br>`settlementPaysSellerExactlyOnceAndSurvivesRestart` (dòng 189)<br>`antiSnipingExtendsAndDoesNotSettleAtOldDeadline` (dòng 213)<br>`canceledAuctionReleasesHoldAndStopsAutoBid` (dòng 231)<br>`autoBidRespectsLimitBudgetAndRegistrationOrder` (dòng 251)<br>`earlierAutoBidCannotBlockAnAffordableRivalAfterItsBudgetChanges` (dòng 272)<br>`idempotencyRejectsChangedPayloadAndPersistsFinalOutcome` (dòng 289)<br>`concurrentAuctionsCannotOverspendOneWallet` (dòng 312)<br>`equalConcurrentBidsChooseOneLeaderAndRejectTheOtherAtTheNewPrice` (dòng 345)<br>`adminLockAppliesToExistingSessionAndCannotBeSpoofed` (dòng 369)<br>`productCrudChecksOwnerAndPreservesAuctionHistory` (dòng 379)<br>`storageFailureRollsBackMoneyAndCommandResult` (dòng 392)<br>`failedBidDoesNotPublishOrPersistAndSameCommandCanBeRetried` (dòng 401)<br>`noBidAuctionFinishesWithoutPaymentAndInvalidImagesAreRejected` (dòng 433)<br>`extensionFieldsSurviveAutomaticBidsSettlementAndRestart` (dòng 451)<br>`failedSettlementSaveRestoresBothWalletsAndRetryPaysExactlyOnce` (dòng 497)<br>`rejectedProductUpdateDoesNotLeaveHelpersUsingTheDiscardedSnapshot` (dòng 521) |
-| [AuctionStateValidationTest.java](../../src/test/java/com/auction/server/service/AuctionStateValidationTest.java) | `incompleteSnapshotFailsStartupWithoutResetAndReleasesLock` (dòng 24)<br>`corruptNestedDataFailsBeforeAnySchedulerOrWrite` (dòng 49)<br>`inconsistentFinancialSnapshotIsRejectedWithoutChangingBytes` (dòng 88) |
+| [ClientUiTest.java](../../src/test/java/com/auction/client/controller/ClientUiTest.java) | `registerLoginSearchAndNavigation`<br>`bidHistoryChartAndRepeatedRoomLifecycle`<br>`allRoutesLoadWithAuthorizedRoles`<br>`mockAutoBidValidationIsKnownRejectionAndCanBeCorrected`<br>`queueRejectionRestoresBidUiWithoutPretendingItWasSent`<br>`timeoutAndPendingOrFailedReadNeverUnlockOrResend`<br>`responseRequiresReadStartedAfterResponseAndReadFailureKeepsLock`<br>`leavingOrChangingRoomCannotForgetInFlightCommandOrApplyOldCallback`<br>`homeShowsEveryRunningAndOnlyOpenUpcomingWithoutDuplicates`<br>`homeDistinguishesLoadingFailureEmptyAndFilteredResults`<br>`walletShowsFullLongAmountAndExactTooltipAtBothWidths`<br>`authStylesAreAppliedAndRegisterScrollsOnSmallWindow`<br>`accountMenuToggleStaysInSceneAndLeavesOtherControlsUsable`<br>`accountMenuCleansUpOnOwnerHideHeaderRemovalAndLogout`<br>`conciseGuideAndContactCopyWorkAtNarrowWidth`<br>`accountMenuNavigationAndRepeatedUseDoNotDuplicateContent` |
+| [ImageTasksTest.java](../../src/test/java/com/auction/client/navigation/ImageTasksTest.java) | `blockedAndFullImageQueueDoesNotBlockBusinessCommands`<br>`closingImageScopeRemovesQueuedWorkAndInterruptsOnlyItsRunningRead`<br>`changingFilterOrReusingCellDropsOldQueuedAndAlreadyDeliveredImages`<br>`oneFailedImageDoesNotDisableLaterLoads`<br>`rejectedBusinessWorkReportsNotSentAndAcceptedMutationSurvivesClose` |
+| [ViewTasksTest.java](../../src/test/java/com/auction/client/navigation/ViewTasksTest.java) | `lateReadCannotReplaceNewerResult`<br>`leavingViewSuppressesAlreadyQueuedCallbacksAndObserverEvents`<br>`leavingViewDoesNotCancelOrRetrySubmittedMutation`<br>`failureGoesToUiAndClosedScopeRejectsNewWork` |
+| [BidSubmissionTrackerTest.java](../../src/test/java/com/auction/client/service/BidSubmissionTrackerTest.java) | `timeoutStaysUnknownEvenAfterSuccessfulFreshHistoryRead`<br>`readStartedBeforeCommandOrBeforeResponseCannotUnlock`<br>`failedReadDoesNotUnlockAndOldCommandCannotChangeNewCommand`<br>`unknownIsIsolatedByUserAndAuctionAndOnlyQueueRejectionMeansNotSent` |
+| [MockAuctionBidAccessTest.java](../../src/test/java/com/auction/client/service/MockAuctionBidAccessTest.java) | `guestAndSellerCannotBid` |
+| [MockAuthIntegrationTest.java](../../src/test/java/com/auction/client/service/MockAuthIntegrationTest.java) | `registeredAccountSharesManagementState`<br>`sampleLoginUsesTheSameStoreAsManagement` |
+| [MockAutoBidServiceTest.java](../../src/test/java/com/auction/client/service/MockAutoBidServiceTest.java) | `earlierRegistrationWinsEqualMaximumAndNeverExceedsIt`<br>`earlierRegistrationWithoutBudgetDoesNotBlockAnAffordableRival`<br>`noSelfOutbiddingAndStopsAtCeiling`<br>`notifiesListenersOnOtherServiceInstances`<br>`validatesLimitsAndCancellation`<br>`concurrentManualBidsRemainMonotonicAndHoldOneWinner` |
+| [MockManagementServiceTest.java](../../src/test/java/com/auction/client/service/MockManagementServiceTest.java) | `adminCannotLockOrDeleteSelf`<br>`cancellationRequiresReasonAndOnlyAllowsOpenOrRunning`<br>`sellerCannotDeleteBidOnOrOtherSellerAuction` |
+| [MockSharedStoreTest.java](../../src/test/java/com/auction/client/service/MockSharedStoreTest.java) | `productChangesAndStatusesAreVisibleToAuctionService`<br>`categoriesRecognizeLegacyAndCurrentNames` |
+| [MockWalletServiceTest.java](../../src/test/java/com/auction/client/service/MockWalletServiceTest.java) | `depositWithdrawAndValidation`<br>`holdsReleaseAndPaymentAreAtomic`<br>`cancellationReleasesFunds`<br>`concurrentDepositsDoNotLoseUpdates` |
+| [ServiceRegistryTest.java](../../src/test/java/com/auction/client/service/ServiceRegistryTest.java) | `unsupportedModeDoesNotFallBackToMock`<br>`replacingOnlyAuctionCannotSilentlyKeepAnotherTcpSession` |
+| [ProductImagesIoTest.java](../../src/test/java/com/auction/client/ui/ProductImagesIoTest.java) | `canceledAndExpiredLocalReadStopsWithoutSleeping`<br>`stalledHttpBodyHasReadTimeoutAndDoesNotWaitForever` |
+| [ProductImagesTest.java](../../src/test/java/com/auction/client/ui/ProductImagesTest.java) | `saoChepAnhVaXuLyDuongDanSai` |
+| [UiResourcesTest.java](../../src/test/java/com/auction/client/ui/UiResourcesTest.java) | `decorativeResourcesAreAbsentAndProductSupportRemains` |
+| [AuctionTimeTest.java](../../src/test/java/com/auction/client/util/AuctionTimeTest.java) | `parsesStrictTime`<br>`summarizesDuration`<br>`validatesBounds` |
+| [FormatUtilTest.java](../../src/test/java/com/auction/client/util/FormatUtilTest.java) | `walletLongAmountsKeepEveryDigit`<br>`concurrentCurrencyAndChartFormattingKeepsExactValues` |
+| [ValidatorsTest.java](../../src/test/java/com/auction/client/util/ValidatorsTest.java) | `acceptsValidEmails`<br>`rejectsInvalidEmails`<br>`rejectsOversizedEmails`<br>`acceptsUsernames`<br>`rejectsUsernames`<br>`acceptsPasswords`<br>`rejectsPasswords`<br>`acceptsMatchingPasswords`<br>`rejectsMismatchedPasswords` |
+| [FullStackTest.java](../../src/test/java/com/auction/integration/FullStackTest.java) | `sellerUploadsImageBidderReadsItAndAdminManagesProduct`<br>`sellerValidationIdentifiesTheRejectedFieldAndLeavesProductsUnchanged`<br>`twoAdaptersReceiveLiveBidWalletAndAutoBidWithoutMock`<br>`failingBidObserverDoesNotSuppressOtherObserversOrGeneralChanges`<br>`registrationLoginDepositWithdrawAndAdminLockReachBackend`<br>`pendingCommandSurvivesClientRestartAndIsAppliedOnlyOnce`<br>`unavailableServerDoesNotReturnMockData`<br>`reconnectAfterServerRestartRequiresLoginAndRetainsMoney`<br>`coldServerJvmCanAuthenticateWithinTheNormalClientTimeout`<br>`requestTimeoutClosesConnectionWhenPeerStopsReading`<br>`lostBidAcknowledgementRetriesTheSameCommandNotAnotherBid` |
+| [ServerUiIntegrationTest.java](../../src/test/java/com/auction/integration/ServerUiIntegrationTest.java) | `javafxScreensOperateOnTheRealServer` |
+| [AuctionJsonMapperTest.java](../../src/test/java/com/auction/server/dao/AuctionJsonMapperTest.java) | `readsLegacyAuctionWithoutMutatingHistoryImagesOrExtensionFields`<br>`applyingDomainBidUpdatesOnlyTheLeaderPriceAndCount`<br>`writesExactLegacyBidFieldsAndIntegerMoney` |
+| [AuctionRepositoryTest.java](../../src/test/java/com/auction/server/dao/AuctionRepositoryTest.java) | `committedSnapshotSurvivesRestartAndIgnoresUncommittedTemporaryFile`<br>`secondRepositoryCannotWriteTheSameDataDirectory`<br>`corruptFileIsNeverResetOrOverwritten`<br>`writeFailurePreservesCommittedFileAndCanBeRetried`<br>`savingRequiresSuccessfulLoadAndAnOpenRepository` |
+| [AuctionTest.java](../../src/test/java/com/auction/server/model/AuctionTest.java) | `minimumStepAppliesToFirstBidAndAllowsLargerJumps`<br>`participantRoleAndOwnershipAreEnforcedOnServer`<br>`startIsInclusiveAndEndIsExclusive`<br>`onlyRunningStatusAcceptsBids`<br>`acceptedBidChangesOneLeaderWithoutMutatingThePreviousSnapshot`<br>`settledAuctionsKeepTheirWinnerButReleaseTheHold`<br>`autoBidRequiresBothTheMinimumIncrementAndTheNextPrice`<br>`editCancelAndSchedulerRulesRespectTypedStatus`<br>`evenAnOpenAuctionCannotBeEditedOnceItHasBidHistory` |
+| [ItemFactoryTest.java](../../src/test/java/com/auction/server/model/ItemFactoryTest.java) | `createsCorrectCategoryAndPreservesProductAndOwner`<br>`rejectsUnknownCategoryInsteadOfSilentlyCreatingOther`<br>`acceptsCategoryAliasesIntroducedOnMain`<br>`userRoleDispatchUsesTheRuntimeSubclass` |
+| [ServerIntegrationTest.java](../../src/test/java/com/auction/server/network/ServerIntegrationTest.java) | `twoRealSocketsReceivePushAndReconnectReplaysOnlyOneBid`<br>`simultaneousEqualBidsCommitOnceAndMalformedClientDoesNotStopServer`<br>`oversizedFrameIsRejectedBeforeAllocation` |
+| [AntiSnipingPolicyTest.java](../../src/test/java/com/auction/server/service/AntiSnipingPolicyTest.java) | `bidFarFromEnd_doesNotExtend`<br>`bidInLastSeconds_extends`<br>`bidExactlyAtThreshold_extends`<br>`bidAfterEnd_doesNotExtend`<br>`invalidConfig_throws` |
+| [AuctionServiceTest.java](../../src/test/java/com/auction/server/service/AuctionServiceTest.java) | `credentialsAreHashedAndPublicDtosAreSafe`<br>`registerValidatesRoleUniquenessAndPassword`<br>`walletHoldsOutbidReleaseAndWithdrawAreConsistent`<br>`firstBidRequiresStepAndIntegerAndSellerCannotBidOwnProduct`<br>`scheduledAuctionsCannotReceiveEarlyBidsAndOpenAutomatically`<br>`settlementPaysSellerExactlyOnceAndSurvivesRestart`<br>`antiSnipingExtendsAndDoesNotSettleAtOldDeadline`<br>`canceledAuctionReleasesHoldAndStopsAutoBid`<br>`autoBidRespectsLimitBudgetAndRegistrationOrder`<br>`earlierAutoBidCannotBlockAnAffordableRivalAfterItsBudgetChanges`<br>`idempotencyRejectsChangedPayloadAndPersistsFinalOutcome`<br>`concurrentAuctionsCannotOverspendOneWallet`<br>`equalConcurrentBidsChooseOneLeaderAndRejectTheOtherAtTheNewPrice`<br>`adminLockAppliesToExistingSessionAndCannotBeSpoofed`<br>`productCrudChecksOwnerAndPreservesAuctionHistory`<br>`storageFailureRollsBackMoneyAndCommandResult`<br>`failedBidDoesNotPublishOrPersistAndSameCommandCanBeRetried`<br>`noBidAuctionFinishesWithoutPaymentAndInvalidImagesAreRejected`<br>`extensionFieldsSurviveAutomaticBidsSettlementAndRestart`<br>`failedSettlementSaveRestoresBothWalletsAndRetryPaysExactlyOnce`<br>`rejectedProductUpdateDoesNotLeaveHelpersUsingTheDiscardedSnapshot` |
+| [AuctionStateValidationTest.java](../../src/test/java/com/auction/server/service/AuctionStateValidationTest.java) | `incompleteSnapshotFailsStartupWithoutResetAndReleasesLock`<br>`corruptNestedDataFailsBeforeAnySchedulerOrWrite`<br>`inconsistentFinancialSnapshotIsRejectedWithoutChangingBytes` |
 
 ## Điểm mới và test hồi quy Client
 
 | File | Method / trách nhiệm |
 |---|---|
 | [AuctionBidHistoryView.java](../../src/main/java/com/auction/client/ui/AuctionBidHistoryView.java) | Constructor/setupChart: cấu hình chart và placeholder; render: snapshot → chart/history; clear: đổi phòng; addPricePoint/attachPointTooltip/updateChartAxes: vẽ |
-| [ServiceRegistry.java](../../src/main/java/com/auction/client/service/ServiceRegistry.java) | validateMode: Server mặc định và Mock chủ động; close: đóng adapter và giải phóng bộ dịch vụ |
+| [ServiceRegistry.java](../../src/main/java/com/auction/client/service/ServiceRegistry.java) | validateMode: chỉ Server, fixture tiêm qua setServices trong test; close: đóng adapter và giải phóng bộ dịch vụ |
 | [ClientUiTest.java](../../src/test/java/com/auction/client/controller/ClientUiTest.java) | oldRecoveryCannotReconcileAnotherRoomUnknownCommand; historySnapshotOrdersCapsAndReplacesPointsAndExtensionClearsUrgency |
 | [ServiceRegistryTest.java](../../src/test/java/com/auction/client/service/ServiceRegistryTest.java) | absentModeUsesOnlyServerAdaptersAndFailureNeverEnablesMock |
 | [ServerUiIntegrationTest.java](../../src/test/java/com/auction/integration/ServerUiIntegrationTest.java) | uiCreatedAccountsProductsBidsWalletAndImageSurviveNonDemoRestart: đăng ký/form/ví/bid/auto-bid/restart không seed |
 | [ServerServices.java](../../src/main/java/com/auction/client/service/server/ServerServices.java) | response: LOGIN/REGISTER không đăng ký feed bằng phiên cũ; FullStackTest.loginAfterRestartDoesNotRequireAnExpiredSessionReadFirst kiểm tra |
+
+## Seller/Mock cập nhật 13/11/2026
+
+Các số dòng bảng cũ là mốc lịch sử; tìm bằng tên method sau chỉnh sửa.
+SellerProductsController.form/closeForm: listPane ↔ editorHost trong seller-products-view.fxml.
+HomeController.applyFilters/buildAuctionCard: tab lịch sử và một badge trạng thái.
+ServiceRegistry: TCP duy nhất, kiểm tra cùng adapter/session. FixtureServices thuộc src/test.
+Server.getInstance: main không seed; constructor private; TestServers.create chỉ ở src/test mở bằng reflection.
+ClientUiTest.sellerPaneStaysInMainWindowAndCleansUpOnCancelEscapeAndNavigation,
+sellerSaveFailureKeepsDraftForCorrectionWithoutExtraWindow và
+homeSeparatesHistoryAndPreservesSearchCategoryAndStatusFilters là test bổ sung.
+ServerUiIntegrationTest còn kiểm settlement và restart của phiên tạo qua form thật.
+
+## UI/UX ngày 14/11/2026
+
+- [SellerProductsController](../../src/main/java/com/auction/client/controller/SellerProductsController.java): form, saveProduct, closeForm; điều phối list/quyền/service.
+- [SellerProductFormView](../../src/main/java/com/auction/client/ui/SellerProductFormView.java): Draft, refresh, setBusy, showSaveError, close; nạp [FXML form](../../src/main/resources/com/auction/client/views/seller-product-form.fxml).
+- [AuctionScheduleInput](../../src/main/java/com/auction/client/ui/AuctionScheduleInput.java): selection, validationMessage, parseDate; nhập lịch theo giờ Server.
+- [ProductImagePicker](../../src/main/java/com/auction/client/ui/ProductImagePicker.java): select, loadPreview, close; task ảnh tách khỏi nghiệp vụ.
+- [ViewNavigator](../../src/main/java/com/auction/client/navigation/ViewNavigator.java): prepareDialog; owner và listener lifecycle.
+- [ProductImages](../../src/main/java/com/auction/client/ui/ProductImages.java): imageDirectory hỗ trợ auction.client.images để cô lập ảnh QA, mặc định giữ nguyên.
+
+Chi tiết thay đổi và kết quả hiện tại: [FINAL_UI_UX_REVIEW](../FINAL_UI_UX_REVIEW.md).
+
+## Đối chiếu thang điểm cuối 14/11/2026
+
+Xem [báo cáo theo đề](../TEACHER_REQUIREMENTS_FINAL_AUDIT.md) và
+[hướng dẫn học theo source](TEACHER_REQUIREMENTS_GUIDE.md).
+`ServerStartupTest.productionConstructionIsPrivate` kiểm tra API tạo Server;
+`concurrentlyGetInstance` cho 16 luồng cùng tạo lần đầu bằng getInstance.
+`src/test/java/com/auction/server/network/TestServers.create` là helper test,
+không đóng gói vào production; các integration test giữ cổng/thư mục riêng.
+
+Các tên nội bộ theo Google Style: AuctionRoomController.timeAxis/priceAxis khớp fx:id
+trong FXML; AuctionBidHistoryView dùng cùng tên; AuthController.updateModeUi;
+ServerMapper.text/longValue thay s/n. Không đổi key JSON hay action TCP.
+
+Ba exception theo hướng dẫn PDF tr. 3 ở server/exception: InvalidBidException,
+AuctionClosedException, AuthenticationException kế thừa ApiException; Auction ném
+hai loại đầu, AuthLogic.login ném loại thứ ba. CustomExceptionTest kiểm exception
+thực tế và mã lỗi TCP cũ. Đây là ba file production mới, không phải fixture.
+
+## Menu tài khoản sau tối giản
+
+UserMenu.openMenu/hideMenu/isOpen: gắn/gỡ ScrollPane vào StackPane gốc của Scene;
+parent của pane quyết định trạng thái mở, không có Popup/focus/ESC handler riêng.
+ViewNavigator.loadView tạo container chính; disposeCurrentView và WINDOW_HIDDEN
+đóng menu. setPrimaryStage tháo handler ở owner cũ trước khi đăng ký owner mới.
+AppHeader giữ Observer cập nhật ví, bỏ timer Mock không thể được production gọi.
+AuthController bỏ updateFeatureVisibility và các label/icon quảng bá, giữ validation,
+remembered username, mật khẩu, vai trò và tác vụ login/register.

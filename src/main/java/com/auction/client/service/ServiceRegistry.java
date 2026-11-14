@@ -1,202 +1,203 @@
 package com.auction.client.service;
 
-import com.auction.client.service.mock.*;
-
+import com.auction.client.service.server.ServerServices;
 import java.util.Objects;
 
-/** Bộ dịch vụ dùng chung. Thay cả bộ khi tích hợp adapter để không trộn mock/server. */
+/** Một bộ adapter TCP dùng chung; setServices hỗ trợ dependency injection trong test. */
 public final class ServiceRegistry {
-    private static Services services;
-    private static BidSubmissionTracker bidSubmissions = new BidSubmissionTracker();
+  private static Services services;
+  private static BidSubmissionTracker bidSubmissions = new BidSubmissionTracker();
 
-    private ServiceRegistry() {}
+  private ServiceRegistry() {}
 
-    private record Services(
-            AuctionClientService auction,
-            WalletService wallet,
-            AutoBidService autoBid,
-            ProductService products,
-            UserAdminService users,
-            AuctionAdminService auctions) {
-        Services {
-            Objects.requireNonNull(auction);
-            Objects.requireNonNull(wallet);
-            Objects.requireNonNull(autoBid);
-            Objects.requireNonNull(products);
-            Objects.requireNonNull(users);
-            Objects.requireNonNull(auctions);
-            boolean mock = auction instanceof MockAuctionClientService;
-            if (mock != (wallet instanceof MockWalletService)
-                    || mock != (autoBid instanceof MockAutoBidService)
-                    || mock != (products instanceof MockManagementService)
-                    || mock != (users instanceof MockManagementService)
-                    || mock != (auctions instanceof MockManagementService)) {
-                throw new IllegalArgumentException(
-                        "Không được trộn dịch vụ mock với dịch vụ server. Hãy dùng setServices.");
-            }
-        }
+  private record Services(
+      AuctionClientService auction,
+      WalletService wallet,
+      AutoBidService autoBid,
+      ProductService products,
+      UserAdminService users,
+      AuctionAdminService auctions) {
+    Services {
+      Objects.requireNonNull(auction);
+      Objects.requireNonNull(wallet);
+      Objects.requireNonNull(autoBid);
+      Objects.requireNonNull(products);
+      Objects.requireNonNull(users);
+      Objects.requireNonNull(auctions);
+      boolean server =
+          auction instanceof ServerServices
+              || wallet instanceof ServerServices
+              || autoBid instanceof ServerServices
+              || products instanceof ServerServices
+              || users instanceof ServerServices
+              || auctions instanceof ServerServices;
+      if (server
+          && !(auction == wallet
+              && auction == autoBid
+              && auction == products
+              && auction == users
+              && auction == auctions)) {
+        throw new IllegalArgumentException(
+            "Các dịch vụ TCP phải dùng cùng một ServerServices. Hãy dùng setServices.");
+      }
     }
+  }
 
-    private static Services mockServices() {
-        MockDataStore store = MockDataStore.getInstance();
-        MockManagementService management = new MockManagementService(store);
-        return new Services(
-                new MockAuctionClientService(store),
-                new MockWalletService(store),
-                new MockAutoBidService(store, ServiceRegistry::getService),
-                management,
-                management,
-                management);
+  /** Requires server mode and lazily initializes the shared TCP adapter. */
+  public static synchronized void validateMode() {
+    String mode = System.getProperty("auction.mode", "server").trim();
+    if (!"server".equalsIgnoreCase(mode)) {
+      throw new IllegalStateException("Chế độ không hợp lệ: " + mode);
     }
+    if (services == null) {
+      var adapter = new ServerServices();
+      services = new Services(adapter, adapter, adapter, adapter, adapter, adapter);
+      bidSubmissions = new BidSubmissionTracker();
+    }
+  }
 
-    public static synchronized void validateMode() {
-        String mode = System.getProperty("auction.mode", "server").trim();
-        if (!"mock".equalsIgnoreCase(mode) && !"server".equalsIgnoreCase(mode))
-            throw new IllegalStateException("Chế độ không hợp lệ: " + mode);
-        if ("server".equalsIgnoreCase(mode)
-                && (services == null
-                        || !(services.auction()
-                                instanceof com.auction.client.service.server.ServerServices))) {
-            var adapter = new com.auction.client.service.server.ServerServices();
-            services = new Services(adapter, adapter, adapter, adapter, adapter, adapter);
-            bidSubmissions = new BidSubmissionTracker();
-        } else if ("mock".equalsIgnoreCase(mode)
-                && (services == null
-                        || services.auction()
-                                instanceof com.auction.client.service.server.ServerServices)) {
-            close();
-            services = mockServices();
-            bidSubmissions = new BidSubmissionTracker();
-        }
+  /** Closes the configured TCP adapter and clears the shared services. */
+  public static synchronized void close() {
+    if (services != null
+        && services.auction() instanceof com.auction.client.service.server.ServerServices adapter) {
+      adapter.close();
     }
+    services = null;
+  }
 
-    public static synchronized void close() {
-        if (services != null
-                && services.auction()
-                        instanceof com.auction.client.service.server.ServerServices adapter)
-            adapter.close();
-        services = null;
-    }
+  /** Returns the display label of the supported connection mode. */
+  public static String modeLabel() {
+    return "SERVER";
+  }
 
-    public static String modeLabel() {
-        return "server".equalsIgnoreCase(System.getProperty("auction.mode", "server").trim())
-                ? "SERVER"
-                : "MOCK";
-    }
+  /** Returns the shared auction service, initializing the TCP adapter if needed. */
+  public static synchronized AuctionClientService getService() {
+    validateMode();
+    return services.auction();
+  }
 
-    public static synchronized AuctionClientService getService() {
-        validateMode();
-        return services.auction();
-    }
+  /** Returns the wallet service from the configured service set. */
+  public static synchronized WalletService getWalletService() {
+    validateMode();
+    return services.wallet();
+  }
 
-    public static synchronized WalletService getWalletService() {
-        validateMode();
-        return services.wallet();
-    }
+  /** Returns the automatic bidding service from the configured service set. */
+  public static synchronized AutoBidService getAutoBidService() {
+    validateMode();
+    return services.autoBid();
+  }
 
-    public static synchronized AutoBidService getAutoBidService() {
-        validateMode();
-        return services.autoBid();
-    }
+  /** Returns the product service from the configured service set. */
+  public static synchronized ProductService getProductService() {
+    validateMode();
+    return services.products();
+  }
 
-    public static synchronized ProductService getProductService() {
-        validateMode();
-        return services.products();
-    }
+  /** Returns the user administration service from the configured service set. */
+  public static synchronized UserAdminService getUserAdminService() {
+    validateMode();
+    return services.users();
+  }
 
-    public static synchronized UserAdminService getUserAdminService() {
-        validateMode();
-        return services.users();
-    }
+  /** Returns the auction administration service from the configured service set. */
+  public static synchronized AuctionAdminService getAuctionAdminService() {
+    validateMode();
+    return services.auctions();
+  }
 
-    public static synchronized AuctionAdminService getAuctionAdminService() {
-        validateMode();
-        return services.auctions();
-    }
+  /** Returns the submission tracker shared across view changes. */
+  public static synchronized BidSubmissionTracker getBidSubmissions() {
+    validateMode();
+    return bidSubmissions;
+  }
 
-    public static synchronized BidSubmissionTracker getBidSubmissions() {
-        validateMode();
-        return bidSubmissions;
+  /** Thay nguyên bộ dịch vụ, dùng cho cấu hình kết nối và kiểm thử tích hợp. */
+  public static synchronized void setServices(
+      AuctionClientService auction,
+      WalletService wallet,
+      AutoBidService autoBid,
+      ProductService products,
+      UserAdminService users,
+      AuctionAdminService auctions) {
+    Services next = new Services(auction, wallet, autoBid, products, users, auctions);
+    if (services == null || services.auction() != auction) {
+      close();
+      bidSubmissions = new BidSubmissionTracker();
     }
+    services = next;
+  }
 
-    /** Thay nguyên bộ dịch vụ, dùng cho cấu hình kết nối và kiểm thử tích hợp. */
-    public static synchronized void setServices(
-            AuctionClientService auction,
-            WalletService wallet,
-            AutoBidService autoBid,
-            ProductService products,
-            UserAdminService users,
-            AuctionAdminService auctions) {
-        Services next = new Services(auction, wallet, autoBid, products, users, auctions);
-        if (services == null || services.auction() != auction)
-            bidSubmissions = new BidSubmissionTracker();
-        services = next;
-    }
+  // Các setter giữ khả năng tiêm test double; không trộn các phiên TCP khác nhau.
+  /** Replaces the auction service while validating that TCP sessions are not mixed. */
+  public static synchronized void setService(AuctionClientService service) {
+    validateMode();
+    setServices(
+        service,
+        services.wallet(),
+        services.autoBid(),
+        services.products(),
+        services.users(),
+        services.auctions());
+  }
 
-    // Giữ tên public cũ để tương thích nơi tích hợp. Việc thay riêng không được trộn mock/server.
-    public static synchronized void setService(AuctionClientService service) {
-        validateMode();
-        setServices(
-                service,
-                services.wallet(),
-                services.autoBid(),
-                services.products(),
-                services.users(),
-                services.auctions());
-    }
+  /** Replaces the wallet service while validating the complete service set. */
+  public static synchronized void setWalletService(WalletService service) {
+    validateMode();
+    setServices(
+        services.auction(),
+        service,
+        services.autoBid(),
+        services.products(),
+        services.users(),
+        services.auctions());
+  }
 
-    public static synchronized void setWalletService(WalletService service) {
-        validateMode();
-        setServices(
-                services.auction(),
-                service,
-                services.autoBid(),
-                services.products(),
-                services.users(),
-                services.auctions());
-    }
+  /** Replaces the automatic bidding service while validating the complete service set. */
+  public static synchronized void setAutoBidService(AutoBidService service) {
+    validateMode();
+    setServices(
+        services.auction(),
+        services.wallet(),
+        service,
+        services.products(),
+        services.users(),
+        services.auctions());
+  }
 
-    public static synchronized void setAutoBidService(AutoBidService service) {
-        validateMode();
-        setServices(
-                services.auction(),
-                services.wallet(),
-                service,
-                services.products(),
-                services.users(),
-                services.auctions());
-    }
+  /** Replaces the product service while validating the complete service set. */
+  public static synchronized void setProductService(ProductService service) {
+    validateMode();
+    setServices(
+        services.auction(),
+        services.wallet(),
+        services.autoBid(),
+        service,
+        services.users(),
+        services.auctions());
+  }
 
-    public static synchronized void setProductService(ProductService service) {
-        validateMode();
-        setServices(
-                services.auction(),
-                services.wallet(),
-                services.autoBid(),
-                service,
-                services.users(),
-                services.auctions());
-    }
+  /** Replaces the user administration service while validating the complete service set. */
+  public static synchronized void setUserAdminService(UserAdminService service) {
+    validateMode();
+    setServices(
+        services.auction(),
+        services.wallet(),
+        services.autoBid(),
+        services.products(),
+        service,
+        services.auctions());
+  }
 
-    public static synchronized void setUserAdminService(UserAdminService service) {
-        validateMode();
-        setServices(
-                services.auction(),
-                services.wallet(),
-                services.autoBid(),
-                services.products(),
-                service,
-                services.auctions());
-    }
-
-    public static synchronized void setAuctionAdminService(AuctionAdminService service) {
-        validateMode();
-        setServices(
-                services.auction(),
-                services.wallet(),
-                services.autoBid(),
-                services.products(),
-                services.users(),
-                service);
-    }
+  /** Replaces the auction administration service while validating the complete service set. */
+  public static synchronized void setAuctionAdminService(AuctionAdminService service) {
+    validateMode();
+    setServices(
+        services.auction(),
+        services.wallet(),
+        services.autoBid(),
+        services.products(),
+        services.users(),
+        service);
+  }
 }

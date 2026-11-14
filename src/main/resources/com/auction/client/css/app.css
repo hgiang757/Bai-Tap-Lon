@@ -91,8 +91,6 @@
 .hero-label { -fx-font-size: 15px; -fx-font-weight: bold; }
 .auth-root { -fx-background-color: -c-bg; }
 .auth-brand-block .label { -fx-text-fill: -c-text; }
-.auth-brand-icon-circle { -fx-background-color: -c-surface-2; -fx-background-radius: 28px; -fx-min-width: 56px; -fx-pref-width: 56px; -fx-max-width: 56px; -fx-min-height: 56px; -fx-pref-height: 56px; -fx-max-height: 56px; -fx-alignment: CENTER; }
-.auth-brand-icon-circle .glyph { -fx-fill: -c-accent; }
 .product-image-placeholder { -fx-background-color: -c-surface-2; -fx-background-radius: 16px; }
 .product-image-icon { -fx-text-fill: -c-muted; -fx-font-size: 13px; }
 .user-menu-account { -fx-padding: 8px 10px 12px 10px; }
@@ -116,12 +114,13 @@
 .product-description { -fx-text-fill: -c-muted; -fx-line-spacing: 3px; }
 .guide-copy { -fx-text-fill: -c-muted; -fx-font-size: 15px; -fx-line-spacing: 3px; }
 .status-explanation { -fx-text-fill: -c-muted; -fx-line-spacing: 3px; }
-.card-panel, .sidebar-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px; }
+.card-panel { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px; }
 .hero-bid-panel { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 24px 24px 32px 24px; }
 .auction-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 0 0 16px 0; -fx-cursor: hand; }
 .auction-card:hover { -fx-border-color: -c-primary; }
 .auction-card-image { -fx-background-color: -c-surface-2; -fx-background-radius: 12px; -fx-min-height: 120px; -fx-alignment: CENTER; }
 .field-error { -fx-font-size: 13px; -fx-text-fill: -c-danger; }
+.home-tab:selected { -fx-background-color: -c-primary; -fx-text-fill: -c-on-primary; -fx-border-color: -c-primary; }
 .field-hint { -fx-font-size: 13px; -fx-text-fill: -c-muted; }
 .field-success { -fx-text-fill: -c-success; }
 .text-field.invalid-field, .password-field.invalid-field { -fx-border-color: -c-danger; }
@@ -136,8 +135,7 @@
 .auction-card-price { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .login-brand { -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -c-text; }
 .login-slogan { -fx-text-fill: -c-text; -fx-font-size: 16px; }
-.auth-feature-text { -fx-text-fill: -c-text; -fx-font-size: 14px; -fx-font-weight: normal; }
-.auth-form-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 28px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 20, 0, 0, 4); -fx-spacing: 12px; }
+.auth-form-card { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 28px; -fx-spacing: 12px; }
 .password-input { -fx-padding: 8px 44px 8px 12px; }
 .password-toggle { -fx-min-width: 32px; -fx-pref-width: 32px; -fx-max-width: 32px; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; -fx-padding: 0; -fx-background-color: transparent; -fx-border-color: transparent; -fx-background-radius: 16px; }
 .password-toggle:hover .glyph { -fx-fill: -c-text; }
@@ -145,7 +143,9 @@
 .user-menu-trigger:hover { -fx-background-color: -c-bg; }
 .user-menu-trigger-name { -fx-font-weight: bold; -fx-font-size: 14px; }
 .user-menu-avatar { -fx-background-color: -c-primary; -fx-background-radius: 24px; -fx-min-width: 32px; -fx-pref-width: 32px; -fx-max-width: 32px; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; -fx-alignment: CENTER; -fx-text-fill: -c-on-primary; -fx-font-weight: bold; }
-.user-menu-popup { -fx-background-color: -c-surface; -fx-background-radius: 18px; -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-border-width: 1px; -fx-padding: 8px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 18, 0, 0, 4); }
+.user-menu-pane { -fx-background-color: -c-surface; -fx-border-color: -c-border; -fx-border-width: 1px; -fx-padding: 0; }
+.user-menu-pane > .viewport { -fx-background-color: -c-surface; }
+.user-menu-content { -fx-padding: 8px; }
 .user-menu-account-name { -fx-font-size: 16px; -fx-font-weight: bold; }
 .user-menu-account-secondary { -fx-text-fill: -c-muted; -fx-font-size: 13px; -fx-line-spacing: 3px; }
 .user-menu-divider { -fx-background-color: -c-hairline; -fx-min-height: 1px; -fx-pref-height: 1px; -fx-max-height: 1px; -fx-margin: 5px 0; }
@@ -180,7 +180,45 @@
 .btn-danger { -fx-background-color: -c-surface; -fx-border-color: -c-danger; -fx-text-fill: -c-danger; }
 .badge-running, .alert-success .label { -fx-text-fill: -c-success; }
 .badge-open { -fx-text-fill: -c-primary; }
-.badge-dev { -fx-text-fill: -c-accent; }
 .countdown-label-urgent { -fx-text-fill: -c-danger; }
 .wallet-stat { -fx-padding: 20px; }
 .wallet-value { -fx-font-size: 20px; }
+
+/* Form scopes opt in; navigation/search/cards elsewhere retain their existing layout. */
+.seller-products-page { -fx-background-color: #F5F5F2; }
+.seller-form { -c-text: #1F2937; -c-muted: #6B7280; -c-border: #D1D5DB; -c-border-input: #D1D5DB; -c-danger: #DC2626; }
+.seller-form-title { -fx-font-size: 24px; -fx-font-weight: bold; }
+.seller-section-title { -fx-font-size: 16px; -fx-font-weight: bold; }
+.seller-field-label { -fx-font-size: 13px; -fx-font-weight: bold; }
+.seller-form-card { -fx-background-color: -c-surface; -fx-background-radius: 12px; -fx-border-color: #E5E7EB; -fx-border-radius: 12px; -fx-padding: 24px; }
+.seller-form-scroll, .seller-form-scroll > .viewport { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; -fx-padding: 0; }
+.seller-form-footer { -fx-padding: 0 2px; }
+.seller-form-feedback { -fx-font-size: 13px; -fx-text-fill: -c-muted; }
+.seller-form-feedback:error { -fx-text-fill: -c-danger; }
+.form-controls .text-field, .form-controls .password-field, .form-controls .combo-box, .form-controls .date-picker {
+    -fx-min-height: 40px; -fx-pref-height: 40px; -fx-max-height: 40px;
+    -fx-background-color: -c-surface; -fx-background-insets: 0; -fx-background-radius: 8px;
+    -fx-border-color: -c-border-input; -fx-border-width: 1px; -fx-border-radius: 8px;
+    -fx-padding: 0 12px; -fx-font-size: 14px;
+}
+.form-controls .text-area { -fx-background-radius: 8px; -fx-border-radius: 8px; -fx-padding: 4px; -fx-font-size: 14px; }
+.form-controls .text-area .content { -fx-background-color: -c-surface; -fx-background-radius: 6px; -fx-padding: 6px 8px; }
+.form-controls .text-area .scroll-pane, .form-controls .text-area .scroll-pane > .viewport { -fx-background-color: transparent; }
+.form-controls .combo-box, .form-controls .date-picker { -fx-padding: 0; }
+.form-controls .combo-box > .list-cell { -fx-padding: 0 12px; }
+.form-controls .combo-box > .arrow-button, .form-controls .date-picker > .arrow-button { -fx-background-color: transparent; -fx-padding: 0 10px; }
+.form-controls .date-picker > .text-field, .form-controls .date-picker > .text-field:focused {
+    -fx-background-color: transparent; -fx-background-insets: 0; -fx-background-radius: 8px;
+    -fx-border-width: 0; -fx-border-color: transparent; -fx-padding: 0 10px;
+    -fx-min-height: 0; -fx-pref-height: -1; -fx-max-height: infinity;
+}
+.form-controls .text-field:focused, .form-controls .password-field:focused, .form-controls .text-area:focused,
+.form-controls .combo-box:focused, .form-controls .date-picker:focused, .form-controls .date-picker:entry-focused { -fx-border-color: -c-primary; }
+.form-controls .button, .form-controls .toggle-button { -fx-min-height: 40px; -fx-pref-height: 40px; -fx-max-height: 40px; -fx-background-radius: 8px; -fx-border-radius: 8px; -fx-padding: 0 16px; }
+.form-controls .button:disabled { -fx-opacity: 0.65; }
+.seller-time-input { -fx-min-width: 96px; -fx-pref-width: 96px; -fx-max-width: 96px; }
+.auth-form-card.form-controls { -fx-background-radius: 12px; -fx-border-radius: 12px; -fx-effect: none; }
+.auth-form-card.form-controls .password-input { -fx-padding: 0 44px 0 12px; }
+.auth-form-card.form-controls .password-toggle { -fx-padding: 0; -fx-min-height: 32px; -fx-pref-height: 32px; -fx-max-height: 32px; -fx-background-radius: 8px; }
+.app-dialog { -fx-background-radius: 12px; -fx-border-radius: 12px; }
+.admin-navigation { -fx-padding: 16px 30px; -fx-background-color: -c-surface; -fx-border-color: transparent transparent -c-border transparent; -fx-border-width: 0 0 1px 0; }

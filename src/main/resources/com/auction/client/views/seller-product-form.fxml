@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<fx:root type="VBox" xmlns:fx="http://javafx.com/fxml/1" spacing="16" minWidth="0"
+         maxWidth="1000" prefWidth="1000" styleClass="seller-form, form-controls">
+    <HBox spacing="16" alignment="CENTER_LEFT">
+        <Button fx:id="back" id="productBack" text="← Danh sách"/>
+        <Label fx:id="title" styleClass="seller-form-title" minWidth="0" wrapText="true"/>
+    </HBox>
+    <ScrollPane fx:id="scroll" id="productFormScroll" fitToWidth="true" fitToHeight="false"
+                hbarPolicy="NEVER" minHeight="0" VBox.vgrow="ALWAYS" styleClass="seller-form-scroll">
+        <VBox fx:id="card" styleClass="seller-form-card" minWidth="0">
+            <FlowPane fx:id="columns" hgap="28" vgap="20" alignment="TOP_LEFT" minWidth="0">
+                <VBox fx:id="information" spacing="16" minWidth="0">
+                    <VBox spacing="6">
+                        <Label text="Tên sản phẩm *" styleClass="seller-field-label"/>
+                        <TextField fx:id="name" id="productName" promptText="Tên sản phẩm đấu giá"/>
+                    </VBox>
+                    <VBox spacing="6">
+                        <Label text="Mô tả *" styleClass="seller-field-label"/>
+                        <TextArea fx:id="description" id="productDescription" wrapText="true"
+                                  prefHeight="96" minHeight="96" maxHeight="96"/>
+                    </VBox>
+                    <VBox spacing="6">
+                        <Label text="Loại sản phẩm *" styleClass="seller-field-label"/>
+                        <ComboBox fx:id="category" id="productCategory" maxWidth="Infinity" promptText="Chọn loại sản phẩm"/>
+                    </VBox>
+                    <FlowPane fx:id="prices" hgap="16" vgap="16" minWidth="0">
+                        <VBox fx:id="priceGroup" spacing="6" minWidth="0">
+                            <Label text="Giá khởi điểm *" styleClass="seller-field-label"/>
+                            <TextField fx:id="price" id="productPrice" promptText="VD: 5000000"/>
+                            <Label fx:id="priceHint" styleClass="field-hint" wrapText="true"/>
+                        </VBox>
+                        <VBox fx:id="stepGroup" spacing="6" minWidth="0">
+                            <Label text="Bước giá *" styleClass="seller-field-label"/>
+                            <TextField fx:id="step" id="productStep" promptText="VD: 100000"/>
+                            <Label fx:id="stepHint" styleClass="field-hint" wrapText="true"/>
+                        </VBox>
+                    </FlowPane>
+                </VBox>
+                <VBox fx:id="scheduling" spacing="20" minWidth="0"/>
+            </FlowPane>
+        </VBox>
+    </ScrollPane>
+    <HBox fx:id="footer" spacing="16" alignment="CENTER_LEFT" styleClass="seller-form-footer">
+        <Label fx:id="validation" id="productValidation" wrapText="true" minWidth="0"
+               maxWidth="Infinity" minHeight="-Infinity" HBox.hgrow="ALWAYS" styleClass="seller-form-feedback"/>
+        <HBox spacing="12" alignment="CENTER_RIGHT">
+            <Button fx:id="cancel" id="productCancel" text="Hủy" minWidth="-Infinity"/>
+            <Button fx:id="save" id="productSave" text="Lưu" styleClass="btn-primary" minWidth="-Infinity"/>
+        </HBox>
+    </HBox>
+</fx:root>

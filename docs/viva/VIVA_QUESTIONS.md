@@ -53,19 +53,20 @@ AuctionJsonMapper.bid. **Dễ sai:** nhầm bid history với collection transac
 
 ## Design Patterns
 
-### 7. Singleton nghiêm ngặt ở đâu?
+### 7. Singleton production ở đâu?
 
-**Đáp nhanh:** MockDataStore có private constructor và static final INSTANCE.
-**Kỹ thuật:** JVM class initialization công bố instance an toàn; vẫn phải khóa
-khi sửa store. **Code:** MockDataStore, ServiceRegistry.mockServices.
-**Dễ sai:** nói Singleton tự làm các ArrayList thread-safe hoặc gọi mock là JSON server.
+**Đáp nhanh:** Server có constructor private, static instance và getInstance synchronized.
+**Code:** Server.getInstance/main; ServerStartupTest.productionConstructionIsPrivate và
+kiểm 16 caller trong defaultServerNeverSeedsEvenWhenOldDemoPropertyIsPresentAndRestartPreservesData.
+**Dễ sai:** nghĩ Singleton tự chống race condition của giá/ví; việc đó thuộc monitor service.
 
-### 8. Server.getInstance có cấm mọi instance thứ hai không?
+### 8. Vì sao integration test vẫn tạo được Server riêng?
 
-**Đáp nhanh:** không, nó cấp instance mặc định; constructor public phục vụ test.
-**Kỹ thuật:** accessor static synchronized, có thể tạo lại khi closed. File lock
-ngăn ghi cùng thư mục. **Code:** Server.getInstance, constructor, AuctionRepository.
-**Dễ sai:** chỉ ra private Server constructor không tồn tại hoặc coi file lock là Singleton.
+`TestServers.create` chỉ nằm trong src/test, dùng reflection mở constructor private,
+truyền cổng 0 và thư mục tạm. Production không có public constructor/factory để bỏ
+qua Singleton, JAR không có TestServers. Khi Server cũ đóng, accessor cho phép tạo
+lại để restart. Reflection vẫn có thể phá Singleton thông thường, không coi đây là
+cơ chế bảo mật hay cấm mọi Server ở nhiều JVM.
 
 ### 9. Factory Method khác Simple Factory thế nào trong code?
 
@@ -328,15 +329,43 @@ lần ở cả hold và payment.
 
 ## Câu hỏi bổ sung về Client và dữ liệu demo
 
-**Vì sao giữ Mock?** ClientUiTest dùng nó để điều khiển timeout, hàng đợi, callback
-và observer bằng latch; sáu suite service còn dùng fixture riêng. Xóa lúc này
-đòi thay nhiều test trước khi có độ bao phủ tương đương. Chế độ mặc định và
-launcher dùng ServerServices, lỗi mạng không chuyển Mock.
+**Mock còn ở đâu?** Cả sáu implementation đã chuyển vào src/test/java/com/auction/client/fixture.
+ClientUiTest tiêm FixtureServices, giữ timeout/UNKNOWN/rejection/listener/lifecycle;
+sáu suite service cũ giữ assertion. Production và launcher chỉ TCP, không có chế độ Mock.
 
-**Vì sao chỉ tách một helper?** AuctionBidHistoryView có đầu vào rõ ràng và chỉ
-render. Timer/auto-bid/bid cùng phụ thuộc trạng thái khóa và vòng đời phòng, vẫn
-giữ ở controller để dễ lần theo thay vì chia callback qua nhiều lớp.
+**Vì sao form Seller không có Stage?** editorHost nằm cùng scene với listPane,
+nên Alt+Tab/rời trang đi cùng cửa sổ chính; closeForm/dispose giải phóng tác vụ ảnh.
+Lỗi lưu giữ bản nháp. FileChooser ảnh vẫn là hộp thoại có owner chính.
+
+**Sáu sản phẩm cũ là gì?** Dấu vết khớp seed Server đã lưu từ 06/11, khác Mock RAM.
+Giữ chúng ở lịch sử; không tự xóa vì chưa có xác nhận danh sách và quyền admin.
+
+**Vì sao Seller tách ba helper còn phòng đấu giá giữ controller?** SellerProductFormView
+chỉ trình bày/đọc Draft; AuctionScheduleInput quản lý nhóm lịch; ProductImagePicker
+quản lý chọn/preview và hủy task ảnh. Không helper nào gọi Server. Trong phòng đấu giá,
+timer/auto-bid/bid vẫn dùng chung trạng thái khóa và vòng đời nên không tách tùy tiện.
+AuctionBidHistoryView vẫn chỉ render snapshot.
+
+**Bắt đầu ngay khác lịch tương lai thế nào?** Bản nháp lưu một cờ. Controller lấy
+lại serverNow sau I/O ảnh trước khi gửi; không cộng sang phút kế tiếp. Ngày/giờ gõ
+tay dùng dd/MM/yyyy và HH:mm, kiểm nghiêm ngặt, Server xác nhận cuối. Không đổi locale
+toàn JVM để dịch lịch. Xem [báo cáo UI/UX](../FINAL_UI_UX_REVIEW.md).
 
 **Dữ liệu demo có phải mock không?** Tài khoản, ảnh, phiên, bid và ví tạo qua
 Server là dữ liệu JSON nghiệp vụ; restart giữ chúng, nhưng phiên hết deadline
 vẫn phải đóng/thanh toán. Fixture JUnit nằm ở @TempDir và không dùng data thật.
+
+## Menu tài khoản sau thay đổi yêu cầu
+
+**Vì sao không dùng Popup?** Menu này chỉ cần toggle và điều hướng. UserMenu gắn
+ScrollPane trong StackPane chính; không cần native window, auto-hide hay listener
+focus. Alt+Tab đi cùng cửa sổ vì menu là node trong cùng Scene, không phải cửa sổ nổi.
+
+**State mở ở đâu, cleanup thế nào?** isOpen kiểm parent của menuPane. closeActive
+chỉ tìm menu hiện tại; hideMenu gỡ pane và unbind chiều cao, gọi nhiều lần vẫn an
+toàn. ViewNavigator dispose/ẩn owner, tháo header và logout đều đóng menu.
+
+**Bỏ Robot có phải che lỗi?** Yêu cầu mới bỏ click ngoài/focus/ESC của menu. Ba test
+accountMenu* thay đúng ba test cũ, kiểm Button/Space, điều hướng, logout, cùng Scene,
+bounds và lặp lifecycle; không sửa assertion nghiệp vụ/Server. Dialog/form khác
+vẫn có ESC như trước. Windows PASS chưa chứng minh Linux/Xvfb hoặc LAN PASS.

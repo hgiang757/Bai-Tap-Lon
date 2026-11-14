@@ -1,8 +1,7 @@
 param(
     [ValidateSet('Server','Client','Check')][string]$Role = 'Client',
     [string]$ServerHost = '',
-    [ValidateRange(1,65535)][int]$Port = 8888,
-    [switch]$Mock
+    [ValidateRange(1,65535)][int]$Port = 8888
 )
 $ErrorActionPreference = 'Stop'
 $projectDirectory = $PSScriptRoot
@@ -24,12 +23,11 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Server stopped with an error. See the output above.' }
         }
         'Client' {
-            if (-not $ServerHost -and -not $Mock) {
+            if (-not $ServerHost) {
                 $ServerHost = Read-Host 'Server IPv4 or hostname (Enter for 127.0.0.1)'
             }
             if (-not $ServerHost) { $ServerHost = '127.0.0.1' }
-            $clientMode = if ($Mock) { 'mock' } else { 'server' }
-            & mvn -B javafx:run "-Dauction.mode=$clientMode" "-Dauction.host=$ServerHost" "-Dauction.port=$Port"
+            & mvn -B javafx:run '-Dauction.mode=server' "-Dauction.host=$ServerHost" "-Dauction.port=$Port"
             if ($LASTEXITCODE -ne 0) { throw 'Client launch failed. See the output above.' }
         }
     }

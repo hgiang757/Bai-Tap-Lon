@@ -41,7 +41,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1 Client -ServerHost
 ```
 
 CMD hỏi IP/hostname; Enter dùng 127.0.0.1 nếu cùng máy. Không nhập URL, IP:port hoặc
-0.0.0.0 vào host. Không bật Mock. Đăng nhập hai bidder khác nhau, mở cùng phiên.
+0.0.0.0 vào host. Client luôn dùng TCP; tham số `-Mock` đã bỏ và `auction.mode=mock` không hợp lệ.
+Đăng nhập hai bidder khác nhau, mở cùng phiên.
 Build JAR bằng `mvn -B verify`, server chạy `java -jar target/digital-auction-1.0.0.jar`.
 Client JAR dùng bootstrap sau vì manifest chính là server:
 
@@ -95,7 +96,7 @@ trong `@TempDir`. Client thoát/logout không xóa dữ liệu này.
 
 Chuẩn bị trước buổi bảo vệ bằng các phiên **OPEN có lịch bắt đầu đúng ngày/giờ
 bảo vệ**, kết thúc sau thời lượng trình bày với khoảng dự phòng. Không bật “Bắt đầu
-ngay” từ vài ngày trước: ô này đặt đầu phiên vào phút kế tiếp, và phiên hết giờ sẽ
+ngay” từ vài ngày trước: ô này dùng giờ Server lúc gửi Lưu, và phiên hết giờ sẽ
 được scheduler đóng/thanh toán khi Server chạy hoặc restart. Trước buổi bảo vệ
 kiểm tra ngày, giờ Việt Nam trên Server, start/end và trạng thái từng phiên. Chỉ
 sửa lịch qua Seller khi phiên OPEN chưa có bid; nếu đã chạy/hết giờ, tạo phiên mới
@@ -119,3 +120,13 @@ Khi diễn tập, dùng thư mục QA riêng qua `-Dauction.data=<thư-mục-th�
 `-Dauction.demo=false`; giữ lại thư mục đó để restart. Không dùng dữ liệu thật làm
 fixture JUnit, không khởi động một Server thử trên `data/state.json`. Dữ liệu cá
 nhân, backup, mật khẩu và ảnh cache không được commit. Giữ `data/` trong `.gitignore`.
+
+## Giao diện Seller và lịch sử sau cập nhật
+
+Form Thêm/Sửa nằm trong trang Quản lý sản phẩm; chọn Lưu, Hủy, ← Danh sách hoặc ESC.
+Lỗi lưu giữ bản nháp để sửa; rời trang giải phóng các tác vụ ảnh. Chọn ảnh bằng hộp
+thoại hệ thống có owner là cửa sổ chính. Trên trang chủ chọn Kết quả / Lịch sử để
+xem phiên đã kết thúc, PAID hoặc CANCELED; không chỉnh JSON để ẩn/xóa các phiên này.
+Server entry point không chạy seed khi restart, kể cả cấu hình demo=true cũ.
+Constructor Server đã private; TestServers trong src/test dùng reflection cho fixture tích hợp.
+Chi tiết bằng chứng và giới hạn: [báo cáo Seller/Mock](docs/SELLER_UI_MOCK_CLEANUP_REPORT.md).

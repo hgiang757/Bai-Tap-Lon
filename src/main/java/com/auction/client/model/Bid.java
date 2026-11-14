@@ -6,100 +6,98 @@ import java.time.format.DateTimeFormatter;
 
 /** Entity đại diện cho một lượt đặt giá (Bid) của người tham gia. */
 public class Bid implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+  private static final long serialVersionUID = 1L;
+  private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    private String id;
-    private String auctionId;
-    private String bidderUsername;
-    private double amount;
-    private LocalDateTime timestamp;
-    private boolean auto;
+  private String id;
+  private String auctionId;
+  private String bidderUsername;
+  private double amount;
+  private LocalDateTime timestamp;
+  private boolean auto;
 
-    public Bid() {}
+  /** Creates a client bid data object for mapping or display. */
+  public Bid() {}
 
-    public Bid(
-            String id,
-            String auctionId,
-            String bidderUsername,
-            double amount,
-            LocalDateTime timestamp) {
-        this.id = id;
-        this.auctionId = auctionId;
-        this.bidderUsername = bidderUsername;
-        this.amount = amount;
-        this.timestamp = timestamp;
-    }
+  /** Creates a client bid data object for mapping or display. */
+  public Bid(
+      String id, String auctionId, String bidderUsername, double amount, LocalDateTime timestamp) {
+    this.id = id;
+    this.auctionId = auctionId;
+    this.bidderUsername = bidderUsername;
+    this.amount = amount;
+    this.timestamp = timestamp;
+  }
 
-    /** Tạo lượt đặt giá với cờ tự động. */
-    public Bid(
-            String id,
-            String auctionId,
-            String bidderUsername,
-            double amount,
-            LocalDateTime timestamp,
-            boolean auto) {
-        this(id, auctionId, bidderUsername, amount, timestamp);
-        this.auto = auto;
-    }
+  /** Tạo lượt đặt giá với cờ tự động. */
+  public Bid(
+      String id,
+      String auctionId,
+      String bidderUsername,
+      double amount,
+      LocalDateTime timestamp,
+      boolean auto) {
+    this(id, auctionId, bidderUsername, amount, timestamp);
+    this.auto = auto;
+  }
 
-    /** Lượt giá do hệ thống tự đặt. */
-    public boolean isAuto() {
-        return auto;
-    }
+  /** Lượt giá do hệ thống tự đặt. */
+  public boolean isAuto() {
+    return auto;
+  }
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+  // Getters and Setters
+  public String getId() {
+    return id;
+  }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+  public void setId(String id) {
+    this.id = id;
+  }
 
-    public String getAuctionId() {
-        return auctionId;
-    }
+  public String getAuctionId() {
+    return auctionId;
+  }
 
-    public void setAuctionId(String auctionId) {
-        this.auctionId = auctionId;
-    }
+  public void setAuctionId(String auctionId) {
+    this.auctionId = auctionId;
+  }
 
-    public String getBidderUsername() {
-        return bidderUsername;
-    }
+  public String getBidderUsername() {
+    return bidderUsername;
+  }
 
-    public void setBidderUsername(String bidderUsername) {
-        this.bidderUsername = bidderUsername;
-    }
+  public void setBidderUsername(String bidderUsername) {
+    this.bidderUsername = bidderUsername;
+  }
 
-    public double getAmount() {
-        return amount;
-    }
+  public double getAmount() {
+    return amount;
+  }
 
-    public void setAmount(double amount) {
-        this.amount = amount;
-    }
+  public void setAmount(double amount) {
+    this.amount = amount;
+  }
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+  public LocalDateTime getTimestamp() {
+    return timestamp;
+  }
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+  public void setTimestamp(LocalDateTime timestamp) {
+    this.timestamp = timestamp;
+  }
 
-    public String getFormattedTime() {
-        return timestamp != null ? timestamp.format(FORMATTER) : "";
-    }
+  public String getFormattedTime() {
+    return timestamp != null ? timestamp.format(FORMATTER) : "";
+  }
 
-    @Override
-    public String toString() {
-        return "["
-                + getFormattedTime()
-                + "] "
-                + bidderUsername
-                + ": "
-                + com.auction.client.util.FormatUtil.formatCurrency(amount);
-    }
+  @Override
+  public String toString() {
+    return "["
+        + getFormattedTime()
+        + "] "
+        + bidderUsername
+        + ": "
+        + com.auction.client.util.FormatUtil.formatCurrency(amount);
+  }
 }

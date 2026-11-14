@@ -5,7 +5,8 @@ package com.auction.client;
  * tích hợp hoặc khi IDE gọi com.auction.client.App.
  */
 public class App {
-    public static void main(String[] args) {
-        Main.main(args);
-    }
+  /** Starts the JavaFX auction client. */
+  public static void main(String[] args) {
+    Main.main(args);
+  }
 }

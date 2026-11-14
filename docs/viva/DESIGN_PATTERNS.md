@@ -1,41 +1,29 @@
 # Design Patterns đang được sử dụng
 
-Vị trí cụ thể và số dòng: [CODE_MAP.md](CODE_MAP.md). Các file Java trong tài liệu
-này nằm dưới `src/main/java/com/auction/`.
+Vị trí file và tên method: [CODE_MAP.md](CODE_MAP.md). Production nằm dưới
+`src/main/java/com/auction/`; fixture được ghi rõ dưới `src/test/java/`.
 
-## Singleton: phân biệt ví dụ nghiêm ngặt và instance mặc định
+## Singleton production và vòng đời Server
 
-**Vấn đề:** các dịch vụ mock phải nhìn thấy cùng một danh sách phiên, ví và listener.
-`client/service/mock/MockDataStore` có `private static final INSTANCE`, constructor
-`private MockDataStore()` và `public static getInstance()`. JVM khởi tạo class một
-lần, công bố INSTANCE an toàn; việc sửa các collection vẫn cần `synchronized(store)`.
-Singleton không tự làm tất cả dữ liệu bên trong thread-safe.
+`server/network/Server` là final, constructor `(host, port, data, demo)` private.
+`getInstance()` là static synchronized: mọi caller production nhận cùng một Server
+đang hoạt động, nên cùng listener, scheduler và AuctionService. `main()` dùng accessor
+này; không có public factory nào tạo thêm Server. Chỉ tạo lại khi instance cũ đã đóng.
+Đây là Singleton theo vòng đời tài nguyên: không hứa một đối tượng tồn tại vĩnh viễn.
+Singleton không tự làm state thread-safe; `AuctionService.execute()` vẫn phải synchronized.
 
-**Sử dụng thực tế:** `ServiceRegistry.mockServices()` đưa cùng store vào auction,
-wallet, auto-bid và management service. Đây là ví dụ Singleton hoàn chỉnh ở chế độ
-phát triển, không phải kho JSON của server thật. Mock singleton mang trạng thái
-dùng chung nên test mock phải quản lý fixture và dọn tài nguyên; khó cô lập hơn
-đối tượng được tạo mới cho từng test.
+`ServerStartupTest.productionConstructionIsPrivate()` kiểm tra constructor;
+`defaultServerNeverSeedsEvenWhenOldDemoPropertyIsPresentAndRestartPreservesData()`
+cho 16 luồng gọi accessor, kiểm cùng instance, chạy TCP, đóng rồi mở lại và đăng nhập
+bằng dữ liệu đã lưu. Không dùng dữ liệu thật làm fixture.
 
-`server/network/Server.getInstance()` dùng `static synchronized` để cấp một server
-mặc định và tạo lại khi instance trước đã đóng. Entry point `main()` dùng accessor
-này. Constructor cấu hình `(host, port, data, demo)` vẫn **public** để integration
-test tạo nhiều server độc lập, cổng 0, dữ liệu tạm. Vì vậy không nói rằng Server
-ngăn tuyệt đối mọi `new Server`, cũng không chỉ ra một private constructor không
-tồn tại. Đây là lựa chọn vòng đời default instance có chủ ý, không Singleton GoF
-nghiêm ngặt. File lock ngăn hai server dùng cùng thư mục dữ liệu, còn bind ngăn hai
-listener trùng địa chỉ/cổng; hai cơ chế đó không phải Singleton.
-
-**Lợi ích:** chia sẻ trạng thái mock nhất quán; entry point có đầu mối vòng đời rõ.
-**Hạn chế:** global state ảnh hưởng cô lập test; không dùng Singleton thay transaction
-lock, file lock hoặc phân quyền. AuctionService và AuctionRepository vẫn là đối
-tượng cấu hình theo từng server, không bị biến thành Singleton.
-
-**Hỏi:** “Constructor private của Singleton ở đâu, vì sao Server vẫn new được?”
-**Đáp:** “Ví dụ nghiêm ngặt là MockDataStore, constructor private và INSTANCE được
-khởi tạo một lần khi nạp class. Server chỉ cung cấp instance mặc định bằng accessor
-đồng bộ; constructor public giữ khả năng tạo server cô lập khi test. Nhóm không
-tuyên bố nó cấm mọi instance khác.”
+`src/test/java/com/auction/server/network/TestServers.create()` là helper chỉ dành
+cho test: reflection mở constructor private, giữ khả năng thử nhiều cổng/thư mục
+mà không thêm đường tạo instance vào API production. Helper không nằm trong JAR.
+Reflection có thể phá Singleton thông thường; đây không phải ranh giới bảo mật.
+MockDataStore cũng có private constructor nhưng chỉ ở test, không dùng làm bằng
+chứng Singleton production. File lock và bind port là bảo vệ tài nguyên, không thay
+thế Singleton.
 
 ## Factory Method kết hợp Simple Factory
 
