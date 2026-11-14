@@ -5,6 +5,9 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
@@ -32,6 +35,7 @@
         <ScrollPane fx:id="dashboardScroll" fitToWidth="true" fitToHeight="false" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED" styleClass="main-scroll">
             <StackPane alignment="TOP_CENTER">
                 <VBox fx:id="pageContent" spacing="20.0" maxWidth="1200.0" styleClass="dashboard-content">
+                    <fx:define><ToggleGroup fx:id="homeTabs"/></fx:define>
                     <padding>
                         <Insets top="32.0" right="32.0" bottom="0.0" left="32.0"/>
                     </padding>
@@ -44,8 +48,13 @@
                         <Button fx:id="chipLaptop" text="Công nghệ" onAction="#handleCategoryFilter" userData="ELECTRONICS"/>
                         <Button fx:id="chipOther" text="Khác" onAction="#handleCategoryFilter" userData="OTHER"/>
                     </FlowPane>
+                    <FlowPane hgap="10" vgap="8" styleClass="form-controls">
+                        <ToggleButton fx:id="activeTab" text="Đang và sắp mở" selected="true" toggleGroup="$homeTabs" styleClass="home-tab"/>
+                        <ToggleButton fx:id="historyTab" text="Kết quả / Lịch sử" toggleGroup="$homeTabs" styleClass="home-tab"/>
+                        <ComboBox fx:id="homeStatus" promptText="Trạng thái"/>
+                    </FlowPane>
                     <VBox spacing="20.0">
-                        <VBox spacing="16.0" styleClass="home-panel, home-panel-alt">
+                        <VBox fx:id="runningPanel" spacing="16.0" styleClass="home-panel, home-panel-alt">
                             <HBox alignment="CENTER_LEFT" spacing="8.0">
                                 <Label fx:id="lblRunningHeader" text="Đang diễn ra" wrapText="true" minWidth="0" minHeight="-Infinity" styleClass="section-header, t-h2"/>
                                 <Region HBox.hgrow="ALWAYS"/>
@@ -54,13 +63,13 @@
                             <FlowPane fx:id="auctionGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT" prefWrapLength="720.0"/>
                             <Label fx:id="lblNoResults" wrapText="true" minHeight="-Infinity" text="Không có phiên đấu giá nào phù hợp." styleClass="empty-placeholder" visible="false" managed="false"/>
                         </VBox>
-                        <VBox spacing="16.0" styleClass="home-panel, home-panel-white">
+                        <VBox fx:id="upcomingPanel" spacing="16.0" styleClass="home-panel, home-panel-white">
                             <Label text="Sắp diễn ra" wrapText="true" minWidth="0" minHeight="-Infinity" styleClass="section-header, t-h2"/>
                             <FlowPane fx:id="upcomingGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT" prefWrapLength="720.0"/>
                             <Label fx:id="lblUpcomingEmpty" wrapText="true" minHeight="-Infinity" styleClass="empty-placeholder" visible="false" managed="false"/>
                         </VBox>
-                        <VBox spacing="16.0" styleClass="home-panel, home-panel-white">
-                            <Label text="Kết quả các phiên" styleClass="section-header, t-h2"/>
+                        <VBox fx:id="finishedPanel" visible="false" managed="false" spacing="16.0" styleClass="home-panel, home-panel-white">
+                            <Label text="Kết quả / Lịch sử" styleClass="section-header, t-h2"/>
                             <FlowPane fx:id="finishedGrid" hgap="20.0" vgap="20.0" alignment="TOP_LEFT"/>
                             <Label fx:id="lblFinishedEmpty" wrapText="true" styleClass="empty-placeholder"/>
                         </VBox>

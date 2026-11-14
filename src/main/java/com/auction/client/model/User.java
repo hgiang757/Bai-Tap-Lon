@@ -4,97 +4,94 @@ import java.io.Serializable;
 
 /** Entity đại diện cho người dùng (Bidder hoặc Seller). */
 public class User implements Serializable {
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    private String id;
-    private String username;
-    private String fullName;
-    private String email;
-    private UserRole role;
-    private double balance;
+  private String id;
+  private String username;
+  private String fullName;
+  private String email;
+  private UserRole role;
+  private double balance;
 
-    public User() {}
+  /** Creates a client user data object for mapping or display. */
+  public User() {}
 
-    public User(
-            String id,
-            String username,
-            String fullName,
-            String email,
-            UserRole role,
-            double balance) {
-        this.id = id;
-        this.username = username;
-        this.fullName = fullName;
-        this.email = email;
-        this.role = role;
-        this.balance = balance;
-    }
+  /** Creates a client user data object for mapping or display. */
+  public User(
+      String id, String username, String fullName, String email, UserRole role, double balance) {
+    this.id = id;
+    this.username = username;
+    this.fullName = fullName;
+    this.email = email;
+    this.role = role;
+    this.balance = balance;
+  }
 
-    // Getters and Setters (Encapsulation)
-    public String getId() {
-        return id;
-    }
+  // Getters and Setters (Encapsulation)
+  public String getId() {
+    return id;
+  }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+  public void setId(String id) {
+    this.id = id;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getUsername() {
+    return username;
+  }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-    public String getFullName() {
-        return fullName;
-    }
+  public String getFullName() {
+    return fullName;
+  }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
+  public void setFullName(String fullName) {
+    this.fullName = fullName;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+  public void setEmail(String email) {
+    this.email = email;
+  }
 
-    public UserRole getRole() {
-        return role;
-    }
+  public UserRole getRole() {
+    return role;
+  }
 
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
+  public void setRole(UserRole role) {
+    this.role = role;
+  }
 
-    public double getBalance() {
-        return balance;
-    }
+  public double getBalance() {
+    return balance;
+  }
 
-    public void setBalance(double balance) {
-        this.balance = balance;
-    }
+  public void setBalance(double balance) {
+    this.balance = balance;
+  }
 
-    @Override
-    public String toString() {
-        return "User{"
-                + "id='"
-                + id
-                + '\''
-                + ", username='"
-                + username
-                + '\''
-                + ", fullName='"
-                + fullName
-                + '\''
-                + ", role="
-                + role
-                + ", balance="
-                + balance
-                + '}';
-    }
+  @Override
+  public String toString() {
+    return "User{"
+        + "id='"
+        + id
+        + '\''
+        + ", username='"
+        + username
+        + '\''
+        + ", fullName='"
+        + fullName
+        + '\''
+        + ", role="
+        + role
+        + ", balance="
+        + balance
+        + '}';
+  }
 }

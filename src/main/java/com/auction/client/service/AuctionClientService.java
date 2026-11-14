@@ -6,7 +6,6 @@ import com.auction.client.model.Bid;
 import com.auction.client.model.Item;
 import com.auction.client.model.User;
 import com.auction.client.model.UserRole;
-
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -16,54 +15,70 @@ import java.util.function.Consumer;
  */
 public interface AuctionClientService {
 
-    // === Xác thực & Quản lý phiên ===
-    boolean login(String username, String password, UserRole role);
+  // === Xác thực & Quản lý phiên ===
+  /** Authenticates the account; the server determines its actual role. */
+  boolean login(String username, String password, UserRole role);
 
-    boolean register(
-            String username, String password, String fullName, String email, UserRole role);
+  /** Registers an account using the supplied profile and participant role. */
+  boolean register(String username, String password, String fullName, String email, UserRole role);
 
-    User getCurrentUser();
+  /** Returns the current client account, or null when signed out. */
+  User getCurrentUser();
 
-    void logout();
+  /** Ends the current client session. */
+  void logout();
 
-    // === Đấu giá & Danh sách phiên ===
-    List<Auction> getAuctions(AuctionStatus filterStatus);
+  // === Đấu giá & Danh sách phiên ===
+  /** Returns auctions matching the optional status filter. */
+  List<Auction> getAuctions(AuctionStatus filterStatus);
 
-    Auction getAuctionById(String auctionId);
+  /** Returns the latest snapshot of the requested auction. */
+  Auction getAuctionById(String auctionId);
 
-    BidResult placeBid(String auctionId, double amount);
+  /** Submits a bid and reports acceptance or a known rejection. */
+  BidResult placeBid(String auctionId, double amount);
 
-    List<Bid> getBidHistory(String auctionId);
+  /** Returns the accepted bids for an auction. */
+  List<Bid> getBidHistory(String auctionId);
 
-    // === Quản lý sản phẩm (Dành cho Seller) ===
-    List<Item> getSellerItems(String sellerUsername);
+  // === Quản lý sản phẩm (Dành cho Seller) ===
+  /** Returns products associated with the specified seller. */
+  List<Item> getSellerItems(String sellerUsername);
 
-    boolean createItemAndAuction(Item item, int durationMinutes, double minBidStep);
+  /** Creates a product and its auction using the supplied duration and step. */
+  boolean createItemAndAuction(Item item, int durationMinutes, double minBidStep);
 
-    boolean updateItem(Item item);
+  /** Updates a product through the product service. */
+  boolean updateItem(Item item);
 
-    boolean deleteItem(String itemId);
+  /** Deletes an editable product through the product service. */
+  boolean deleteItem(String itemId);
 
-    // === Observer / Realtime Listener Pattern ===
-    void registerBidListener(String auctionId, Consumer<Bid> listener);
+  // === Observer / Realtime Listener Pattern ===
+  /** Registers a callback for accepted bids in one auction. */
+  void registerBidListener(String auctionId, Consumer<Bid> listener);
 
-    void unregisterBidListener(String auctionId, Consumer<Bid> listener);
+  /** Removes a previously registered auction bid callback. */
+  void unregisterBidListener(String auctionId, Consumer<Bid> listener);
 
-    /** General state/connection events; callbacks may run on a background thread. */
-    default void addChangeListener(Consumer<String> listener) {}
+  /** General state/connection events; callbacks may run on a background thread. */
+  default void addChangeListener(Consumer<String> listener) {}
 
-    default void removeChangeListener(Consumer<String> listener) {}
+  /** Removes a callback for general state and connection changes. */
+  default void removeChangeListener(Consumer<String> listener) {}
 
-    /** Resolve durable pending commands before accepting another price operation. */
-    default boolean recoverPendingCommands() {
-        return false;
-    }
+  /** Resolve durable pending commands before accepting another price operation. */
+  default boolean recoverPendingCommands() {
+    return false;
+  }
 
-    default java.time.LocalDateTime serverNow() {
-        return java.time.LocalDateTime.now();
-    }
+  /** Returns the service clock used to display and validate auction times. */
+  default java.time.LocalDateTime serverNow() {
+    return java.time.LocalDateTime.now();
+  }
 
-    default AuctionRoomSnapshot getRoomSnapshot(String id) {
-        return new AuctionRoomSnapshot(getAuctionById(id), getBidHistory(id));
-    }
+  /** Reads an auction together with its accepted bid history. */
+  default AuctionRoomSnapshot getRoomSnapshot(String id) {
+    return new AuctionRoomSnapshot(getAuctionById(id), getBidHistory(id));
+  }
 }

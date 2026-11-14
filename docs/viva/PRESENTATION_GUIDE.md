@@ -34,8 +34,8 @@ chuyển tiền; backend còn JSON làm transaction snapshot vì cần giữ d�
 
 40 giây giải thích Factory Method create và Simple Factory forCategory; chỉ caller
 thật. 50 giây đi theo Observer: event → commit/save → publish/queue → transport
-→ listener → runLater; chỉ dispose gỡ listener. 30 giây nói Singleton nghiêm ngặt
-ở MockDataStore, Server chỉ là default instance có constructor cho test. Không
+→ listener → runLater; chỉ dispose gỡ listener. 30 giây chỉ constructor private của
+Server, getInstance synchronized và TestServers chỉ ở src/test dùng reflection. Không
 nhận mình có Strategy/Command GoF; policy và commandId có mục đích khác.
 
 ## Chuẩn bị dữ liệu thử riêng
@@ -61,7 +61,8 @@ Write-Output $testData
 Lệnh trên yêu cầu JAVA_HOME trỏ JDK 25. Tài khoản admin ban đầu là `admin_hieu`,
 mật khẩu là giá trị vừa nhập. Với test LAN hai máy, bind `0.0.0.0`, client dùng IPv4
 LAN thực của server theo [MULTI_CLIENT_SETUP.md](../../MULTI_CLIENT_SETUP.md).
-Không bật Mock trong demo Client–Server. Không có mật khẩu mặc định cho storage thật.
+Client chỉ kết nối TCP, không còn chế độ Mock. Form sản phẩm nằm trong trang Seller;
+phiên cũ xem ở Kết quả / Lịch sử. Không có mật khẩu mặc định cho storage thật.
 
 Ở terminal khác, mở ba client bằng `Start-Client.cmd`, Enter để dùng 127.0.0.1.
 Đăng ký seller thử và hai bidder thử bằng UI; nạp tiền giả lập đủ cho cả hai ví.
@@ -128,7 +129,7 @@ sát để giải thích. Tính đúng không đến từ JSON: service khóa to
 repository ghi tạm rồi atomic replace, commandId giữ kết quả qua restart. Nhược
 điểm là mỗi lần lưu ghi cả snapshot, các phiên chờ khóa chung, chưa hỗ trợ nhiều
 server ghi đồng thời. TCP chưa TLS, chỉ dùng LAN tin cậy. Test local không thay
-cho kiểm thử hai máy hay mất điện thật. Checkstyle hiện mới kiểm quy tắc cơ bản,
+cho kiểm thử hai máy hay mất điện thật. Checkstyle hiện dùng Google configuration của bản 14.4.0,
 coverage chỉ đo code được chạy và không chứng minh không còn bug.”
 
 ## Khi bị hỏi sâu
