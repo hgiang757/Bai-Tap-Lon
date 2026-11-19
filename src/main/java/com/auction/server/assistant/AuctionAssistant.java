@@ -21,30 +21,36 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /** Read-only assistant orchestration, with bounded, in-memory conversation and usage data. */
 public final class AuctionAssistant implements AutoCloseable {
   private static final String NO_QUOTE = "Chưa có dữ liệu giá thị trường đã xác minh.";
   private static final String GEMINI_ENDPOINT =
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
   private static final String FREE_MODEL = "gemini-3.5-flash-lite";
   private static final int MAX_TURNS = 3;
   private static final int MAX_CONVERSATIONS = 256;
   private static final int PER_USER_HOUR = 12;
   private static final int PER_SERVER_DAY = 200;
   private static final Duration HISTORY_AGE = Duration.ofMinutes(30);
+  private static final Duration CACHE_TTL = Duration.ofSeconds(90);
   private static final Locale VIETNAMESE = Locale.forLanguageTag("vi-VN");
   private static final DateTimeFormatter QUOTE_TIME =
-          DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm 'UTC'XXX", VIETNAMESE)
-                  .withZone(ZoneOffset.ofHours(7));
+      DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm 'UTC'XXX", VIETNAMESE)
+          .withZone(ZoneOffset.ofHours(7));
 
   private final OpenAiClient openAi;
   private final MarketPriceService marketPrices;
   private final Clock clock;
   private final LinkedHashMap<Conversation, History> histories =
-          new LinkedHashMap<>(16, 0.75f, true);
+      new LinkedHashMap<>(16, 0.75f, true);
   private final Map<String, Integer> userCalls = new HashMap<>();
   private final Set<String> activeUsers = new HashSet<>();
+  private final ConcurrentHashMap<CacheKey, CachedReply> replyCache = new ConcurrentHashMap<>();
+  private final Semaphore apiSlots = new Semaphore(2, true);
   private Instant userHour = Instant.MIN;
   private Instant budgetDay = Instant.MIN;
   private int serverCalls;
@@ -54,6 +60,10 @@ public final class AuctionAssistant implements AutoCloseable {
   private record Turn(String question, String answer) {}
 
   private record History(ArrayDeque<Turn> turns, Instant updated) {}
+
+  private record CacheKey(String auctionId, String productId, String normalizedQuestion) {}
+
+  private record CachedReply(String answer, Instant expiresAt) {}
 
   AuctionAssistant(OpenAiClient openAi, MarketPriceService marketPrices, Clock clock) {
     this.openAi = openAi;
@@ -68,37 +78,52 @@ public final class AuctionAssistant implements AutoCloseable {
       apiKey = System.getenv("OPENAI_API_KEY");
     }
     return new AuctionAssistant(
-            new OpenAiClient(
-                    apiKey,
-                    FREE_MODEL,
-                    URI.create(GEMINI_ENDPOINT),
-                    Duration.ofSeconds(30)),
-            product -> Optional.empty(),
-            Clock.systemUTC());
+        new OpenAiClient(
+            apiKey,
+            FREE_MODEL,
+            URI.create(GEMINI_ENDPOINT),
+            Duration.ofSeconds(25)),
+        product -> Optional.empty(),
+        Clock.systemUTC());
   }
 
   /** Answers a question on an AI worker and rechecks access before retaining the turn. */
   public Reply ask(String userId, AuctionProduct product, String question, Runnable verifyAccess)
-          throws InterruptedException {
+      throws InterruptedException {
     openAi.requireConfigured();
     Conversation conversation = new Conversation(userId, product.auctionId(), product.productId());
     JsonArray history = admit(conversation);
     try {
       Optional<MarketPriceService.Quote> quote = marketPrices.findComparablePrices(product);
       String marketSummary = marketSummary(product, quote);
-      JsonArray input = new JsonArray();
-      input.add(
-              obj(
-                      "role",
-                      "user",
-                      "content",
-                      obj(
-                              "auctionProduct", productFacts(product),
-                              "verifiedMarketSummary", marketSummary,
-                              "recentConversation", history,
-                              "question", question)
-                              .toString()));
-      String answer = openAi.answer(input);
+      CacheKey key = cacheKey(product, question);
+      String answer = getCachedReply(key);
+      if (answer == null) {
+        if (!apiSlots.tryAcquire(12, TimeUnit.SECONDS)) {
+          throw new ApiException("AI_BUSY", "Assistant is busy with other requests");
+        }
+        try {
+          answer = getCachedReply(key);
+          if (answer == null) {
+            JsonArray input = new JsonArray();
+            input.add(
+                obj(
+                    "role",
+                    "user",
+                    "content",
+                    obj(
+                            "auctionProduct", productFacts(product),
+                            "verifiedMarketSummary", marketSummary,
+                            "recentConversation", history,
+                            "question", question)
+                        .toString()));
+            answer = openAi.answer(input);
+            putCachedReply(key, answer);
+          }
+        } finally {
+          apiSlots.release();
+        }
+      }
       verifyAccess.run();
       if (Thread.currentThread().isInterrupted()) {
         throw new InterruptedException();
@@ -110,6 +135,32 @@ public final class AuctionAssistant implements AutoCloseable {
         activeUsers.remove(userId);
       }
     }
+  }
+
+  private static CacheKey cacheKey(AuctionProduct product, String question) {
+    String normalized =
+        question == null ? "" : question.trim().toLowerCase(VIETNAMESE).replaceAll("\\s+", " ");
+    return new CacheKey(product.auctionId(), product.productId(), normalized);
+  }
+
+  private String getCachedReply(CacheKey key) {
+    CachedReply cached = replyCache.get(key);
+    if (cached == null) {
+      return null;
+    }
+    if (clock.instant().isAfter(cached.expiresAt())) {
+      replyCache.remove(key, cached);
+      return null;
+    }
+    return cached.answer();
+  }
+
+  private void putCachedReply(CacheKey key, String answer) {
+    if (replyCache.size() > MAX_CONVERSATIONS) {
+      Instant now = clock.instant();
+      replyCache.entrySet().removeIf(entry -> now.isAfter(entry.getValue().expiresAt()));
+    }
+    replyCache.put(key, new CachedReply(answer, clock.instant().plus(CACHE_TTL)));
   }
 
   private synchronized JsonArray admit(Conversation conversation) {
@@ -144,8 +195,8 @@ public final class AuctionAssistant implements AutoCloseable {
     History history = histories.get(conversation);
     if (history != null) {
       history
-              .turns()
-              .forEach(turn -> result.add(obj("question", turn.question(), "answer", turn.answer())));
+          .turns()
+          .forEach(turn -> result.add(obj("question", turn.question(), "answer", turn.answer())));
     }
     return result;
   }
@@ -165,39 +216,39 @@ public final class AuctionAssistant implements AutoCloseable {
 
   private static JsonObject productFacts(AuctionProduct product) {
     return obj(
-            "name", product.name(),
-            "category", product.category(),
-            "sellerDescription", product.description(),
-            "condition", product.condition(),
-            "auctionStatus", product.status(),
-            "startingPrice", product.startingPrice(),
-            "currentPrice", product.currentPrice(),
-            "minBidStep", product.minBidStep(),
-            "hasBids", product.hasBids(),
-            "currency", "VND");
+        "name", product.name(),
+        "category", product.category(),
+        "sellerDescription", product.description(),
+        "condition", product.condition(),
+        "auctionStatus", product.status(),
+        "startingPrice", product.startingPrice(),
+        "currentPrice", product.currentPrice(),
+        "minBidStep", product.minBidStep(),
+        "hasBids", product.hasBids(),
+        "currency", "VND");
   }
 
   private static String marketSummary(
-          AuctionProduct product, Optional<MarketPriceService.Quote> result) {
+      AuctionProduct product, Optional<MarketPriceService.Quote> result) {
     if (result.isEmpty()) {
       return NO_QUOTE;
     }
     var quote = result.get();
     String range =
-            "%s %s – %s %s. Nguồn %s · Truy xuất %s."
-                    .formatted(
-                            formatAmount(quote.low()), quote.currency(),
-                            formatAmount(quote.high()), quote.currency(),
-                            quote.source(), QUOTE_TIME.format(quote.retrievedAt()));
+        "%s %s – %s %s. Nguồn %s · Truy xuất %s."
+            .formatted(
+                formatAmount(quote.low()), quote.currency(),
+                formatAmount(quote.high()), quote.currency(),
+                quote.source(), QUOTE_TIME.format(quote.retrievedAt()));
     if (!"VND".equals(quote.currency().getCurrencyCode())) {
       return range + " Giá phiên dùng VND nên chưa thể so sánh trực tiếp.";
     }
     String relation =
-            product.currentPrice() < quote.low()
-                    ? "thấp hơn khoảng tham khảo"
-                    : product.currentPrice() > quote.high()
-                      ? "cao hơn khoảng tham khảo"
-                      : "nằm trong khoảng tham khảo";
+        product.currentPrice() < quote.low()
+            ? "thấp hơn khoảng tham khảo"
+            : product.currentPrice() > quote.high()
+                ? "cao hơn khoảng tham khảo"
+                : "nằm trong khoảng tham khảo";
     return range + " Giá phiên tại lúc hỏi " + relation + ".";
   }
 
