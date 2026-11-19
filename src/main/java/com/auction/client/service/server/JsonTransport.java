@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -112,6 +113,15 @@ public final class JsonTransport implements AutoCloseable {
 
   /** Sends a correlated request and waits within the configured network timeout. */
   public JsonObject call(String action, String token, String commandId, JsonObject payload) {
+    return call(action, token, commandId, payload, null);
+  }
+
+  /**
+   * Allows a distinct reply timeout for an isolated read. Once written, expiry only abandons that
+   * request. A stalled write still closes the connection.
+   */
+  JsonObject call(
+      String action, String token, String commandId, JsonObject payload, Duration replyTimeout) {
     final Connection c = connection();
     String requestId = UUID.randomUUID().toString();
     JsonObject request = new JsonObject();
@@ -138,8 +148,18 @@ public final class JsonTransport implements AutoCloseable {
       synchronized (c.out) {
         JsonProtocol.writeFrame(c.out, request);
       }
+      if (replyTimeout != null) {
+        deadline.cancel(false);
+        return response.get(replyTimeout.toMillis(), TimeUnit.MILLISECONDS);
+      }
       return response.get(timeout, TimeUnit.MILLISECONDS);
-    } catch (IOException | ExecutionException | TimeoutException | RejectedExecutionException e) {
+    } catch (TimeoutException e) {
+      if (replyTimeout != null) {
+        throw new ServerError("AI_TIMEOUT", "");
+      }
+      c.fail(e);
+      throw network(e);
+    } catch (IOException | ExecutionException | RejectedExecutionException e) {
       c.fail(e);
       throw network(e);
     } catch (InterruptedException e) {

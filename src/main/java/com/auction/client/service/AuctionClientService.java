@@ -6,6 +6,7 @@ import com.auction.client.model.Bid;
 import com.auction.client.model.Item;
 import com.auction.client.model.User;
 import com.auction.client.model.UserRole;
+import com.auction.shared.AssistantChat.Reply;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -80,5 +81,10 @@ public interface AuctionClientService {
   /** Reads an auction together with its accepted bid history. */
   default AuctionRoomSnapshot getRoomSnapshot(String id) {
     return new AuctionRoomSnapshot(getAuctionById(id), getBidHistory(id));
+  }
+
+  /** Sends a read-only question for the viewer who opened the chat. Call on a background thread. */
+  default Reply askAssistant(User viewer, String auctionId, String question) {
+    throw new IllegalStateException("Trợ lý AI chưa khả dụng trên kết nối này.");
   }
 }

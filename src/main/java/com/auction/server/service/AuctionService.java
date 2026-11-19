@@ -7,6 +7,7 @@ import static com.auction.server.service.AuctionContext.required;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
+import com.auction.server.assistant.AuctionProduct;
 import com.auction.server.dao.AuctionRepository;
 import com.auction.server.exception.ApiException;
 import com.google.gson.JsonArray;
@@ -100,6 +101,30 @@ public final class AuctionService implements AutoCloseable {
   /** Validates a session and returns its account identifier. */
   public synchronized String authenticatedUserId(String token) {
     return text(auth.authenticatedUser(token), "id");
+  }
+
+  /** Identity and allow-listed facts for a room visible to an authenticated user. */
+  public record AssistantContext(String userId, AuctionProduct product) {}
+
+  /** Reads the current price under the transaction lock without exposing mutable server state. */
+  public synchronized AssistantContext assistantContext(String token, JsonObject payload) {
+    String userId = authenticatedUserId(token);
+    // Same visibility rule as GET_ROOM_SNAPSHOT: signed-in users can read non-archived rooms.
+    JsonObject auction = context.auction(payload);
+    return new AssistantContext(
+        userId,
+        new AuctionProduct(
+            text(auction, "id"),
+            text(auction, "itemId"),
+            text(auction, "name"),
+            text(auction, "category"),
+            text(auction, "description"),
+            text(auction, "condition"),
+            text(auction, "status"),
+            number(auction, "startingPrice"),
+            number(auction, "currentPrice"),
+            number(auction, "minBidStep"),
+            number(auction, "totalBids") > 0));
   }
 
   // Khóa chung: xác thực -> commandId -> nghiệp vụ -> lưu -> phát sự kiện.

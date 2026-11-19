@@ -21,6 +21,7 @@ import javafx.application.Platform;
 public final class ViewTasks implements AutoCloseable {
   private static final Executor WORKERS = pool("client-service", 4, 64);
   private static final Executor IMAGES = pool("client-image", 2, 32);
+  private static final Executor ASSISTANT = pool("client-ai", 2, 8);
   private final Executor workers;
   private final Consumer<Runnable> ui;
   private final Map<String, Long> versions = new HashMap<>();
@@ -47,6 +48,11 @@ public final class ViewTasks implements AutoCloseable {
   /** Scope đọc ảnh: dùng hàng đợi riêng, cho phép hủy công việc lỗi thời. */
   public static ViewTasks images() {
     return new ViewTasks(IMAGES, Platform::runLater, true);
+  }
+
+  /** Runs assistant calls in a separate pool and drops results when the chat scope closes. */
+  public static ViewTasks assistant() {
+    return new ViewTasks(ASSISTANT, Platform::runLater, false);
   }
 
   static ThreadPoolExecutor pool(String name, int threads, int capacity) {

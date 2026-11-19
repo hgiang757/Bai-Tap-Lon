@@ -70,10 +70,9 @@ cơ chế bảo mật hay cấm mọi Server ở nhiều JVM.
 
 ### 9. Factory Method khác Simple Factory thế nào trong code?
 
-**Đáp nhanh:** create là abstract method được override; forCategory là static selector.
-**Kỹ thuật:** anonymous creator dùng category chọn Item con; đây là biến thể tham
-số hóa có switch tập trung. **Code:** ItemFactory, createAuction.
-**Dễ sai:** gọi bất kỳ hàm static tạo object là Factory Method GoF.
+`forCategory()` dùng `switch` để chọn lớp creator. Mỗi lớp creator override
+`create()` để tạo sản phẩm. Khi `createAuction()` gọi `create()` qua kiểu
+`ItemFactory`, Java chạy bản override của lớp creator đã chọn.
 
 ### 10. Thêm một loại sản phẩm sửa đâu?
 

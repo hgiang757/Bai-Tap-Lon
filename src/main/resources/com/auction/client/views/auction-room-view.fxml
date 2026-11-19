@@ -16,11 +16,13 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import com.auction.client.ui.AppHeader?>
+<?import com.auction.client.ui.AuctionAssistantView?>
 <?import javafx.scene.control.ScrollPane?>
 
-<BorderPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
+<StackPane xmlns="http://javafx.com/javafx/13" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.auction.client.controller.AuctionRoomController"
             prefHeight="720.0" prefWidth="1200.0">
+    <BorderPane>
 
     <!-- Thanh điều hướng trên cùng -->
     <top>
@@ -207,4 +209,8 @@
             </content>
         </ScrollPane>
     </center>
-</BorderPane>
+    </BorderPane>
+    <AuctionAssistantView fx:id="assistant" StackPane.alignment="BOTTOM_RIGHT">
+        <StackPane.margin><Insets right="20.0" bottom="20.0"/></StackPane.margin>
+    </AuctionAssistantView>
+</StackPane>
