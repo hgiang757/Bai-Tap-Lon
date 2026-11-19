@@ -10,6 +10,7 @@ import com.auction.client.service.AuctionClientService;
 import com.auction.client.service.BidSubmissionTracker;
 import com.auction.client.service.BidSubmissionTracker.Phase;
 import com.auction.client.service.ServiceRegistry;
+import com.auction.client.ui.AuctionAssistantView;
 import com.auction.client.ui.AuctionBidHistoryView;
 import com.auction.client.ui.Icons;
 import com.auction.client.ui.ProductImages;
@@ -102,6 +103,7 @@ public class AuctionRoomController implements DisposableView {
 
   @FXML private ScrollPane detailScroll;
   @FXML private VBox pageContent;
+  @FXML private AuctionAssistantView assistant;
 
   @FXML private LineChart<Number, Number> priceChart;
   @FXML private NumberAxis timeAxis;
@@ -121,6 +123,11 @@ public class AuctionRoomController implements DisposableView {
       type ->
           tasks.dispatch(
               () -> {
+                if ("SIGNED_IN".equals(type)
+                    || "SIGNED_OUT".equals(type)
+                    || "SESSION_EXPIRED".equals(type)) {
+                  bindAssistant();
+                }
                 if (!"BID_PLACED".equals(type) && requestedAuctionId != null) {
                   refreshAuction();
                   refreshAvailable();
@@ -182,6 +189,7 @@ public class AuctionRoomController implements DisposableView {
     tasks = new ViewTasks();
     imageTasks = ViewTasks.images();
     requestedAuctionId = java.util.Objects.requireNonNull(id);
+    bindAssistant();
     var user = auctionService.getCurrentUser();
     bidKey = new BidSubmissionTracker.Key(user == null ? "" : user.getUsername(), id);
     currentAuction = auction;
@@ -813,6 +821,15 @@ public class AuctionRoomController implements DisposableView {
     }
   }
 
+  private void bindAssistant() {
+    String id = requestedAuctionId;
+    var user = auctionService.getCurrentUser();
+    assistant.bind(
+        id == null || user == null
+            ? null
+            : question -> auctionService.askAssistant(user, id, question));
+  }
+
   private void detachAuction() {
     if (countdownTimer != null) {
       countdownTimer.stop();
@@ -829,6 +846,7 @@ public class AuctionRoomController implements DisposableView {
       return;
     }
     disposed = true;
+    assistant.bind(null);
     auctionService.removeChangeListener(serverChanges);
     tasks.close();
     imageTasks.close();

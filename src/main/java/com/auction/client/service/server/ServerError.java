@@ -33,6 +33,15 @@ public final class ServerError extends IllegalStateException {
               + " kiểm tra.";
       case "AUTO_BID_LIMIT" -> "Có quá nhiều lượt đấu tự động. Hãy tăng bước giá rồi thử lại.";
       case "SERVER_BUSY" -> "Máy chủ đang bận. Vui lòng thử lại sau.";
+      case "AI_BUSY" -> "Trợ lý đang xử lý yêu cầu. Vui lòng thử lại sau.";
+      case "AI_TIMEOUT" -> "Trợ lý phản hồi quá thời gian. Vui lòng thử lại.";
+      case "AI_NETWORK_ERROR" -> "Máy chủ đấu giá chưa kết nối được với dịch vụ AI.";
+      case "AI_PROVIDER_ERROR" -> "Dịch vụ AI chưa trả lời được. Vui lòng thử lại sau.";
+      case "AI_UNAVAILABLE" -> "Trợ lý AI chưa được cấu hình trên máy chủ.";
+      case "AI_QUOTA" -> "Dịch vụ AI đã hết hạn mức sử dụng.";
+      case "AI_RATE_LIMIT" -> "Dịch vụ AI tạm giới hạn lượt hỏi. Vui lòng thử lại sau.";
+      case "AI_USER_LIMIT" -> "Bạn đã hết lượt hỏi AI trong giờ này.";
+      case "AI_DAILY_LIMIT" -> "Máy chủ đã hết lượt hỏi AI hôm nay.";
       default -> "Không thể thực hiện thao tác. Kiểm tra kết nối và phiên bản ứng dụng.";
     };
   }
@@ -40,6 +49,7 @@ public final class ServerError extends IllegalStateException {
   private static String validationMessage(String detail) {
     return switch (detail) {
       case "Invalid name" -> "Tên sản phẩm phải có từ 1 đến 200 ký tự.";
+      case "Invalid question" -> "Câu hỏi phải có từ 1 đến 1.000 ký tự.";
       case "Invalid description" -> "Mô tả sản phẩm phải có từ 1 đến 10.000 ký tự.";
       case "Invalid start/end time (maximum duration 365 days)" ->
           "Thời gian bắt đầu đã qua, kết thúc không sau bắt đầu hoặc thời lượng vượt 365 ngày.";

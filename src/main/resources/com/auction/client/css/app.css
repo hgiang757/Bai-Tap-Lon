@@ -92,6 +92,37 @@
 .auth-root { -fx-background-color: -c-bg; }
 .auth-brand-block .label { -fx-text-fill: -c-text; }
 .product-image-placeholder { -fx-background-color: -c-surface-2; -fx-background-radius: 16px; }
+.assistant-launcher {
+    -fx-min-width: 52px; -fx-min-height: 52px; -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.22), 16, 0.1, 0, 4);
+}
+.assistant-launcher .glyph { -fx-fill: -c-on-primary; }
+.assistant-panel {
+    -fx-background-color: -c-surface; -fx-background-radius: 18px;
+    -fx-border-color: -c-border; -fx-border-radius: 18px; -fx-padding: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.22), 22, 0.08, 0, 5);
+}
+.assistant-title { -fx-font-size: 17px; -fx-font-weight: bold; }
+.assistant-window-button {
+    -fx-min-width: 32px; -fx-min-height: 32px; -fx-padding: 0;
+    -fx-font-size: 17px; -fx-background-color: transparent; -fx-border-color: transparent;
+}
+.assistant-scroll, .assistant-scroll > .viewport { -fx-background-color: -c-bg; }
+.assistant-scroll { -fx-background-radius: 12px; }
+.assistant-messages { -fx-padding: 10px; }
+.assistant-bubble {
+    -fx-background-color: -c-surface; -fx-background-radius: 12px;
+    -fx-padding: 8px 10px; -fx-font-size: 13px;
+}
+.assistant-question { -fx-background-color: -c-primary; -fx-text-fill: -c-on-primary; }
+.assistant-error { -fx-text-fill: -c-danger; }
+.assistant-loading .label { -fx-font-size: 12px; -fx-text-fill: -c-muted; }
+.assistant-suggestion {
+    -fx-min-height: 28px; -fx-padding: 3px 9px; -fx-background-color: -c-surface-2;
+    -fx-font-size: 12px; -fx-text-fill: -c-primary-text;
+}
+.assistant-input { -fx-padding: 2px; -fx-font-size: 13px; }
+.assistant-send { -fx-min-width: 62px; -fx-padding: 7px 12px; }
 .product-image-icon { -fx-text-fill: -c-muted; -fx-font-size: 13px; }
 .user-menu-account { -fx-padding: 8px 10px 12px 10px; }
 .user-menu-role { -fx-background-color: -c-surface-2; -fx-background-radius: 12px; -fx-padding: 3px 8px; -fx-font-size: 12px; -fx-font-weight: bold; }

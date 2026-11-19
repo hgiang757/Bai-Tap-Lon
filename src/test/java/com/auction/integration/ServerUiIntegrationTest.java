@@ -18,7 +18,9 @@ import com.auction.client.model.Bid;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.service.ServiceRegistry;
 import com.auction.client.service.server.ServerServices;
+import com.auction.server.assistant.MockOpenAi;
 import com.auction.server.network.Server;
+import com.auction.server.network.TestServers;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,6 +177,120 @@ class ServerUiIntegrationTest {
     form.applyCss();
     form.layout();
     return form;
+  }
+
+  @Test
+  void assistantOpensMinimizesAndSwitchesProductsWhileHttpIsPending() throws Exception {
+    var releaseFirst = new CountDownLatch(1);
+    var releaseOld = new CountDownLatch(1);
+    var wait = java.time.Duration.ofSeconds(8);
+    try (MockOpenAi provider =
+            new MockOpenAi(
+                request -> {
+                  String question = request.context().get("question").getAsString();
+                  if ("Câu hỏi của phòng cũ".equals(question)) {
+                    releaseOld.await();
+                    return MockOpenAi.answer("Phản hồi của phòng cũ");
+                  }
+                  releaseFirst.await();
+                  return MockOpenAi.answer("Hãy kiểm tra tình trạng sản phẩm.");
+                });
+        Server server =
+            TestServers.create(
+                "127.0.0.1", 0, directory.resolve("server"), true, provider.assistant(wait));
+        ServerServices adapter =
+            new ServerServices("127.0.0.1", server.port(), directory.resolve("assistant-client"))) {
+      server.start();
+      ServiceRegistry.setServices(adapter, adapter, adapter, adapter, adapter, adapter);
+      try {
+        assertTrue(adapter.login("bidder_hieu", "Bidder12345", null));
+        var products = adapter.getAuctions(AuctionStatus.RUNNING);
+        AuctionRoomController room =
+            fx(
+                () -> {
+                  AuctionRoomController controller =
+                      ViewNavigator.loadView(
+                          "/com/auction/client/views/auction-room-view.fxml", "Phòng đấu giá");
+                  controller.loadAuction(products.get(0).getId());
+                  return controller;
+                });
+        await(room::isReady);
+        fx(
+            () -> {
+              assistantButton("assistantLauncher").fire();
+              assertTrue(stage.getScene().lookup("#assistantPanel").isVisible());
+              TextArea input = (TextArea) stage.getScene().lookup("#assistantInput");
+              input.setText("Bản nháp");
+              assistantButton("assistantMinimize").fire();
+              assertFalse(stage.getScene().lookup("#assistantPanel").isVisible());
+              assistantButton("assistantLauncher").fire();
+              assertEquals("Bản nháp", input.getText());
+              assistantButton("assistantClose").fire();
+              assertFalse(stage.getScene().lookup("#assistantPanel").isVisible());
+              assistantButton("assistantLauncher").fire();
+              assertTrue(input.getText().isEmpty());
+              var suggestion =
+                  stage.getScene().getRoot().lookupAll(".assistant-suggestion").stream()
+                      .map(Button.class::cast)
+                      .filter(b -> "Giới thiệu".equals(b.getText()))
+                      .findFirst()
+                      .orElseThrow();
+              suggestion.fire();
+              return null;
+            });
+        assertTrue(provider.nextRequest(wait) != null);
+        fx(
+            () -> {
+              assertTrue(stage.getScene().lookup("#assistantLoading").isVisible());
+              assistantButton("assistantMinimize").fire();
+              assistantButton("assistantLauncher").fire();
+              assertTrue(stage.getScene().lookup("#assistantLoading").isVisible());
+              return null;
+            });
+        releaseFirst.countDown();
+        await(() -> hasAssistantMessage("Chưa có dữ liệu giá thị trường đã xác minh."));
+        snapshot("server-auction-assistant");
+        fx(
+            () -> {
+              ((TextArea) stage.getScene().lookup("#assistantInput"))
+                  .setText("Câu hỏi của phòng cũ");
+              assistantButton("assistantSend").fire();
+              return null;
+            });
+        assertTrue(provider.nextRequest(wait) != null);
+        fx(
+            () -> {
+              room.loadAuction(products.get(1).getId());
+              assistantButton("assistantLauncher").fire();
+              assertFalse(stage.getScene().lookup("#assistantLoading").isVisible());
+              assertFalse(hasAssistantMessage("Câu hỏi của phòng cũ"));
+              assertFalse(hasAssistantMessage("Hãy kiểm tra tình trạng sản phẩm."));
+              return null;
+            });
+        releaseOld.countDown();
+        await(room::isReady);
+        assertFalse(fx(() -> hasAssistantMessage("Phản hồi của phòng cũ")));
+      } finally {
+        releaseFirst.countDown();
+        releaseOld.countDown();
+        fx(
+            () -> {
+              ViewNavigator.disposeCurrentView();
+              ServiceRegistry.close();
+              return null;
+            });
+      }
+    }
+  }
+
+  private static Button assistantButton(String id) {
+    return (Button) stage.getScene().lookup("#" + id);
+  }
+
+  private static boolean hasAssistantMessage(String text) {
+    return stage.getScene().getRoot().lookupAll(".assistant-bubble").stream()
+        .map(Label.class::cast)
+        .anyMatch(label -> label.getText().contains(text));
   }
 
   @Test

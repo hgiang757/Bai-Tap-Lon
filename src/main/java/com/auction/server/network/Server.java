@@ -4,8 +4,11 @@ import static com.auction.shared.JsonProtocol.number;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
+import com.auction.server.assistant.AuctionAssistant;
 import com.auction.server.exception.ApiException;
 import com.auction.server.service.AuctionService;
+import com.auction.server.service.AuctionService.AssistantContext;
+import com.auction.shared.AssistantChat;
 import com.auction.shared.JsonProtocol;
 import com.google.gson.JsonObject;
 import java.io.DataInputStream;
@@ -23,7 +26,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,6 +54,15 @@ public final class Server implements AutoCloseable {
 
   private final ServerSocket listener;
   private final AuctionService service;
+  private final AuctionAssistant assistant;
+  private final ExecutorService aiWorkers =
+      new ThreadPoolExecutor(
+          4,
+          4,
+          0,
+          TimeUnit.SECONDS,
+          new SynchronousQueue<>(),
+          Thread.ofPlatform().name("auction-ai-", 0).factory());
   private final Set<Client> clients = ConcurrentHashMap.newKeySet();
   private final ExecutorService workers = Executors.newVirtualThreadPerTaskExecutor();
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -54,6 +70,12 @@ public final class Server implements AutoCloseable {
   private final Thread acceptor;
 
   private Server(String host, int port, Path data, boolean demo) throws IOException {
+    this(host, port, data, demo, AuctionAssistant.fromEnvironment());
+  }
+
+  private Server(String host, int port, Path data, boolean demo, AuctionAssistant assistant)
+      throws IOException {
+    this.assistant = assistant;
     listener = new ServerSocket();
     listener.setReuseAddress(true);
     try {
@@ -63,6 +85,7 @@ public final class Server implements AutoCloseable {
       listener.close();
       workers.close();
       scheduler.shutdownNow();
+      assistant.close();
       throw e;
     }
     acceptor = Thread.ofPlatform().name("auction-accept").unstarted(this::accept);
@@ -143,6 +166,7 @@ public final class Server implements AutoCloseable {
     private volatile String session = "";
     private volatile boolean done;
     private volatile boolean feed;
+    private ChatWork pendingChat;
 
     Client(Socket socket) {
       this.socket = socket;
@@ -188,7 +212,19 @@ public final class Server implements AutoCloseable {
             String token = text(request, "token");
             JsonObject payload =
                 request.has("payload") ? request.getAsJsonObject("payload") : new JsonObject();
+            if (action.equals(AssistantChat.ACTION)) {
+              if (!session.isBlank() && !session.equals(token)) {
+                throw new ApiException("UNAUTHENTICATED", "Assistant session does not match");
+              }
+              AssistantContext facts = service.assistantContext(token, payload);
+              String question = validatedQuestion(payload);
+              session = token;
+              userId = facts.userId();
+              startChat(new ChatWork(requestId, token, facts, question));
+              continue;
+            }
             if (!token.equals(session)) {
+              cancelChat();
               subscriptions.clear();
               feed = false;
               userId = "";
@@ -213,9 +249,11 @@ public final class Server implements AutoCloseable {
               response = service.execute(action, token, text(request, "commandId"), payload);
             }
             if (action.equals("LOGIN") && response.get("success").getAsBoolean()) {
+              cancelChat();
               session = text(response.getAsJsonObject("result"), "token");
               userId = service.authenticatedUserId(session);
             } else if (action.equals("LOGOUT")) {
+              cancelChat();
               subscriptions.clear();
               feed = false;
               userId = "";
@@ -224,7 +262,7 @@ public final class Server implements AutoCloseable {
               userId = service.authenticatedUserId(token);
             }
           } catch (ApiException e) {
-            response = obj("success", false, "errorCode", e.code(), "message", e.getMessage());
+            response = rejection(e);
           } catch (RuntimeException e) {
             response =
                 obj(
@@ -235,10 +273,7 @@ public final class Server implements AutoCloseable {
                     "message",
                     "Malformed request");
           }
-          response.addProperty("type", "response");
-          response.addProperty("protocolVersion", 1);
-          response.addProperty("requestId", requestId);
-          offer(response);
+          respond(requestId, response);
         }
       } catch (IOException e) {
         if (!done && !(e instanceof EOFException)) {
@@ -254,12 +289,101 @@ public final class Server implements AutoCloseable {
       }
     }
 
+    private void respond(String requestId, JsonObject response) {
+      response.addProperty("type", "response");
+      response.addProperty("protocolVersion", 1);
+      response.addProperty("requestId", requestId);
+      offer(response);
+    }
+
+    private synchronized void startChat(ChatWork work) {
+      if (done) {
+        return;
+      }
+      if (pendingChat != null) {
+        throw new ApiException("AI_BUSY", "An assistant request is already running");
+      }
+      pendingChat = work;
+      try {
+        aiWorkers.execute(work.task);
+      } catch (RejectedExecutionException e) {
+        pendingChat = null;
+        throw new ApiException("AI_BUSY", "Assistant workers are busy");
+      }
+    }
+
+    private synchronized void cancelChat() {
+      if (pendingChat != null) {
+        pendingChat.task.cancel(true);
+        pendingChat = null;
+      }
+    }
+
+    private synchronized void finishChat(ChatWork work, JsonObject response) {
+      if (pendingChat == work) {
+        pendingChat = null;
+        respond(work.requestId, response);
+      }
+    }
+
+    private final class ChatWork {
+      private final String requestId;
+      private final String token;
+      private final AssistantContext facts;
+      private final String question;
+      private final FutureTask<Void> task = new FutureTask<>(this::run, null);
+
+      ChatWork(String requestId, String token, AssistantContext facts, String question) {
+        this.requestId = requestId;
+        this.token = token;
+        this.facts = facts;
+        this.question = question;
+      }
+
+      private void run() {
+        JsonObject response;
+        try {
+          var reply =
+              assistant.ask(
+                  facts.userId(),
+                  facts.product(),
+                  question,
+                  () ->
+                      service.assistantContext(
+                          token, obj("auctionId", facts.product().auctionId())));
+          response =
+              obj(
+                  "success",
+                  true,
+                  "result",
+                  obj(
+                      "answer",
+                      reply.answer(),
+                      "currentPrice",
+                      reply.currentPrice(),
+                      "hasBids",
+                      reply.hasBids(),
+                      "marketSummary",
+                      reply.marketSummary()));
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          return;
+        } catch (ApiException e) {
+          response = rejection(e);
+        } catch (RuntimeException e) {
+          response = rejection(new ApiException("AI_PROVIDER_ERROR", "Assistant request failed"));
+        }
+        finishChat(this, response);
+      }
+    }
+
     @Override
     public synchronized void close() {
       if (done) {
         return;
       }
       done = true;
+      cancelChat();
       clients.remove(this);
       System.out.println("Client disconnected: " + socket.getRemoteSocketAddress());
       subscriptions.clear();
@@ -271,6 +395,22 @@ public final class Server implements AutoCloseable {
     }
   }
 
+  private static String validatedQuestion(JsonObject payload) {
+    var value = payload.get("question");
+    if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+      throw new ApiException("VALIDATION_ERROR", "Invalid question");
+    }
+    String question = value.getAsString().strip();
+    if (question.isEmpty() || question.length() > AssistantChat.MAX_QUESTION_LENGTH) {
+      throw new ApiException("VALIDATION_ERROR", "Invalid question");
+    }
+    return question;
+  }
+
+  private static JsonObject rejection(ApiException e) {
+    return obj("success", false, "errorCode", e.code(), "message", e.getMessage());
+  }
+
   @Override
   public void close() throws IOException {
     if (!closed.compareAndSet(false, true)) {
@@ -279,6 +419,8 @@ public final class Server implements AutoCloseable {
     listener.close();
     scheduler.shutdownNow();
     clients.forEach(Client::close);
+    aiWorkers.shutdownNow();
+    assistant.close();
     workers.shutdownNow();
     try {
       scheduler.awaitTermination(5, TimeUnit.SECONDS);

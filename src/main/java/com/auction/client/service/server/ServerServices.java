@@ -29,6 +29,8 @@ import com.auction.client.service.ProductService;
 import com.auction.client.service.UserAdminService;
 import com.auction.client.service.WalletService;
 import com.auction.client.service.WalletSnapshot;
+import com.auction.shared.AssistantChat;
+import com.auction.shared.AssistantChat.Reply;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -123,7 +125,11 @@ public final class ServerServices
   }
 
   private JsonObject response(String action, String command, JsonObject payload) {
-    String session = token;
+    return response(action, command, payload, token, null);
+  }
+
+  private JsonObject response(
+      String action, String command, JsonObject payload, String session, Duration replyTimeout) {
     // Authentication must also work while the previous server session is expired.
     if (!session.isEmpty() && !action.equals("LOGIN") && !action.equals("REGISTER")) {
       synchronized (subscriptions) {
@@ -135,7 +141,7 @@ public final class ServerServices
         }
       }
     }
-    JsonObject response = transport.call(action, session, command, payload);
+    JsonObject response = transport.call(action, session, command, payload, replyTimeout);
     if (response.has("serverTime")) {
       clockOffset =
           Duration.between(
@@ -163,6 +169,33 @@ public final class ServerServices
   private JsonElement read(String action, JsonObject payload) {
     String session = token;
     return unwrap(response(action, "", payload), session);
+  }
+
+  @Override
+  public Reply askAssistant(User viewer, String auctionId, String question) {
+    String session;
+    synchronized (writes) {
+      if (viewer == null || viewer != currentUser || token.isEmpty()) {
+        throw new ServerError("UNAUTHENTICATED", "");
+      }
+      session = token;
+    }
+    JsonObject result =
+        unwrap(
+                response(
+                    AssistantChat.ACTION,
+                    "",
+                    obj("auctionId", auctionId, "question", question),
+                    session,
+                    Duration.ofSeconds(16)),
+                session)
+            .getAsJsonObject();
+    if (!session.equals(token)) {
+      throw new ServerError("UNAUTHENTICATED", "");
+    }
+    return new Reply(
+        text(result, "answer"), longValue(result, "currentPrice"),
+        result.get("hasBids").getAsBoolean(), text(result, "marketSummary"));
   }
 
   private Path pendingFile() {
