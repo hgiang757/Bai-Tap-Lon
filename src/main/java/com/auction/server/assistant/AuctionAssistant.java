@@ -21,11 +21,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /** Read-only assistant orchestration, with bounded, in-memory conversation and usage data. */
 public final class AuctionAssistant implements AutoCloseable {
   private static final String NO_QUOTE = "Chưa có dữ liệu giá thị trường đã xác minh.";
+  private static final String GEMINI_ENDPOINT =
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
+  private static final String FREE_MODEL = "gemini-3.5-flash-lite";
   private static final int MAX_TURNS = 3;
   private static final int MAX_CONVERSATIONS = 256;
   private static final int PER_USER_HOUR = 12;
@@ -33,21 +35,14 @@ public final class AuctionAssistant implements AutoCloseable {
   private static final Duration HISTORY_AGE = Duration.ofMinutes(30);
   private static final Locale VIETNAMESE = Locale.forLanguageTag("vi-VN");
   private static final DateTimeFormatter QUOTE_TIME =
-      DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm 'UTC'XXX", VIETNAMESE)
-          .withZone(ZoneOffset.ofHours(7));
-  private static final Pattern UNVERIFIED_PRICE_OR_LINK =
-      Pattern.compile(
-          "(?iu)(https?://|www\\.|\\b[\\p{L}0-9-]+\\.(vn|com|net|org)\\b"
-              + "|[₫$€£]|(?<!\\p{L})(vnd|vnđ|usd|eur)(?!\\p{L})"
-              + "|(?<![\\p{L}\\p{N}])(\\p{N}{5,}|\\p{N}{1,3}([., ]\\p{N}{3})+)(?![\\p{L}\\p{N}])"
-              + "|(?<!\\p{L})(triệu đồng|tỷ đồng|tỉ đồng|nghìn đồng|ngàn đồng)(?!\\p{L})"
-              + "|\\p{N}[\\p{N}\\s.,]*(đ|đồng|triệu|tỷ|tỉ|nghìn|ngàn|k)(?!\\p{L}))");
+          DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm 'UTC'XXX", VIETNAMESE)
+                  .withZone(ZoneOffset.ofHours(7));
 
   private final OpenAiClient openAi;
   private final MarketPriceService marketPrices;
   private final Clock clock;
   private final LinkedHashMap<Conversation, History> histories =
-      new LinkedHashMap<>(16, 0.75f, true);
+          new LinkedHashMap<>(16, 0.75f, true);
   private final Map<String, Integer> userCalls = new HashMap<>();
   private final Set<String> activeUsers = new HashSet<>();
   private Instant userHour = Instant.MIN;
@@ -66,22 +61,25 @@ public final class AuctionAssistant implements AutoCloseable {
     this.clock = clock;
   }
 
-  /** Configures OpenAI from the server environment with an empty market provider by default. */
+  /** Configures free Gemini Flash from the server environment. */
   public static AuctionAssistant fromEnvironment() {
-    String model = System.getenv("OPENAI_MODEL");
+    String apiKey = System.getenv("GEMINI_API_KEY");
+    if (apiKey == null || apiKey.isBlank()) {
+      apiKey = System.getenv("OPENAI_API_KEY");
+    }
     return new AuctionAssistant(
-        new OpenAiClient(
-            System.getenv("OPENAI_API_KEY"),
-            model == null || model.isBlank() ? "gpt-4.1-mini" : model.strip(),
-            URI.create("https://api.openai.com/v1/responses"),
-            Duration.ofSeconds(12)),
-        product -> Optional.empty(),
-        Clock.systemUTC());
+            new OpenAiClient(
+                    apiKey,
+                    FREE_MODEL,
+                    URI.create(GEMINI_ENDPOINT),
+                    Duration.ofSeconds(30)),
+            product -> Optional.empty(),
+            Clock.systemUTC());
   }
 
   /** Answers a question on an AI worker and rechecks access before retaining the turn. */
   public Reply ask(String userId, AuctionProduct product, String question, Runnable verifyAccess)
-      throws InterruptedException {
+          throws InterruptedException {
     openAi.requireConfigured();
     Conversation conversation = new Conversation(userId, product.auctionId(), product.productId());
     JsonArray history = admit(conversation);
@@ -90,20 +88,17 @@ public final class AuctionAssistant implements AutoCloseable {
       String marketSummary = marketSummary(product, quote);
       JsonArray input = new JsonArray();
       input.add(
-          obj(
-              "role",
-              "user",
-              "content",
               obj(
-                      "auctionProduct", productFacts(product),
-                      "verifiedMarketSummary", marketSummary,
-                      "recentConversation", history,
-                      "question", question)
-                  .toString()));
+                      "role",
+                      "user",
+                      "content",
+                      obj(
+                              "auctionProduct", productFacts(product),
+                              "verifiedMarketSummary", marketSummary,
+                              "recentConversation", history,
+                              "question", question)
+                              .toString()));
       String answer = openAi.answer(input);
-      if (UNVERIFIED_PRICE_OR_LINK.matcher(answer).find()) {
-        answer = "Thông tin về giá và nguồn tham khảo được hiển thị bên dưới.";
-      }
       verifyAccess.run();
       if (Thread.currentThread().isInterrupted()) {
         throw new InterruptedException();
@@ -149,8 +144,8 @@ public final class AuctionAssistant implements AutoCloseable {
     History history = histories.get(conversation);
     if (history != null) {
       history
-          .turns()
-          .forEach(turn -> result.add(obj("question", turn.question(), "answer", turn.answer())));
+              .turns()
+              .forEach(turn -> result.add(obj("question", turn.question(), "answer", turn.answer())));
     }
     return result;
   }
@@ -170,39 +165,39 @@ public final class AuctionAssistant implements AutoCloseable {
 
   private static JsonObject productFacts(AuctionProduct product) {
     return obj(
-        "name", product.name(),
-        "category", product.category(),
-        "sellerDescription", product.description(),
-        "condition", product.condition(),
-        "auctionStatus", product.status(),
-        "startingPrice", product.startingPrice(),
-        "currentPrice", product.currentPrice(),
-        "minBidStep", product.minBidStep(),
-        "hasBids", product.hasBids(),
-        "currency", "VND");
+            "name", product.name(),
+            "category", product.category(),
+            "sellerDescription", product.description(),
+            "condition", product.condition(),
+            "auctionStatus", product.status(),
+            "startingPrice", product.startingPrice(),
+            "currentPrice", product.currentPrice(),
+            "minBidStep", product.minBidStep(),
+            "hasBids", product.hasBids(),
+            "currency", "VND");
   }
 
   private static String marketSummary(
-      AuctionProduct product, Optional<MarketPriceService.Quote> result) {
+          AuctionProduct product, Optional<MarketPriceService.Quote> result) {
     if (result.isEmpty()) {
       return NO_QUOTE;
     }
     var quote = result.get();
     String range =
-        "%s %s – %s %s. Nguồn %s · Truy xuất %s."
-            .formatted(
-                formatAmount(quote.low()), quote.currency(),
-                formatAmount(quote.high()), quote.currency(),
-                quote.source(), QUOTE_TIME.format(quote.retrievedAt()));
+            "%s %s – %s %s. Nguồn %s · Truy xuất %s."
+                    .formatted(
+                            formatAmount(quote.low()), quote.currency(),
+                            formatAmount(quote.high()), quote.currency(),
+                            quote.source(), QUOTE_TIME.format(quote.retrievedAt()));
     if (!"VND".equals(quote.currency().getCurrencyCode())) {
       return range + " Giá phiên dùng VND nên chưa thể so sánh trực tiếp.";
     }
     String relation =
-        product.currentPrice() < quote.low()
-            ? "thấp hơn khoảng tham khảo"
-            : product.currentPrice() > quote.high()
-                ? "cao hơn khoảng tham khảo"
-                : "nằm trong khoảng tham khảo";
+            product.currentPrice() < quote.low()
+                    ? "thấp hơn khoảng tham khảo"
+                    : product.currentPrice() > quote.high()
+                      ? "cao hơn khoảng tham khảo"
+                      : "nằm trong khoảng tham khảo";
     return range + " Giá phiên tại lúc hỏi " + relation + ".";
   }
 
