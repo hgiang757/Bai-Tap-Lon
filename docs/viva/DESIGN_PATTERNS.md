@@ -33,15 +33,12 @@ không lặp switch/new trong các controller và service.
 **Vị trí:** `server/model/ItemFactory.forCategory()` và abstract `create()`;
 `ProductLogic.createAuction()` là caller thật, được facade AuctionService gọi.
 
-**Hoạt động:** `forCategory()` kiểm tra sáu mã hợp lệ, trả một anonymous subclass
-của ItemFactory override `create()`. Factory Method đó trả Electronics/Art/Vehicle;
-JEWELRY/REAL_ESTATE/OTHER dùng private nested `CategoryItem` có category riêng.
-`createAuction()` làm việc qua kiểu Item, gọi `getCategory()` bằng đa hình.
-
-Phân loại chính xác: static `forCategory()` là **Simple Factory chọn creator**;
-abstract/override `create()` là **Factory Method tham số hóa**. Đây là biến thể
-nhỏ có switch tập trung, không phải một hệ GoF có sáu concrete creator class và
-workflow phức tạp. Không gọi mọi static method trả object là Factory Method.
+`forCategory()` là **Simple Factory** chọn `ElectronicsFactory`, `ArtFactory`,
+`VehicleFactory` hoặc `CategoryItemFactory`. Khi caller gọi `create()` qua kiểu
+`ItemFactory`, Java chạy bản override của lớp creator đã chọn. Đây là **Factory
+Method**. Ba danh mục `JEWELRY`, `REAL_ESTATE` và `OTHER` dùng chung
+`CategoryItemFactory` vì đều tạo `CategoryItem` với mã danh mục tương ứng.
+`createAuction()` tiếp tục gọi `getCategory()` qua kiểu `Item`.
 
 ```java
 Item item = ItemFactory.forCategory("ART")

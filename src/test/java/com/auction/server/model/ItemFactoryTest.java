@@ -30,6 +30,25 @@ class ItemFactoryTest {
   }
 
   @Test
+  void distinctCreatorsDispatchCreateThroughItemFactory() {
+    List<ItemFactory> factories =
+        List.of(
+            ItemFactory.forCategory("ELECTRONICS"),
+            ItemFactory.forCategory("ART"),
+            ItemFactory.forCategory("VEHICLE"),
+            ItemFactory.forCategory("OTHER"));
+    Seller owner = new Seller("seller", "owner", "hash");
+
+    assertEquals(factories.size(), factories.stream().map(Object::getClass).distinct().count());
+    assertEquals(
+        List.of("ELECTRONICS", "ART", "VEHICLE", "OTHER"),
+        factories.stream()
+            .map(factory -> factory.create("item", "Name", "Description", owner))
+            .map(Item::getCategory)
+            .toList());
+  }
+
+  @Test
   void rejectsUnknownCategoryInsteadOfSilentlyCreatingOther() {
     assertThrows(IllegalArgumentException.class, () -> ItemFactory.forCategory("UNKNOWN"));
   }
