@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Provides identity, names and update timestamps for domain objects. */
+//Tạo abstract class cho các class user, admin...
 public abstract class Entity implements Serializable {
   private static final long serialVersionUID = 1L;
 
@@ -14,19 +14,19 @@ public abstract class Entity implements Serializable {
   private Instant createdAt;
   private Instant updatedAt;
 
-  /** Initializes the shared fields of this entity domain object. */
+  //Constructor
   public Entity() {
     this.id = UUID.randomUUID().toString();
     this.createdAt = Instant.now();
     this.updatedAt = this.createdAt;
   }
 
-  /** Initializes the shared fields of this entity domain object. */
+
   public Entity(String id) {
     this(id, null);
   }
 
-  /** Initializes the shared fields of this entity domain object. */
+
   public Entity(String id, String name) {
     this.id = (id == null || id.isBlank()) ? UUID.randomUUID().toString() : id;
     this.name = name;
@@ -38,7 +38,7 @@ public abstract class Entity implements Serializable {
     return id;
   }
 
-  /** Updates id and records the entity modification time. */
+  //Cập nhật id và thời gian thay đổi
   public void setId(String id) {
     this.id = id;
     markAsUpdated();
@@ -48,7 +48,7 @@ public abstract class Entity implements Serializable {
     return name;
   }
 
-  /** Updates name and records the entity modification time. */
+  //Cập nhật tên và thời gian thay đổi
   public void setName(String name) {
     this.name = name;
     markAsUpdated();
@@ -70,7 +70,7 @@ public abstract class Entity implements Serializable {
     this.updatedAt = updatedAt;
   }
 
-  /** Records the current instant as the entity modification time. */
+  //Phương thức cập nhật thời gian
   public void markAsUpdated() {
     this.updatedAt = Instant.now();
   }
