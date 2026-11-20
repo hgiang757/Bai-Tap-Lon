@@ -187,7 +187,7 @@ public final class ServerServices
                     "",
                     obj("auctionId", auctionId, "question", question),
                     session,
-                    Duration.ofSeconds(16)),
+                    Duration.ofSeconds(30)),
                 session)
             .getAsJsonObject();
     if (!session.equals(token)) {

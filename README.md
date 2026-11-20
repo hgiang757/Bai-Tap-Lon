@@ -53,18 +53,20 @@ Trên máy chạy server, mở PowerShell và nhập khóa API tại lời nhắ
 từ cùng cửa sổ để tiến trình nhận biến môi trường.
 
 ```powershell
-$env:OPENAI_API_KEY = [System.Net.NetworkCredential]::new(
-    '', (Read-Host 'Nhập OPENAI_API_KEY' -AsSecureString)
+$env:GEMINI_API_KEY = [System.Net.NetworkCredential]::new(
+    '', (Read-Host 'Nhập GEMINI_API_KEY' -AsSecureString)
 ).Password
-# Tùy chọn. Có thể bỏ dòng này để dùng model mặc định.
-$env:OPENAI_MODEL = 'gpt-4.1-mini'
 .\Start-Server.cmd
 ```
+
+Server ưu tiên Gemini 3.5 Flash-Lite khi có `GEMINI_API_KEY`. Nếu dùng OpenAI,
+đặt `OPENAI_API_KEY` trong môi trường không có `GEMINI_API_KEY`. Có thể đặt thêm
+`OPENAI_MODEL` để chọn model OpenAI thay cho mặc định `gpt-4.1-mini`.
 
 Đăng nhập client, mở chi tiết sản phẩm trong phòng đấu giá và nhấn biểu tượng chat
 ở góc dưới bên phải. Chọn một câu hỏi gợi ý hoặc nhập câu hỏi. Enter gửi, Shift+Enter
 xuống dòng và Esc thu nhỏ. Các câu hỏi lấy dữ liệu sản phẩm và giá mới nhất đã ghi nhận
-trên server tại thời điểm gửi. Mô tả sản phẩm và nội dung chat được gửi đến OpenAI
+trên server tại thời điểm gửi. Mô tả sản phẩm và nội dung chat được gửi đến nhà cung cấp AI
 để tạo câu trả lời. Giữ khóa API trên máy server. Khi thiếu khóa, phòng đấu giá và ví
 vẫn hoạt động, còn chat hiển thị lỗi cấu hình.
 
@@ -73,9 +75,11 @@ dữ liệu đã xác minh. Có thể kết nối một nguồn được phép s
 Nguồn cung cấp khoảng giá cho đúng hãng, model, phiên bản và tình trạng, kèm tiền tệ,
 URL HTTPS và thời điểm truy xuất. Trợ lý so sánh trực tiếp khi nguồn dùng VND.
 
-Server cho phép tối đa 4 yêu cầu AI đồng thời, 12 yêu cầu mỗi tài khoản mỗi giờ và
+Server cho phép tối đa 2 lượt gọi nhà cung cấp AI đồng thời, 12 yêu cầu mỗi tài khoản mỗi giờ và
 200 yêu cầu toàn server mỗi ngày UTC. Giới hạn áp dụng trong tiến trình hiện tại.
-Mỗi yêu cầu giới hạn 1.000 ký tự và 450 token đầu ra, với thời hạn OpenAI 12 giây.
+Mỗi câu hỏi giới hạn 1.000 ký tự. Ngân sách đầu ra là 600 token cho Gemini hoặc
+450 token cho OpenAI. Server giới hạn toàn bộ lượt gọi, gồm cả thử lại, trong 25
+giây. Client chờ tối đa 30 giây.
 Lịch sử giữ tối đa 3 lượt gần nhất theo tài khoản và sản phẩm trong bộ nhớ, hết
 hạn sau 30 phút không hoạt động. Các bài kiểm thử AI dùng HTTP mô phỏng trên máy cục bộ.
 

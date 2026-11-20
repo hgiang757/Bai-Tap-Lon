@@ -22,7 +22,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
 
-/** One durable snapshot is the transaction boundary for money and auctions. */
+/** Lưu ví và phiên đấu giá cùng nhau trong một bản chụp trạng thái. */
 public final class AuctionRepository implements AutoCloseable {
   private static final Gson JSON = new GsonBuilder().setStrictness(Strictness.STRICT).create();
   private final Path file;
@@ -30,7 +30,7 @@ public final class AuctionRepository implements AutoCloseable {
   private final FileLock lock;
   private boolean loaded;
 
-  /** Opens the snapshot directory and acquires its exclusive writer lock. */
+  /** Mở thư mục dữ liệu và lấy khóa ghi độc quyền. */
   public AuctionRepository(Path directory) throws IOException {
     Files.createDirectories(directory);
     file = directory.resolve("state.json");
@@ -54,7 +54,7 @@ public final class AuctionRepository implements AutoCloseable {
     lock = acquired;
   }
 
-  /** Loads strict JSON while rejecting duplicate keys and preserving invalid files. */
+  /** Đọc JSON theo chế độ nghiêm ngặt, từ chối khóa trùng và giữ lại tệp lỗi. */
   public synchronized JsonObject load() throws IOException {
     if (!lock.isValid()) {
       throw new IOException("Repository is closed");
@@ -84,7 +84,7 @@ public final class AuctionRepository implements AutoCloseable {
     }
   }
 
-  /** A tree parser otherwise silently keeps only the last occurrence of a duplicate key. */
+  /** Phát hiện khóa trùng trước khi bộ phân tích chỉ giữ lại giá trị cuối. */
   private static void validateKeys(JsonReader reader) throws IOException {
     if (reader.peek() == JsonToken.BEGIN_OBJECT) {
       reader.beginObject();
@@ -107,7 +107,7 @@ public final class AuctionRepository implements AutoCloseable {
     }
   }
 
-  /** Writes and forces a temporary snapshot before atomically replacing the committed file. */
+  /** Ghi và đồng bộ tệp tạm xuống đĩa trước khi thay thế tệp dữ liệu bằng thao tác nguyên tử. */
   public synchronized void save(JsonObject state) throws IOException {
     if (!lock.isValid()) {
       throw new IOException("Repository is closed");
@@ -136,7 +136,7 @@ public final class AuctionRepository implements AutoCloseable {
       Files.move(
           temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
     } catch (AtomicMoveNotSupportedException e) {
-      // Refuse the transaction: a non-atomic fallback could destroy the last good state.
+      // Từ chối giao dịch để bảo toàn tệp trạng thái hợp lệ gần nhất.
       throw new IOException(
           "Atomic replacement is unavailable; use a local data directory supporting"
               + " ATOMIC_MOVE. Existing state.json was not replaced.",
@@ -146,6 +146,6 @@ public final class AuctionRepository implements AutoCloseable {
 
   @Override
   public synchronized void close() throws IOException {
-    lockChannel.close(); // Closing the channel also releases its file lock.
+    lockChannel.close(); // Đóng kênh đồng thời giải phóng khóa tệp.
   }
 }

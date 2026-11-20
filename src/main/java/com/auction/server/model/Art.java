@@ -1,22 +1,22 @@
 package com.auction.server.model;
 
-/** Represents an art item with artist information. */
+/** Đại diện cho tác phẩm nghệ thuật cùng thông tin tác giả. */
 public class Art extends Item {
   private static final long serialVersionUID = 1L;
   private String artistName;
 
-  /** Initializes the shared fields of this art domain object. */
+  /** Khởi tạo thông tin cơ sở của tác phẩm. */
   public Art() {
     super();
     this.artistName = "Unknown Artist";
   }
 
-  /** Initializes the shared fields of this art domain object. */
+  /** Khởi tạo thông tin cơ sở của tác phẩm. */
   public Art(String id, String name, double basePrice) {
     this(id, name, "", basePrice, "", "Unknown Artist");
   }
 
-  /** Initializes the shared fields of this art domain object. */
+  /** Khởi tạo thông tin cơ sở của tác phẩm. */
   public Art(
       String id,
       String name,
@@ -37,7 +37,7 @@ public class Art extends Item {
     return artistName;
   }
 
-  /** Updates artist name and records the entity modification time. */
+  /** Đổi tên tác giả và ghi nhận thời điểm cập nhật. */
   public void setArtistName(String artistName) {
     this.artistName = artistName;
     markAsUpdated();

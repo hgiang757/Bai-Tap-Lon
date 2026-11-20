@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-//Tạo abstract class cho các class user, admin...
+/** Lớp cơ sở chứa mã định danh, tên và thời điểm tạo, cập nhật của thực thể. */
 public abstract class Entity implements Serializable {
   private static final long serialVersionUID = 1L;
 
@@ -14,19 +14,19 @@ public abstract class Entity implements Serializable {
   private Instant createdAt;
   private Instant updatedAt;
 
-  //Constructor
+  /** Tạo thực thể với mã định danh tự sinh. */
   public Entity() {
     this.id = UUID.randomUUID().toString();
     this.createdAt = Instant.now();
     this.updatedAt = this.createdAt;
   }
 
-
+  /** Tạo thực thể với mã định danh đã có. */
   public Entity(String id) {
     this(id, null);
   }
 
-
+  /** Tạo thực thể với tên và mã định danh, tự sinh mã nếu để trống. */
   public Entity(String id, String name) {
     this.id = (id == null || id.isBlank()) ? UUID.randomUUID().toString() : id;
     this.name = name;
@@ -38,7 +38,7 @@ public abstract class Entity implements Serializable {
     return id;
   }
 
-  //Cập nhật id và thời gian thay đổi
+  /** Đổi mã định danh và ghi nhận thời điểm cập nhật. */
   public void setId(String id) {
     this.id = id;
     markAsUpdated();
@@ -48,7 +48,7 @@ public abstract class Entity implements Serializable {
     return name;
   }
 
-  //Cập nhật tên và thời gian thay đổi
+  /** Đổi tên và ghi nhận thời điểm cập nhật. */
   public void setName(String name) {
     this.name = name;
     markAsUpdated();
@@ -70,7 +70,7 @@ public abstract class Entity implements Serializable {
     this.updatedAt = updatedAt;
   }
 
-  //Phương thức cập nhật thời gian
+  /** Ghi nhận thời điểm cập nhật là thời gian hiện tại. */
   public void markAsUpdated() {
     this.updatedAt = Instant.now();
   }

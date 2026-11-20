@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** Credentials, sessions, registration and account administration; never persists independently. */
+/** Quản lý thông tin xác thực, phiên đăng nhập, đăng ký và quản trị tài khoản trong giao dịch. */
 final class AuthLogic {
   private final AuctionContext context;
   private final WalletLogic wallets;

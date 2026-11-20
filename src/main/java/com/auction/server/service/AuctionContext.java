@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Shared snapshot and buffered events. Only AuctionService owns this context and its helpers. Every
- * request/tick uses the service monitor; helpers never lock, save or publish themselves. Rollback
- * replaces state here, so helpers cannot retain a discarded snapshot as their root.
+ * Giữ bản chụp trạng thái dùng chung và các sự kiện chờ phát. Mọi yêu cầu và lần cập nhật
+ * theo lịch đều chạy dưới khóa của {@code AuctionService}. Khi giao dịch được hoàn tác,
+ * lớp dịch vụ thay bản chụp ở đây để các lớp nghiệp vụ dùng đúng trạng thái hiện hành.
  */
 final class AuctionContext {
   static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");

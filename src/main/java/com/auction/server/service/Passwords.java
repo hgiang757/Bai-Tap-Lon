@@ -6,14 +6,14 @@ import java.util.Base64;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
-/** Salted PBKDF2 credentials, never included in public user DTOs. */
+/** Băm mật khẩu bằng PBKDF2 với giá trị ngẫu nhiên riêng cho từng mật khẩu. */
 final class Passwords {
   private Passwords() {}
 
-  /** Load the crypto provider before accepting clients, rather than during a cold first login. */
+  /** Khởi tạo bộ mã hóa trước khi nhận kết nối của máy khách. */
   static void warmUp() {
-    java.util.UUID.randomUUID(); // Login tokens use a lazily initialized secure generator.
-    derive("startup-check", new byte[16]); // Not a credential; this value is never stored.
+    java.util.UUID.randomUUID(); // Khởi tạo bộ sinh ngẫu nhiên bảo mật dùng cho mã phiên đăng nhập.
+    derive("startup-check", new byte[16]); // Dùng dữ liệu tạm để khởi tạo phép băm.
   }
 
   static String hash(String password) {

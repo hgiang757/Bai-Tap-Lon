@@ -24,8 +24,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /**
- * Transaction facade. One global monitor covers every wallet, auction, automatic bid and receipt.
- * Business helpers share one context; only this facade commits, rolls back and publishes.
+ * Một khóa chung bảo vệ giao dịch tác động đến ví, phiên, giá tự động và biên nhận lệnh.
+ * Các lớp nghiệp vụ dùng chung trạng thái. Lớp này lưu, hoàn tác và phát sự kiện.
  */
 public final class AuctionService implements AutoCloseable {
   public static final ZoneId ZONE = AuctionContext.ZONE;
@@ -39,7 +39,7 @@ public final class AuctionService implements AutoCloseable {
   private final SettlementLogic settlement;
   private final Consumer<JsonObject> publisher;
 
-  /** Loads or initializes isolated auction state and its transaction helpers. */
+  /** Nạp hoặc khởi tạo trạng thái đấu giá cùng các thành phần xử lý giao dịch. */
   public AuctionService(Path directory, Clock clock, boolean demo, Consumer<JsonObject> publisher)
       throws IOException {
     this.repository = new AuctionRepository(directory);
@@ -93,23 +93,23 @@ public final class AuctionService implements AutoCloseable {
     }
   }
 
-  /** Loads or initializes isolated auction state and its transaction helpers. */
+  /** Nạp hoặc khởi tạo trạng thái đấu giá cùng các thành phần xử lý giao dịch. */
   public AuctionService(Path directory, boolean demo) throws IOException {
     this(directory, Clock.system(ZONE), demo, ignored -> {});
   }
 
-  /** Validates a session and returns its account identifier. */
+  /** Xác thực phiên đăng nhập và trả về mã tài khoản. */
   public synchronized String authenticatedUserId(String token) {
     return text(auth.authenticatedUser(token), "id");
   }
 
-  /** Identity and allow-listed facts for a room visible to an authenticated user. */
+  /** Mã tài khoản và thông tin được phép đọc trong phòng đấu giá. */
   public record AssistantContext(String userId, AuctionProduct product) {}
 
-  /** Reads the current price under the transaction lock without exposing mutable server state. */
+  /** Đọc giá hiện tại dưới khóa giao dịch và trả về bản sao dữ liệu cần thiết. */
   public synchronized AssistantContext assistantContext(String token, JsonObject payload) {
     String userId = authenticatedUserId(token);
-    // Same visibility rule as GET_ROOM_SNAPSHOT: signed-in users can read non-archived rooms.
+    // Giống GET_ROOM_SNAPSHOT, người đã đăng nhập được đọc phòng chưa lưu trữ.
     JsonObject auction = context.auction(payload);
     return new AssistantContext(
         userId,
@@ -128,7 +128,7 @@ public final class AuctionService implements AutoCloseable {
   }
 
   // Khóa chung: xác thực -> commandId -> nghiệp vụ -> lưu -> phát sự kiện.
-  /** Runs one action under the shared transaction lock, then commits or rolls it back. */
+  /** Xử lý yêu cầu dưới khóa giao dịch chung rồi lưu hoặc hoàn tác giao dịch. */
   public synchronized JsonObject execute(
       String action, String token, String commandId, JsonObject payload) {
     JsonObject before = context.state.deepCopy();
@@ -226,7 +226,7 @@ public final class AuctionService implements AutoCloseable {
     }
   }
 
-  // Chỉ thông báo sau khi lưu thành công; lỗi lưu khôi phục toàn bộ snapshot.
+  // Chỉ thông báo sau khi lưu thành công; khi lưu lỗi, khôi phục toàn bộ bản chụp trạng thái.
   private JsonObject commit(JsonObject before, JsonObject response) {
     try {
       if (!context.state.equals(before)) {
@@ -249,12 +249,12 @@ public final class AuctionService implements AutoCloseable {
     return response.deepCopy();
   }
 
-  /** Refreshes scheduled auction states under the same lock as client commands. */
+  /** Cập nhật trạng thái phiên theo lịch dưới cùng khóa với yêu cầu của máy khách. */
   public synchronized void tick() {
     execute("PING", "", "", new JsonObject());
   }
 
-  // Action dispatcher: each helper runs under this service's existing monitor.
+  // Chuyển yêu cầu cho lớp nghiệp vụ khi đang giữ khóa của dịch vụ.
   private JsonElement handleAction(String action, String token, JsonObject user, JsonObject p) {
     return switch (action) {
       case "PING" -> obj("status", "OK");

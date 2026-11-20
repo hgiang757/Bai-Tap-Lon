@@ -20,7 +20,7 @@ import java.util.Base64;
 import java.util.Locale;
 import java.util.Set;
 
-/** Seller product lifecycle, validation and images; preserves the existing auction schema. */
+/** Quản lý sản phẩm, kiểm tra dữ liệu và xử lý ảnh theo lược đồ đấu giá hiện có. */
 final class ProductLogic {
   private final AuctionContext context;
 

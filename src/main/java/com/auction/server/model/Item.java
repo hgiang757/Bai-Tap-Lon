@@ -1,6 +1,6 @@
 package com.auction.server.model;
 
-/** Defines shared product data and the category contract for concrete item types. */
+/** Định nghĩa thông tin chung và danh mục của sản phẩm đấu giá. */
 public abstract class Item extends Entity {
   private static final long serialVersionUID = 1L;
 
@@ -9,17 +9,17 @@ public abstract class Item extends Entity {
   private String imageUrl;
   private Seller seller;
 
-  /** Initializes the shared fields of this item domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm. */
   public Item() {
     super();
   }
 
-  /** Initializes the shared fields of this item domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm. */
   public Item(String id, String name, double basePrice) {
     this(id, name, "", basePrice, "");
   }
 
-  /** Initializes the shared fields of this item domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm. */
   public Item(String id, String name, String description, double basePrice, String imageUrl) {
     super(id, name);
     this.description = description;
@@ -27,11 +27,11 @@ public abstract class Item extends Entity {
     this.imageUrl = imageUrl;
   }
 
-  /** Returns the category defined by the concrete item type. */
+  /** Trả về danh mục do lớp sản phẩm cụ thể xác định. */
   public abstract String getCategory();
 
   // Khớp với lời gọi chuỗi: ItemFactory.forCategory(category).create(id, name, description, seller)
-  /** Assigns product identity, description and owner to the concrete item. */
+  /** Gán mã, tên, mô tả và người bán cho sản phẩm. */
   public Item create(String id, String name, String description, Seller seller) {
     setId(id);
     setName(name);
@@ -44,7 +44,7 @@ public abstract class Item extends Entity {
     return seller;
   }
 
-  /** Updates seller and records the entity modification time. */
+  /** Đổi người bán và ghi nhận thời điểm cập nhật. */
   public void setSeller(Seller seller) {
     this.seller = seller;
     markAsUpdated();
@@ -62,7 +62,7 @@ public abstract class Item extends Entity {
     return description;
   }
 
-  /** Updates description and records the entity modification time. */
+  /** Đổi mô tả và ghi nhận thời điểm cập nhật. */
   public void setDescription(String description) {
     this.description = description;
     markAsUpdated();
@@ -76,7 +76,7 @@ public abstract class Item extends Entity {
     return basePrice;
   }
 
-  /** Updates base price and records the entity modification time. */
+  /** Đổi giá khởi điểm và ghi nhận thời điểm cập nhật. */
   public void setBasePrice(double basePrice) {
     this.basePrice = basePrice;
     markAsUpdated();
@@ -86,7 +86,7 @@ public abstract class Item extends Entity {
     return imageUrl;
   }
 
-  /** Updates image url and records the entity modification time. */
+  /** Đổi địa chỉ ảnh và ghi nhận thời điểm cập nhật. */
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
     markAsUpdated();

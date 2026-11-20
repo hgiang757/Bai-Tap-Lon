@@ -1,6 +1,6 @@
 package com.auction.server.model;
 
-/** Lists the account roles recognized by the server. */
+/** Liệt kê các vai trò tài khoản được máy chủ hỗ trợ. */
 public enum UserRole {
   BIDDER,
   SELLER,

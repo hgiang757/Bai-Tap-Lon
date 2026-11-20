@@ -50,7 +50,7 @@ class AssistantTcpIntegrationTest {
 
       assertTrue(rival.placeBid(first.getId(), 2_000_000).isSuccess());
       var updated =
-          bidder.askAssistant(bidder.getCurrentUser(), first.getId(), "Chi tiết tiếp theo");
+          bidder.askAssistant(bidder.getCurrentUser(), first.getId(), "Chi tiết A");
       assertTrue(updated.hasBids());
       assertEquals(2_000_000, updated.currentPrice());
       var followUp = provider.nextRequest(WAIT).context();
@@ -66,7 +66,7 @@ class AssistantTcpIntegrationTest {
       assertEquals(second.getItemName(), text(switched.getAsJsonObject("auctionProduct"), "name"));
       assertTrue(switched.getAsJsonArray("recentConversation").isEmpty());
 
-      rival.askAssistant(rival.getCurrentUser(), first.getId(), "Câu hỏi từ người khác");
+      rival.askAssistant(rival.getCurrentUser(), first.getId(), "Chi tiết A");
       assertTrue(
           provider.nextRequest(WAIT).context().getAsJsonArray("recentConversation").isEmpty());
     }

@@ -10,11 +10,11 @@ import com.auction.server.model.BidTransaction;
 import com.google.gson.JsonObject;
 import java.time.LocalDateTime;
 
-/** Maps domain values to schemaVersion=1 without rewriting unrelated snapshot fields. */
+/** Ánh xạ đối tượng nghiệp vụ theo schemaVersion=1 và bảo toàn các trường JSON khác. */
 public final class AuctionJsonMapper {
   private AuctionJsonMapper() {}
 
-  /** Builds an immutable domain auction from the stored JSON fields. */
+  /** Tạo đối tượng phiên đấu giá bất biến từ dữ liệu JSON đã lưu. */
   public static Auction auction(JsonObject json) {
     return new Auction(
         text(json, "id"),
@@ -29,7 +29,7 @@ public final class AuctionJsonMapper {
         json.get("settled").getAsBoolean());
   }
 
-  /** Merge only bidding fields into the existing JSON tree, retaining all extension fields. */
+  /** Cập nhật các trường đặt giá vào JSON hiện tại và bảo toàn các trường mở rộng. */
   public static void applyBid(JsonObject target, Auction accepted, String username) {
     target.addProperty("highestBidderId", accepted.highestBidderId());
     target.addProperty("highestBidderUsername", username);
@@ -37,7 +37,7 @@ public final class AuctionJsonMapper {
     target.addProperty("totalBids", accepted.totalBids());
   }
 
-  /** Writes the accepted domain bid using the existing JSON field names. */
+  /** Ghi lượt đặt giá đã chấp nhận bằng tên trường JSON hiện có. */
   public static JsonObject bid(BidTransaction bid) {
     return obj(
         "id", bid.id(),

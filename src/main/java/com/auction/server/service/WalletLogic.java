@@ -11,7 +11,7 @@ import com.auction.server.dao.AuctionJsonMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-/** Wallet holds, available budget and audit entries, inside the service transaction only. */
+/** Tính tiền đang giữ, số dư khả dụng và ghi lịch sử ví trong giao dịch của dịch vụ. */
 final class WalletLogic {
   private final AuctionContext context;
 

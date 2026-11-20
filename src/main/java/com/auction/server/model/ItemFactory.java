@@ -2,12 +2,12 @@ package com.auction.server.model;
 
 import java.util.Locale;
 
-/** Selects an item creator by category and delegates construction to its factory method. */
+/** Chọn lớp khởi tạo theo danh mục và giao việc tạo sản phẩm cho lớp đó. */
 public abstract class ItemFactory {
-  /** Creates a concrete item through the selected category creator. */
+  /** Tạo sản phẩm thuộc danh mục của lớp khởi tạo đã chọn. */
   public abstract Item create(String id, String name, String description, Seller owner);
 
-  /** Selects a creator for a supported category or its recognized legacy alias. */
+  /** Chọn lớp khởi tạo theo danh mục hoặc tên cũ được hỗ trợ. */
   public static ItemFactory forCategory(String category) {
     String type = category == null ? "" : category.trim().toUpperCase(Locale.ROOT);
     return switch (type) {

@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-/** Manual bids and automatic competition share acceptance, wallet holds and anti-sniping. */
+/** Dùng chung quy tắc chấp nhận giá, giữ tiền và gia hạn cho đặt giá tay và tự động. */
 final class BiddingLogic {
   private final AuctionContext context;
   private final WalletLogic wallets;
@@ -31,7 +31,7 @@ final class BiddingLogic {
     AuctionJsonMapper.auction(a).requireBidder(text(user, "id"), text(user, "role"), context.now());
   }
 
-  // Đặt giá: kiểm tra phiên/quyền/giá/tiền, chấp nhận rồi chạy auto-bid.
+  // Kiểm tra phiên, quyền, giá và số dư trước khi chấp nhận rồi xử lý đặt giá tự động.
   JsonObject placeBid(JsonObject user, JsonObject p) {
     JsonObject a = context.auction(p);
     validateBidder(user, a);
@@ -115,7 +115,7 @@ final class BiddingLogic {
             0);
     JsonObject existing = rule(user, a);
     if (existing != null) {
-      // Re-register known fields while preserving extension fields from the stored rule.
+      // Cập nhật cấu hình đặt giá và bảo toàn các trường mở rộng đã lưu.
       r.entrySet().forEach(field -> existing.add(field.getKey(), field.getValue()));
       r = existing;
     }
@@ -125,7 +125,7 @@ final class BiddingLogic {
     return r.deepCopy();
   }
 
-  // Theo thứ tự đăng ký; mỗi lượt chọn một bid hợp lệ, lặp tới khi dừng.
+  // Mỗi vòng chọn một lượt đặt giá hợp lệ theo thứ tự đăng ký.
   private void processAutoBids(JsonObject a) {
     List<JsonObject> rules =
         context.values("rules").stream()
@@ -141,8 +141,8 @@ final class BiddingLogic {
     registered.addAll(rules);
     for (int round = 0; round < 10_000; round++) {
       boolean placed = false;
-      // Poll the registration priority; a heap's iterator is not priority ordered.
-      // List index preserves the previous stable order even for legacy equal-order rules.
+      // Lấy cấu hình theo độ ưu tiên vì bộ lặp của hàng đợi không bảo đảm thứ tự đó.
+      // Chỉ số giữ thứ tự cũ khi các cấu hình đã lưu có cùng độ ưu tiên.
       PriorityQueue<JsonObject> candidates = new PriorityQueue<>(registered);
       while (!candidates.isEmpty()) {
         JsonObject r = candidates.remove();
@@ -199,7 +199,7 @@ final class BiddingLogic {
         return;
       }
     }
-    // Roll back rather than commit a partially evaluated automatic competition.
+    // Hoàn tác giao dịch nếu chưa xử lý hết lượt cạnh tranh tự động.
     throw error("AUTO_BID_LIMIT", "Too many auto-bid rounds; increase the increment");
   }
 }

@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 /**
  * Chính sách chống "bắn tỉa" (anti-sniping).
  *
- * <p>Nếu có bid hợp lệ trong khoảng {@code threshold} cuối của phiên, thời gian kết thúc được cộng
- * thêm {@code extension}. Lớp không giữ trạng thái nên an toàn khi dùng từ nhiều luồng.
+ * <p>Khi có lượt đặt giá hợp lệ trong {@code threshold} cuối của phiên, cộng {@code extension}
+ * vào hạn kết thúc. Cấu hình bất biến nên có thể dùng chung giữa các luồng.
  */
 public final class AntiSnipingPolicy {
 
@@ -17,12 +17,12 @@ public final class AntiSnipingPolicy {
   private final Duration threshold;
   private final Duration extension;
 
-  /** Configures the final-bid threshold and deadline extension. */
+  /** Thiết lập khoảng xét lượt đặt giá cuối và thời gian gia hạn. */
   public AntiSnipingPolicy() {
     this(DEFAULT_THRESHOLD, DEFAULT_EXTENSION);
   }
 
-  /** Configures the final-bid threshold and deadline extension. */
+  /** Thiết lập khoảng xét lượt đặt giá cuối và thời gian gia hạn. */
   public AntiSnipingPolicy(Duration threshold, Duration extension) {
     if (threshold == null || threshold.isNegative() || threshold.isZero()) {
       throw new IllegalArgumentException("threshold phải > 0");
@@ -34,7 +34,7 @@ public final class AntiSnipingPolicy {
     this.extension = extension;
   }
 
-  /** True nếu bid tại {@code bidTime} nằm trong khoảng cuối phiên (và phiên chưa hết giờ). */
+  /** Cho biết lượt đặt giá tại {@code bidTime} có nằm trong khoảng được gia hạn hay không. */
   public boolean shouldExtend(LocalDateTime endTime, LocalDateTime bidTime) {
     Duration remaining = Duration.between(bidTime, endTime);
     return !remaining.isNegative() && !remaining.isZero() && remaining.compareTo(threshold) <= 0;

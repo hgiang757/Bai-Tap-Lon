@@ -1,21 +1,21 @@
 package com.auction.server.model;
 
-/** Represents an auction participant in the server user hierarchy. */
+/** Đại diện cho tài khoản tham gia đặt giá. */
 public class Bidder extends User {
   private static final long serialVersionUID = 1L;
   private int wonAuctionsCount;
 
-  /** Initializes the shared fields of this bidder domain object. */
+  /** Khởi tạo thông tin cơ sở của tài khoản đặt giá. */
   public Bidder() {
     super();
   }
 
-  /** Initializes the shared fields of this bidder domain object. */
+  /** Khởi tạo thông tin cơ sở của tài khoản đặt giá. */
   public Bidder(String id, String name, String passwordHash) {
     super(id, name, passwordHash);
   }
 
-  /** Initializes the shared fields of this bidder domain object. */
+  /** Khởi tạo thông tin cơ sở của tài khoản đặt giá. */
   public Bidder(String id, String name, String passwordHash, String email, double balance) {
     super(id, name, passwordHash, email, balance);
   }
@@ -29,7 +29,7 @@ public class Bidder extends User {
     return wonAuctionsCount;
   }
 
-  /** Increments the legacy won-auction counter and updates the timestamp. */
+  /** Tăng bộ đếm số phiên đã thắng và ghi nhận thời điểm cập nhật. */
   public void incrementWonAuctions() {
     this.wonAuctionsCount++;
     markAsUpdated();

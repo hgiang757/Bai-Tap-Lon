@@ -2,7 +2,7 @@ package com.auction.server.model;
 
 import java.time.LocalDateTime;
 
-/** One accepted bid in the audit history; wallet transfers remain separate transactions. */
+/** Ghi một lượt đặt giá đã được chấp nhận vào lịch sử đấu giá. */
 public record BidTransaction(
     String id,
     String auctionId,

@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/** Loopback HTTP server that implements the relevant parts of the Responses API for tests. */
+/** Máy chủ HTTP cục bộ mô phỏng OpenAI Responses và Gemini cho kiểm thử. */
 public final class MockOpenAi implements AutoCloseable {
   private final HttpServer server;
   private final java.util.concurrent.ExecutorService workers =
@@ -26,12 +26,19 @@ public final class MockOpenAi implements AutoCloseable {
   private final BlockingQueue<Request> requests = new LinkedBlockingQueue<>();
 
   /** Captured HTTP metadata and API body. */
-  public record Request(String authorization, JsonObject body) {
+  public record Request(String path, String authorization, String geminiKey, JsonObject body) {
     /** Untrusted facts and question supplied to the model as a user message. */
     public JsonObject context() {
-      return JsonParser.parseString(
-              body.getAsJsonArray("input").get(0).getAsJsonObject().get("content").getAsString())
-          .getAsJsonObject();
+      String content;
+      if (body.has("input")) {
+        JsonObject message = body.getAsJsonArray("input").get(0).getAsJsonObject();
+        content = message.get("content").getAsString();
+      } else {
+        JsonObject message = body.getAsJsonArray("contents").get(0).getAsJsonObject();
+        JsonObject part = message.getAsJsonArray("parts").get(0).getAsJsonObject();
+        content = part.get("text").getAsString();
+      }
+      return JsonParser.parseString(content).getAsJsonObject();
     }
   }
 
@@ -50,14 +57,16 @@ public final class MockOpenAi implements AutoCloseable {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     server.setExecutor(workers);
     server.createContext(
-        "/v1/responses",
+        "/",
         exchange -> {
           try (exchange) {
             String body =
                 new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             var request =
                 new Request(
+                    exchange.getRequestURI().getPath(),
                     exchange.getRequestHeaders().getFirst("Authorization"),
+                    exchange.getRequestHeaders().getFirst("x-goog-api-key"),
                     JsonParser.parseString(body).getAsJsonObject());
             requests.add(request);
             Response response = handler.respond(request);
@@ -84,6 +93,19 @@ public final class MockOpenAi implements AutoCloseable {
         URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1/responses");
     return new AuctionAssistant(
         new OpenAiClient(key, "mock-model", endpoint, timeout), market, clock);
+  }
+
+  /** Tạo trợ lý dùng định dạng Gemini với máy chủ HTTP cục bộ. */
+  public AuctionAssistant geminiAssistant(Duration timeout) {
+    String model = "gemini-3.5-flash-lite";
+    URI endpoint =
+        URI.create(
+            "http://127.0.0.1:" + server.getAddress().getPort()
+                + "/v1beta/models/" + model + ":generateContent");
+    return new AuctionAssistant(
+        new OpenAiClient("mock-key", model, endpoint, timeout),
+        product -> Optional.empty(),
+        Clock.systemUTC());
   }
 
   /** Returns the next captured request, or null if the wait expires. */

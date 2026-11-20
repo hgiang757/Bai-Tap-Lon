@@ -1,6 +1,6 @@
 package com.auction.server.model;
 
-/** Lists the scheduled, running and terminal auction states. */
+/** Liệt kê các trạng thái từ lúc chờ mở đến khi phiên đấu giá kết thúc. */
 public enum AuctionStatus {
   OPEN,
   RUNNING,

@@ -15,7 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Reject damaged snapshots before a request or scheduler can modify any financial state. */
+/** Từ chối bản chụp lỗi trước khi yêu cầu hoặc tác vụ định kỳ có thể sửa dữ liệu tài chính. */
 final class AuctionStateValidator {
   private AuctionStateValidator() {}
 

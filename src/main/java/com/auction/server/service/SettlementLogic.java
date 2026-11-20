@@ -9,7 +9,7 @@ import com.auction.server.dao.AuctionJsonMapper;
 import com.auction.server.model.Auction;
 import com.google.gson.JsonObject;
 
-/** Server-time transitions, one-time settlement and administrative cancellation. */
+/** Cập nhật trạng thái theo giờ máy chủ, quyết toán một lần và xử lý yêu cầu hủy phiên. */
 final class SettlementLogic {
   private final AuctionContext context;
   private final WalletLogic wallets;
@@ -19,7 +19,7 @@ final class SettlementLogic {
     this.wallets = wallets;
   }
 
-  // Đồng hồ server quyết định mở/kết thúc; hết giờ thanh toán một lần.
+  // Dùng giờ máy chủ để mở và kết thúc phiên, sau đó quyết toán một lần.
   void refreshAuctions() {
     for (JsonObject a : context.values("auctions")) {
       Auction auction = AuctionJsonMapper.auction(a);

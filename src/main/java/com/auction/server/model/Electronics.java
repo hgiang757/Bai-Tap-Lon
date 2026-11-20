@@ -1,22 +1,22 @@
 package com.auction.server.model;
 
-/** Represents an electronics item with warranty information. */
+/** Đại diện cho sản phẩm điện tử cùng thông tin bảo hành. */
 public class Electronics extends Item {
   private static final long serialVersionUID = 1L;
   private int warrantyMonths;
 
-  /** Initializes the shared fields of this electronics domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm điện tử. */
   public Electronics() {
     super();
     this.warrantyMonths = 12;
   }
 
-  /** Initializes the shared fields of this electronics domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm điện tử. */
   public Electronics(String id, String name, double basePrice) {
     this(id, name, "", basePrice, "", 12);
   }
 
-  /** Initializes the shared fields of this electronics domain object. */
+  /** Khởi tạo thông tin cơ sở của sản phẩm điện tử. */
   public Electronics(
       String id,
       String name,
@@ -37,7 +37,7 @@ public class Electronics extends Item {
     return warrantyMonths;
   }
 
-  /** Updates warranty months and records the entity modification time. */
+  /** Đổi số tháng bảo hành và ghi nhận thời điểm cập nhật. */
   public void setWarrantyMonths(int warrantyMonths) {
     this.warrantyMonths = warrantyMonths;
     markAsUpdated();

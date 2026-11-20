@@ -91,6 +91,34 @@ class AuctionAssistantTest {
   }
 
   @Test
+  void geminiUsesItsOwnHeaderAndReadsOnlyVisibleTextFromTheFallback() throws Exception {
+    try (MockOpenAi provider =
+            new MockOpenAi(
+                request ->
+                    request.path().contains("flash-lite")
+                        ? new MockOpenAi.Response(404, "{}")
+                        : new MockOpenAi.Response(
+                            200,
+                            """
+                            {"candidates":[{"finishReason":"STOP","content":{"parts":[
+                              {"thought":true,"text":"Giá khoảng 5 triệu"},
+                              {"text":"Hãy kiểm tra ống kính."}
+                            ]}}]}
+                            """));
+        AuctionAssistant assistant = provider.geminiAssistant(REQUEST_TIMEOUT)) {
+      var reply = assistant.ask("bidder", PRODUCT, "Có gì cần kiểm tra?", () -> {});
+      assertEquals("Hãy kiểm tra ống kính.", reply.answer());
+      var primary = provider.nextRequest(REQUEST_TIMEOUT);
+      var fallback = provider.nextRequest(REQUEST_TIMEOUT);
+      assertTrue(primary.path().endsWith("/gemini-3.5-flash-lite:generateContent"));
+      assertTrue(fallback.path().endsWith("/gemini-3.5-flash:generateContent"));
+      assertEquals("mock-key", fallback.geminiKey());
+      assertNull(fallback.authorization());
+      assertEquals("Có gì cần kiểm tra?", fallback.context().get("question").getAsString());
+    }
+  }
+
+  @Test
   void verifiedMarketQuoteIncludesCurrencySourceTimeAndComparison() throws Exception {
     URI source = URI.create("https://market.example.com/camera");
     var quote =
