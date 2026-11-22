@@ -30,6 +30,32 @@ import java.util.function.Consumer;
 public final class AuctionService implements AutoCloseable {
   public static final ZoneId ZONE = AuctionContext.ZONE;
   public static final long MAX_MONEY = AuctionContext.MAX_MONEY;
+  private static final Set<String> ACTIONS_WITHOUT_SESSION =
+      Set.of(
+          "PING",
+          "LOGIN",
+          "REGISTER",
+          "LIST_AUCTIONS",
+          "GET_AUCTION",
+          "GET_BID_HISTORY",
+          "GET_IMAGE");
+  private static final Set<String> ACTIONS_THAT_CHANGE_STATE =
+      Set.of(
+          "REGISTER",
+          "CREATE_PRODUCT_AUCTION",
+          "UPDATE_PRODUCT_AUCTION",
+          "DELETE_PRODUCT_AUCTION",
+          "PLACE_BID",
+          "SET_MY_AUTO_BID",
+          "CANCEL_MY_AUTO_BID",
+          "DEPOSIT_SIMULATED",
+          "WITHDRAW_SIMULATED",
+          "LOCK_USER",
+          "UNLOCK_USER",
+          "CHANGE_USER_ROLE",
+          "DELETE_USER",
+          "CANCEL_AUCTION",
+          "DELETE_AUCTION");
   private final AuctionRepository repository;
   private final AuctionContext context;
   private final AuthLogic auth;
@@ -136,76 +162,23 @@ public final class AuctionService implements AutoCloseable {
     try {
       settlement.refreshAuctions();
       JsonObject user = null;
-      if (!Set.of(
-              "PING",
-              "LOGIN",
-              "REGISTER",
-              "LIST_AUCTIONS",
-              "GET_AUCTION",
-              "GET_BID_HISTORY",
-              "GET_IMAGE")
-          .contains(action)) {
+      if (!ACTIONS_WITHOUT_SESSION.contains(action)) {
         user = auth.authenticatedUser(token);
       }
-      boolean write =
-          Set.of(
-                  "REGISTER",
-                  "CREATE_PRODUCT_AUCTION",
-                  "UPDATE_PRODUCT_AUCTION",
-                  "DELETE_PRODUCT_AUCTION",
-                  "PLACE_BID",
-                  "SET_MY_AUTO_BID",
-                  "CANCEL_MY_AUTO_BID",
-                  "DEPOSIT_SIMULATED",
-                  "WITHDRAW_SIMULATED",
-                  "LOCK_USER",
-                  "UNLOCK_USER",
-                  "CHANGE_USER_ROLE",
-                  "DELETE_USER",
-                  "CANCEL_AUCTION",
-                  "DELETE_AUCTION")
-              .contains(action);
-      String commandKey = null;
+      boolean changesState = ACTIONS_THAT_CHANGE_STATE.contains(action);
       String fingerprint = action + ":" + payload;
-      if (write) {
-        if (commandId == null || !commandId.matches("[a-zA-Z0-9_-]{8,100}")) {
-          throw error("VALIDATION_ERROR", "A stable commandId (8-100 safe characters) is required");
-        }
-        commandKey = (user == null ? "register" : text(user, "id")) + ":" + commandId;
-        JsonObject prior = context.collection("commands").getAsJsonObject(commandKey);
-        if (prior != null) {
-          if (!(action.equals("REGISTER")
-              ? Passwords.verify(fingerprint, text(prior, "fingerprint"))
-              : text(prior, "fingerprint").equals(fingerprint))) {
-            throw error("CONFLICT", "commandId reused with different payload");
-          }
-          return commit(before, prior.getAsJsonObject("response").deepCopy());
+      String commandKey = changesState ? createCommandKey(user, commandId) : null;
+      if (commandKey != null) {
+        JsonObject previousResponse = previousCommandResponse(commandKey, action, fingerprint);
+        if (previousResponse != null) {
+          return commit(before, previousResponse);
         }
       }
-      JsonObject response;
-      JsonObject afterRefresh = context.state.deepCopy();
-      int refreshEventCount = context.events.size();
-      try {
-        response = obj("success", true, "result", handleAction(action, token, user, payload));
-      } catch (ApiException e) {
-        context.state = afterRefresh;
-        context.events = new ArrayList<>(context.events.subList(0, refreshEventCount));
-        response = obj("success", false, "errorCode", e.code(), "message", e.getMessage());
-      }
+      JsonObject response = dispatchAction(action, token, user, payload);
       response.addProperty("version", number(context.state, "version"));
       response.addProperty("serverTime", context.now().toString());
       if (commandKey != null) {
-        context
-            .collection("commands")
-            .add(
-                commandKey,
-                obj(
-                    "fingerprint",
-                    action.equals("REGISTER") ? Passwords.hash(fingerprint) : fingerprint,
-                    "status",
-                    response.get("success").getAsBoolean() ? "SUCCEEDED" : "REJECTED",
-                    "response",
-                    response.deepCopy()));
+        rememberCommand(commandKey, action, fingerprint, response);
       }
       return commit(before, response);
     } catch (ApiException e) {
@@ -223,6 +196,60 @@ public final class AuctionService implements AutoCloseable {
     } catch (RuntimeException e) {
       context.state = before;
       throw e;
+    }
+  }
+
+  /** Tạo khóa định danh yêu cầu để nhận biết lần gửi lại. */
+  private String createCommandKey(JsonObject user, String commandId) {
+    if (commandId == null || !commandId.matches("[a-zA-Z0-9_-]{8,100}")) {
+      throw error("VALIDATION_ERROR", "A stable commandId (8-100 safe characters) is required");
+    }
+    return (user == null ? "register" : text(user, "id")) + ":" + commandId;
+  }
+
+  /** Trả phản hồi cũ nếu đây là lần gửi lại hợp lệ; trả null nếu lệnh chưa từng chạy. */
+  private JsonObject previousCommandResponse(String key, String action, String fingerprint) {
+    JsonObject previous = context.collection("commands").getAsJsonObject(key);
+    if (previous == null) {
+      return null;
+    }
+    boolean sameRequest =
+        action.equals("REGISTER")
+            ? Passwords.verify(fingerprint, text(previous, "fingerprint"))
+            : text(previous, "fingerprint").equals(fingerprint);
+    if (!sameRequest) {
+      throw error("CONFLICT", "commandId reused with different payload");
+    }
+    return previous.getAsJsonObject("response").deepCopy();
+  }
+
+  /** Lưu phản hồi để lần gửi lại không thực hiện nghiệp vụ lần thứ hai. */
+  private void rememberCommand(
+      String key, String action, String fingerprint, JsonObject response) {
+    context
+        .collection("commands")
+        .add(
+            key,
+            obj(
+                "fingerprint",
+                action.equals("REGISTER") ? Passwords.hash(fingerprint) : fingerprint,
+                "status",
+                response.get("success").getAsBoolean() ? "SUCCEEDED" : "REJECTED",
+                "response",
+                response.deepCopy()));
+  }
+
+  /** Chạy nghiệp vụ; nếu bị từ chối thì bỏ các thay đổi phát sinh riêng từ yêu cầu này. */
+  private JsonObject dispatchAction(
+      String action, String token, JsonObject user, JsonObject payload) {
+    JsonObject stateAfterRefresh = context.state.deepCopy();
+    int refreshEventCount = context.events.size();
+    try {
+      return obj("success", true, "result", handleAction(action, token, user, payload));
+    } catch (ApiException e) {
+      context.state = stateAfterRefresh;
+      context.events = new ArrayList<>(context.events.subList(0, refreshEventCount));
+      return obj("success", false, "errorCode", e.code(), "message", e.getMessage());
     }
   }
 
