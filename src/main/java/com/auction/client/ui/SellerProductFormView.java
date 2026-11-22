@@ -4,11 +4,11 @@ import com.auction.client.model.Auction;
 import com.auction.client.model.ItemCategory;
 import com.auction.client.util.FormatUtil;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
@@ -29,6 +29,7 @@ import javafx.scene.layout.VBox;
 /** View của bản nháp sản phẩm: binding/validation và cleanup; Controller chịu trách nhiệm lưu. */
 public final class SellerProductFormView extends VBox implements AutoCloseable {
   private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
+  private static final Pattern WHOLE_DONG = Pattern.compile("[0-9]+(?:\\.0+)?");
   @FXML private Label title;
   @FXML private Label validation;
   @FXML private Label priceHint;
@@ -94,7 +95,7 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
     if (original != null) {
       name.setText(original.getItemName());
       description.setText(original.getItem().getDescription());
-      category.setValue(original.getItemCategory());
+      category.setValue(ItemCategory.from(original.getItemCategory()).getLabel());
       price.setText(Long.toString((long) original.getStartingPrice()));
       step.setText(Long.toString((long) original.getMinBidStep()));
     }
@@ -105,36 +106,8 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
       hint.managedProperty().bind(hint.visibleProperty());
     }
     scroll.prefViewportHeightProperty().bind(card.heightProperty().add(2));
-    columns.prefWrapLengthProperty().bind(columns.widthProperty());
-    for (VBox column : List.of(information, scheduling)) {
-      column
-          .prefWidthProperty()
-          .bind(
-              Bindings.createDoubleBinding(
-                  () -> {
-                    double available = Math.max(0, columns.getWidth());
-                    return getWidth() >= 820
-                        ? Math.max(0, Math.floor((available - 28) / 2) - 1)
-                        : available;
-                  },
-                  columns.widthProperty(),
-                  widthProperty()));
-      column.maxWidthProperty().bind(column.prefWidthProperty());
-    }
-    prices.prefWrapLengthProperty().bind(prices.widthProperty());
-    for (VBox group : List.of(priceGroup, stepGroup)) {
-      group
-          .prefWidthProperty()
-          .bind(
-              Bindings.createDoubleBinding(
-                  () ->
-                      getWidth() >= 820
-                          ? Math.max(0, Math.floor((prices.getWidth() - 16) / 2) - 1)
-                          : Math.max(0, prices.getWidth()),
-                  prices.widthProperty(),
-                  widthProperty()));
-      group.maxWidthProperty().bind(group.prefWidthProperty());
-    }
+    bindColumns(columns, information, scheduling);
+    bindColumns(prices, priceGroup, stepGroup);
     for (TextField field : List.of(name, price, step)) {
       field.textProperty().addListener((o, before, value) -> changed());
     }
@@ -148,12 +121,7 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
             onCancel.run();
           }
         });
-    cancel.setOnAction(
-        event -> {
-          if (!busy) {
-            onCancel.run();
-          }
-        });
+    cancel.setOnAction(back.getOnAction());
     save.setOnAction(
         event -> {
           if (busy || isClosed()) {
@@ -191,13 +159,31 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
         });
   }
 
+  private void bindColumns(FlowPane pane, VBox left, VBox right) {
+    pane.prefWrapLengthProperty().bind(pane.widthProperty());
+    var width =
+        Bindings.createDoubleBinding(
+            () -> {
+              double available = pane.getWidth();
+              return getWidth() >= 820
+                  ? Math.max(0, Math.floor((available - pane.getHgap()) / 2) - 1)
+                  : Math.max(0, available);
+            },
+            pane.widthProperty(),
+            widthProperty());
+    for (VBox column : List.of(left, right)) {
+      column.prefWidthProperty().bind(width);
+      column.maxWidthProperty().bind(width);
+    }
+  }
+
   private void changed() {
     interacted = true;
     saveError = "";
     refresh();
   }
 
-  private String validationMessage() {
+  private String validationMessage(Long startingPrice, Long minBidStep) {
     if (!imagePicker.error().isEmpty()) {
       return imagePicker.error();
     }
@@ -213,24 +199,22 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
     if (description.getText().strip().length() > 10_000) {
       return "Mô tả tối đa 10.000 ký tự.";
     }
-    if (category.getValue() == null) {
+    if (!category.getItems().contains(category.getValue())) {
       return "Chọn loại sản phẩm.";
     }
-    if (amount(price.getText()) == null) {
+    if (startingPrice == null) {
       return "Giá khởi điểm cần là số nguyên từ 1 đến 9.000 tỷ đồng.";
     }
-    if (amount(step.getText()) == null) {
+    if (minBidStep == null) {
       return "Nhập bước giá nguyên dương, tối đa 9.000 tỷ đồng.";
     }
-    String dates = schedule.validationMessage();
-    if (!dates.isEmpty()) {
-      return dates;
-    }
-    return imagePicker.error();
+    return schedule.validationMessage();
   }
 
   private void refresh() {
-    String invalid = validationMessage();
+    Long startingPrice = amount(price.getText());
+    Long minBidStep = amount(step.getText());
+    String invalid = validationMessage(startingPrice, minBidStep);
     save.setDisable(busy || imagePicker.isLoading() || !invalid.isEmpty());
     String message = !saveError.isEmpty() ? saveError : interacted ? invalid : "";
     validation.setText(
@@ -243,17 +227,23 @@ public final class SellerProductFormView extends VBox implements AutoCloseable {
                     : message);
     validation.pseudoClassStateChanged(
         ERROR, !busy && !imagePicker.isLoading() && !message.isEmpty());
-    priceHint.setText(
-        amount(price.getText()) == null ? "" : FormatUtil.formatCurrency(amount(price.getText())));
-    stepHint.setText(
-        amount(step.getText()) == null ? "" : FormatUtil.formatCurrency(amount(step.getText())));
+    priceHint.setText(startingPrice == null ? "" : FormatUtil.formatCurrency(startingPrice));
+    stepHint.setText(minBidStep == null ? "" : FormatUtil.formatCurrency(minBidStep));
   }
 
   static Long amount(String text) {
+    if (text == null) {
+      return null;
+    }
+    String digits = text.strip();
+    if (!WHOLE_DONG.matcher(digits).matches()) {
+      return null;
+    }
+    int decimalPoint = digits.indexOf('.');
     try {
-      long value = new BigDecimal(text.strip()).longValueExact();
+      long value = Long.parseLong(digits, 0, decimalPoint < 0 ? digits.length() : decimalPoint, 10);
       return value > 0 && value <= 9_000_000_000_000L ? value : null;
-    } catch (NumberFormatException | ArithmeticException | NullPointerException error) {
+    } catch (NumberFormatException error) {
       return null;
     }
   }

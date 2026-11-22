@@ -117,6 +117,11 @@ class FullStackTest {
     assertEquals(AuctionStatus.CANCELED, buyer.getAuctionById(saved.getId()).getStatus());
     admin.deleteAuction(saved.getId());
     assertThrows(ServerError.class, () -> buyer.getAuctionById(saved.getId()));
+    int remainingProducts = seller.listProducts("seller_hieu").size();
+    final ServerError staleEdit = assertThrows(
+        ServerError.class, () -> seller.saveProduct(saved, null, false, true));
+    assertEquals("NOT_FOUND", staleEdit.code());
+    assertEquals(remainingProducts, seller.listProducts("seller_hieu").size());
   }
 
   @Test

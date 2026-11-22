@@ -13,7 +13,12 @@ class AuctionTimeTest {
   @Test
   void parsesStrictTime() {
     assertEquals(LocalTime.of(14, 30), AuctionTime.parse("14:30"));
+    assertEquals(LocalTime.of(9, 30), AuctionTime.parse("09:30"));
+    assertEquals(LocalTime.of(23, 59), AuctionTime.parse("23:59"));
     assertNull(AuctionTime.parse("24:00"));
+    assertNull(AuctionTime.parse("13:60"));
+    assertNull(AuctionTime.parse("99:99"));
+    assertNull(AuctionTime.parse(null));
     assertNull(AuctionTime.parse("9:30"));
   }
 

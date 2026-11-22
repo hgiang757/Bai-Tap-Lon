@@ -3,6 +3,7 @@ package com.auction.client.controller;
 import com.auction.client.model.Auction;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.model.Bid;
+import com.auction.client.model.UserRole;
 import com.auction.client.navigation.DisposableView;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.navigation.ViewTasks;
@@ -72,6 +73,9 @@ public class AuctionRoomController implements DisposableView {
   @FXML private Label lblCurrentPrice;
   @FXML private Label lblHighestBidder;
   @FXML private Label lblMinNextBid;
+  @FXML private HBox minimumBidRow;
+  @FXML private VBox bidForm;
+  @FXML private VBox quickBidForm;
   @FXML private Label lblStatus;
   @FXML private Label lblEndTime;
   @FXML private Label lblStatusExplanation;
@@ -125,6 +129,7 @@ public class AuctionRoomController implements DisposableView {
               () -> {
                 if ("SIGNED_IN".equals(type)
                     || "SIGNED_OUT".equals(type)
+                    || "USER_CHANGED".equals(type)
                     || "SESSION_EXPIRED".equals(type)) {
                   bindAssistant();
                 }
@@ -271,7 +276,7 @@ public class AuctionRoomController implements DisposableView {
           }
           currentAuction = data.auction();
           auctionReady = true;
-          historyView.render(currentAuction, data.history(), auctionService.serverNow());
+          historyView.render(data.history(), auctionService.serverNow());
           updateCountdown();
           submissions.refreshed(data.stamp());
           refreshing = false;
@@ -388,6 +393,11 @@ public class AuctionRoomController implements DisposableView {
     lblStatus.getStyleClass().removeAll("badge-running", "badge-open", "badge-finished");
 
     boolean isRunning = currentAuction.getStatus() == AuctionStatus.RUNNING;
+    boolean acceptsBids = isRunning || currentAuction.getStatus() == AuctionStatus.OPEN;
+    for (var section : List.of(minimumBidRow, bidForm, quickBidForm, autoBidCard)) {
+      section.setVisible(acceptsBids);
+      section.setManaged(acceptsBids);
+    }
 
     if (isRunning) {
       lblStatus.getStyleClass().add("badge-running");
@@ -416,23 +426,15 @@ public class AuctionRoomController implements DisposableView {
       }
     }
 
-    var user = auctionService.getCurrentUser();
-    boolean seller =
-        user != null && user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername());
+    String accessReason = bidAccessReason();
     boolean canBid =
         canChangePrice()
             && isRunning
-            && user != null
-            && !seller
+            && accessReason.isEmpty()
             && currentAuction.getEndTime() != null
             && auctionService.serverNow().isBefore(currentAuction.getEndTime());
-    if (isRunning && user == null) {
-      lblStatusExplanation.setText("Vui lòng đăng nhập để đặt giá.");
-      if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) {
-        lblStatusExplanation.getStyleClass().add("notice-disabled");
-      }
-    } else if (isRunning && seller) {
-      lblStatusExplanation.setText("Bạn không thể đặt giá cho sản phẩm của mình.");
+    if (isRunning && !accessReason.isEmpty()) {
+      lblStatusExplanation.setText(accessReason);
       if (!lblStatusExplanation.getStyleClass().contains("notice-disabled")) {
         lblStatusExplanation.getStyleClass().add("notice-disabled");
       }
@@ -452,6 +454,18 @@ public class AuctionRoomController implements DisposableView {
     if (txtBidAmount.getText().isBlank() || !txtBidAmount.isFocused()) {
       txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid()));
     }
+  }
+
+  private String bidAccessReason() {
+    var user = auctionService.getCurrentUser();
+    if (user == null) {
+      return "Vui lòng đăng nhập để đặt giá.";
+    }
+    if (user.getRole() == UserRole.ADMIN) {
+      return "Tài khoản quản trị không thể đặt giá.";
+    }
+    return user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername())
+        ? "Bạn không thể đặt giá cho sản phẩm của mình." : "";
   }
 
   private void registerRealtimeObserver() {
@@ -553,6 +567,11 @@ public class AuctionRoomController implements DisposableView {
       showAlert("Phiên đấu giá đã kết thúc hoặc chưa bắt đầu.", true);
       return;
     }
+    String accessReason = bidAccessReason();
+    if (!accessReason.isEmpty()) {
+      showAlert(accessReason, true);
+      return;
+    }
 
     String input = txtBidAmount.getText();
     if (input == null || input.trim().isEmpty()) {
@@ -562,16 +581,8 @@ public class AuctionRoomController implements DisposableView {
 
     long bidAmount;
     try {
-      String normalized = input.trim().replaceAll("[,.]", "");
-      if (!normalized.matches("[0-9]+")) {
-        throw new NumberFormatException();
-      }
-      bidAmount = Long.parseLong(normalized);
+      bidAmount = FormatUtil.parsePositiveVnd(input);
     } catch (NumberFormatException e) {
-      showAlert("Giá đặt phải là số nguyên dương.", true);
-      return;
-    }
-    if (bidAmount <= 0) {
       showAlert("Giá đặt phải là số nguyên dương.", true);
       return;
     }
@@ -604,7 +615,7 @@ public class AuctionRoomController implements DisposableView {
                         auctionService.placeBid(id, bidAmount), "Thiếu phản hồi đặt giá");
                 submissions.answered(ticket);
                 return result;
-              } catch (Exception error) {
+              } catch (RuntimeException error) {
                 submissions.uncertain(ticket);
                 throw error;
               }
@@ -653,7 +664,7 @@ public class AuctionRoomController implements DisposableView {
 
   private void formatAutoInput(String text, Label label) {
     try {
-      label.setText(FormatUtil.formatCurrency(Long.parseLong(text.replaceAll("[,. ]", ""))));
+      label.setText(FormatUtil.formatCurrency(FormatUtil.parsePositiveVnd(text)));
     } catch (RuntimeException ex) {
       label.setText("");
     }
@@ -664,15 +675,8 @@ public class AuctionRoomController implements DisposableView {
     if (currentAuction == null) {
       return;
     }
-    var user = auctionService.getCurrentUser();
-    String reason =
-        currentAuction.getStatus() != AuctionStatus.RUNNING
-            ? "Phiên chưa diễn ra hoặc đã kết thúc."
-            : user == null
-                ? "Vui lòng đăng nhập để đặt giá."
-                : user.getUsername().equalsIgnoreCase(currentAuction.getSellerUsername())
-                    ? "Bạn không thể đặt giá cho sản phẩm của mình."
-                    : "";
+    String reason = currentAuction.getStatus() != AuctionStatus.RUNNING
+        ? "Phiên chưa diễn ra hoặc đã kết thúc." : bidAccessReason();
     if (reason.isEmpty() && !canChangePrice()) {
       reason = priceLockReason();
     }
@@ -728,7 +732,7 @@ public class AuctionRoomController implements DisposableView {
 
   @FXML
   private void handleAutoBid() {
-    if (currentAuction == null || !canChangePrice()) {
+    if (currentAuction == null || !canChangePrice() || btnAutoBid.isDisabled()) {
       return;
     }
     final String id = currentAuction.getId();
@@ -737,13 +741,8 @@ public class AuctionRoomController implements DisposableView {
     long step = 0;
     if (!cancel) {
       try {
-        String m = txtAutoMax.getText().replaceAll("[,. ]", "");
-        String i = txtAutoIncrement.getText().replaceAll("[,. ]", "");
-        if (!m.matches("[0-9]+") || !i.matches("[0-9]+")) {
-          throw new NumberFormatException();
-        }
-        max = Long.parseLong(m);
-        step = Long.parseLong(i);
+        max = FormatUtil.parsePositiveVnd(txtAutoMax.getText());
+        step = FormatUtil.parsePositiveVnd(txtAutoIncrement.getText());
       } catch (RuntimeException ex) {
         lblAutoError.setText("Giá và bước giá phải là số nguyên dương.");
         return;
@@ -768,7 +767,7 @@ public class AuctionRoomController implements DisposableView {
                 }
                 submissions.answered(ticket);
                 return null;
-              } catch (Exception error) {
+              } catch (RuntimeException error) {
                 // AutoBidException chỉ mô tả từ chối cấu hình trước khi ghi.
                 if (error instanceof com.auction.client.service.server.ServerError
                     || error instanceof com.auction.client.service.AutoBidException) {
@@ -814,7 +813,7 @@ public class AuctionRoomController implements DisposableView {
       return;
     }
     try {
-      long current = Long.parseLong(txtBidAmount.getText().trim().replaceAll("[,.]", ""));
+      long current = FormatUtil.parsePositiveVnd(txtBidAmount.getText());
       txtBidAmount.setText(String.format("%.0f", current + delta));
     } catch (NumberFormatException ex) {
       txtBidAmount.setText(String.format("%.0f", currentAuction.getMinimumNextBid() + delta));

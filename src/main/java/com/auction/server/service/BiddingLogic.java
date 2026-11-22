@@ -27,25 +27,26 @@ final class BiddingLogic {
     this.wallets = wallets;
   }
 
-  private void validateBidder(JsonObject user, JsonObject a) {
-    AuctionJsonMapper.auction(a).requireBidder(text(user, "id"), text(user, "role"), context.now());
+  private void validateBidder(JsonObject user, JsonObject a, LocalDateTime acceptedAt) {
+    AuctionJsonMapper.auction(a).requireBidder(text(user, "id"), text(user, "role"), acceptedAt);
   }
 
   // Kiểm tra phiên, quyền, giá và số dư trước khi chấp nhận rồi xử lý đặt giá tự động.
-  JsonObject placeBid(JsonObject user, JsonObject p) {
+  JsonObject placeBid(JsonObject user, JsonObject p, LocalDateTime acceptedAt) {
     JsonObject a = context.auction(p);
-    validateBidder(user, a);
+    validateBidder(user, a, acceptedAt);
     long amount = money(p, "amount");
     AuctionJsonMapper.auction(a).requireMinimumBid(amount);
     if (wallets.availableForAuction(user, a) < amount) {
       throw error("INSUFFICIENT_FUNDS", "Insufficient available funds");
     }
-    acceptBid(a, user, amount, false);
-    processAutoBids(a);
+    acceptBid(a, user, amount, false, acceptedAt);
+    processAutoBids(a, acceptedAt);
     return obj("auction", context.snapshot(a), "bids", a.getAsJsonArray("bids").deepCopy());
   }
 
-  private void acceptBid(JsonObject a, JsonObject user, long amount, boolean automatic) {
+  private void acceptBid(
+      JsonObject a, JsonObject user, long amount, boolean automatic, LocalDateTime acceptedAt) {
     Auction previousAuction = AuctionJsonMapper.auction(a);
     String previous = previousAuction.highestBidderId();
     long previousAmount = previousAuction.currentPrice();
@@ -61,10 +62,10 @@ final class BiddingLogic {
     wallets.log(user, "BID_HOLD", amount, text(a, "id"));
     BidTransaction bid =
         new BidTransaction(
-            context.id(), text(a, "id"), text(user, "username"), amount, context.now(), automatic);
+            context.id(), text(a, "id"), text(user, "username"), amount, acceptedAt, automatic);
     a.getAsJsonArray("bids").add(AuctionJsonMapper.bid(bid));
     LocalDateTime end = accepted.endTime();
-    LocalDateTime extended = new AntiSnipingPolicy().computeNewEndTime(end, context.now());
+    LocalDateTime extended = new AntiSnipingPolicy().computeNewEndTime(end, acceptedAt);
     if (!end.equals(extended)) {
       a.addProperty("endTime", extended.toString());
       context.event("AUCTION_EXTENDED", a, "");
@@ -80,9 +81,9 @@ final class BiddingLogic {
     return context.collection("rules").getAsJsonObject(ruleKey(u, a));
   }
 
-  JsonObject setAuto(JsonObject user, JsonObject p) {
+  JsonObject setAuto(JsonObject user, JsonObject p, LocalDateTime acceptedAt) {
     JsonObject a = context.auction(p);
-    validateBidder(user, a);
+    validateBidder(user, a, acceptedAt);
     long max = money(p, "maxBid");
     long increment = money(p, "increment");
     AuctionJsonMapper.auction(a).requireAutoBid(max, increment);
@@ -104,7 +105,7 @@ final class BiddingLogic {
             "increment",
             increment,
             "createdAt",
-            context.now(),
+            acceptedAt,
             "order",
             number(context.state, "version") + 1,
             "active",
@@ -121,12 +122,12 @@ final class BiddingLogic {
     }
     context.collection("rules").add(ruleKey(user, a), r);
     context.event("AUTO_BID_CHANGED", a, text(user, "id"));
-    processAutoBids(a);
+    processAutoBids(a, acceptedAt);
     return r.deepCopy();
   }
 
   // Mỗi vòng chọn một lượt đặt giá hợp lệ theo thứ tự đăng ký.
-  private void processAutoBids(JsonObject a) {
+  private void processAutoBids(JsonObject a, LocalDateTime acceptedAt) {
     List<JsonObject> rules =
         context.values("rules").stream()
             .filter(r -> text(r, "auctionId").equals(text(a, "id")))
@@ -186,7 +187,7 @@ final class BiddingLogic {
         if (wallets.availableForAuction(user, a) < price) {
           continue;
         }
-        acceptBid(a, user, price, true);
+        acceptBid(a, user, price, true, acceptedAt);
         r.addProperty("autoCount", number(r, "autoCount") + 1);
         if (price == max) {
           r.addProperty("active", false);

@@ -1620,6 +1620,22 @@ class ClientUiTest {
         () -> {
           Auction auction = field(room, "currentAuction");
           var deadline = auction.getEndTime();
+          var status = auction.getStatus();
+          try {
+            auction.setStatus(AuctionStatus.FINISHED);
+            invoke(room, "renderAuctionDetails");
+            for (String section :
+                java.util.List.of("minimumBidRow", "bidForm", "quickBidForm", "autoBidCard")) {
+              javafx.scene.Node form = field(room, section);
+              assertFalse(form.isVisible(), section);
+              assertFalse(form.isManaged(), section);
+            }
+            assertTrue(
+                ((Label) field(room, "lblStatusExplanation")).getText().contains("đã kết thúc"));
+          } finally {
+            auction.setStatus(status);
+            invoke(room, "renderAuctionDetails");
+          }
           try {
             auction.setEndTime(ServiceRegistry.getService().serverNow().plusSeconds(240));
             invoke(room, "updateCountdown");
@@ -1640,7 +1656,7 @@ class ClientUiTest {
                 new Bid(
                     "history-" + i, auction.getId(), "user_" + i, 1000 + i, now.plusSeconds(i)));
           }
-          view.render(auction, bids, now);
+          view.render(bids, now);
           LineChart<Number, Number> chart = field(room, "priceChart");
           var points = chart.getData().getFirst().getData();
           assertEquals(30, points.size());
@@ -1649,11 +1665,17 @@ class ClientUiTest {
           ListView<String> history = field(room, "lvRecentBids");
           assertEquals(35, history.getItems().size());
           assertTrue(history.getItems().getFirst().contains("1.034"));
-          view.render(auction, java.util.List.of(bids.getFirst()), now);
+          view.render(java.util.List.of(bids.getFirst()), now);
           assertEquals(1, points.size(), "A fresh snapshot replaces rather than duplicates points");
           assertEquals(1, history.getItems().size());
-          view.render(auction, java.util.List.of(), now);
-          assertEquals(1, points.size(), "An empty history still displays the starting price");
+          assertTrue(chart.isVisible());
+          javafx.scene.chart.NumberAxis price = field(room, "priceAxis");
+          assertEquals("1.000.000 ₫", price.getTickLabelFormatter().toString(1_000_000));
+          assertEquals("1.001.000 ₫", price.getTickLabelFormatter().toString(1_001_000));
+          view.render(java.util.List.of(), now);
+          assertTrue(points.isEmpty());
+          assertFalse(chart.isVisible());
+          assertFalse(chart.isManaged());
           assertTrue(history.getItems().isEmpty());
           assertTrue(((Label) field(room, "lblNoBids")).isVisible());
           return null;
@@ -2297,9 +2319,58 @@ class ClientUiTest {
           var start = (DatePicker) productForm().lookup("#productStart");
           start.setValue(java.time.LocalDate.now().plusDays(1));
           start.hide();
-          start.getEditor().setText("31/02/2027");
+          TextField editor = start.getEditor();
+          editor.setText("");
+          for (char digit : "23033099".toCharArray()) {
+            editor.replaceSelection(Character.toString(digit));
+          }
+          assertEquals("23/03/3099", editor.getText());
+          assertEquals(10, editor.getCaretPosition());
+          editor.selectAll();
+          editor.replaceSelection("20/11/2026");
+          assertEquals("20/11/2026", editor.getText());
+          editor.positionCaret(3);
+          editor.deletePreviousChar();
+          assertEquals(2, editor.getCaretPosition());
+          assertEquals("20/11/2026", editor.getText());
+          editor.deleteNextChar();
+          assertEquals(3, editor.getCaretPosition());
+          editor.selectRange(3, 5);
+          editor.replaceSelection("12");
+          assertEquals("20/12/2026", editor.getText());
+          editor.appendText("9");
+          assertEquals("20/12/2026", editor.getText());
+
+          TextField time = (TextField) productForm().lookup("#productStartTime");
+          time.clear();
+          for (char character : "09:30".toCharArray()) {
+            time.replaceSelection(Character.toString(character));
+          }
+          assertEquals("09:30", time.getText());
+          time.deletePreviousChar();
+          assertEquals("09:3", time.getText());
+          time.replaceSelection("5");
+          assertEquals("09:35", time.getText());
+          time.selectAll();
+          time.replaceSelection("1340");
+          assertEquals("13:40", time.getText());
+          time.selectAll();
+          time.replaceSelection("2359");
+          assertEquals("23:59", time.getText());
+          time.setText("2400");
           assertTrue(((Button) productForm().lookup("#productSave")).isDisabled());
-          start.getEditor().setText(start.getConverter().toString(start.getValue()));
+          assertTrue(((Label) productForm().lookup("#productValidation")).getText()
+              .contains("Giờ bắt đầu"));
+          time.setText("10:00");
+
+          editor.setText("31022026");
+          assertEquals("31/02/2026", editor.getText());
+          start.commitValue();
+          assertEquals("31/02/2026", editor.getText());
+          assertTrue(((Label) productForm().lookup("#productValidation")).getText()
+              .contains("Ngày bắt đầu"));
+          assertTrue(((Button) productForm().lookup("#productSave")).isDisabled());
+          editor.setText(start.getConverter().toString(start.getValue()));
           return null;
         });
     var form = fx(() -> (com.auction.client.ui.SellerProductFormView) field(seller, "activeForm"));

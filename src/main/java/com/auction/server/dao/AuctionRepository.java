@@ -64,8 +64,8 @@ public final class AuctionRepository implements AutoCloseable {
       loaded = true;
       return null;
     }
+    String contents = Files.readString(file, StandardCharsets.UTF_8);
     try {
-      String contents = Files.readString(file, StandardCharsets.UTF_8);
       try (JsonReader reader = new JsonReader(new StringReader(contents))) {
         reader.setStrictness(Strictness.STRICT);
         validateKeys(reader);
@@ -79,7 +79,7 @@ public final class AuctionRepository implements AutoCloseable {
       }
       loaded = true;
       return snapshot;
-    } catch (RuntimeException e) {
+    } catch (IOException | JsonParseException | IllegalStateException e) {
       throw new IOException("Invalid state file; refusing to overwrite existing data", e);
     }
   }

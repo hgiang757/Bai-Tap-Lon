@@ -12,6 +12,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -19,6 +21,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -26,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +48,7 @@ class AuctionServiceTest {
 
   static class MutableClock extends Clock {
     Instant instant = Instant.parse("2026-11-05T00:00:00Z");
+    private long advanceAfterRead;
 
     public ZoneId getZone() {
       return AuctionService.ZONE;
@@ -53,7 +59,10 @@ class AuctionServiceTest {
     }
 
     public Instant instant() {
-      return instant;
+      Instant observed = instant;
+      advance(advanceAfterRead);
+      advanceAfterRead = 0;
+      return observed;
     }
 
     void advance(long seconds) {
@@ -236,6 +245,24 @@ class AuctionServiceTest {
         ok("GET_AUCTION", "", obj("auctionId", id)).getAsJsonObject().get("status").getAsString());
     assertTrue(
         events.stream().anyMatch(e -> e.get("event").getAsString().equals("AUCTION_EXTENDED")));
+  }
+
+  @Test
+  void bidUsesTheSameTimeForAcceptanceHistoryAndExtensionAcrossTheDeadline() {
+    String id = running();
+    var original = ok("GET_AUCTION", "", obj("auctionId", id)).getAsJsonObject();
+    LocalDateTime end = LocalDateTime.parse(original.get("endTime").getAsString());
+    clock.advance(7199);
+    clock.advanceAfterRead = 2;
+
+    var placed = ok("PLACE_BID", buyer, bid(id, 2_000_000)).getAsJsonObject();
+    var recorded = placed.getAsJsonArray("bids").get(0).getAsJsonObject();
+    var extended = placed.getAsJsonObject("auction");
+    assertEquals(end.minusSeconds(1), LocalDateTime.parse(recorded.get("timestamp").getAsString()));
+    assertEquals(end.plusMinutes(1), LocalDateTime.parse(extended.get("endTime").getAsString()));
+    app.tick();
+    assertEquals(98_000_000, available(buyer));
+    assertEquals(0, available(seller));
   }
 
   @Test
@@ -529,6 +556,87 @@ class AuctionServiceTest {
         sellerHistory.asList().stream()
             .filter(t -> t.getAsJsonObject().get("type").getAsString().equals("SALE"))
             .count());
+  }
+
+  @Test
+  void validatesProductFieldsBeforeCreatingAnyAuction() {
+    int before = ok("LIST_MY_PRODUCTS", seller, obj()).getAsJsonArray().size();
+    Object[][] invalid = {
+      {"name", "  ", "Invalid name"},
+      {"name", new JsonArray(), "Invalid name"},
+      {"description", null, "Invalid description"},
+      {"category", "INVALID", "Unknown category"},
+      {"startingPrice", -1, "Invalid money: startingPrice"},
+      {"startingPrice", 0, "Invalid money: startingPrice"},
+      {"startingPrice", AuctionService.MAX_MONEY + 1, "Invalid money: startingPrice"},
+      {"startingPrice", "9223372036854775808", "Expected integer: startingPrice"},
+      {"startingPrice", 1.5, "Expected integer: startingPrice"},
+      {"minBidStep", 0, "Invalid money: minBidStep"},
+      {"startTime", "2026-02-31T10:00", "Invalid startTime"},
+      {"endTime", "2026-11-05T24:00", "Invalid endTime"},
+      {"endTime", "2026-11-05T13:60", "Invalid endTime"},
+      {"endTime", "2026-11-05T07:00", "End must be after start"},
+      {"startNow", "true", "Invalid startNow"}
+    };
+    events.clear();
+    for (Object[] example : invalid) {
+      JsonObject p = product(60, 3600);
+      p.add((String) example[0], obj("value", example[1]).get("value"));
+      JsonObject response = raw("CREATE_PRODUCT_AUCTION", seller, p);
+      assertFalse(response.get("success").getAsBoolean());
+      assertEquals("VALIDATION_ERROR", response.get("errorCode").getAsString());
+      assertEquals(example[2], response.get("message").getAsString());
+    }
+    assertEquals(before, ok("LIST_MY_PRODUCTS", seller, obj()).getAsJsonArray().size());
+    assertTrue(events.isEmpty());
+  }
+
+  @Test
+  void immediateStartUsesCommitClockAndRetryKeepsTheOriginalStart() {
+    JsonObject p = product(60, 3600);
+    p.addProperty("startNow", true);
+    p.addProperty("startTime", "3099-03-23T13:40");
+    clock.advance(30);
+    LocalDateTime expected = LocalDateTime.ofInstant(clock.instant(), AuctionService.ZONE);
+    JsonObject response = app.execute("CREATE_PRODUCT_AUCTION", seller, "start-now-1", p);
+    assertTrue(response.get("success").getAsBoolean());
+    JsonObject auction = response.getAsJsonObject("result");
+    assertEquals(expected.toString(), auction.get("startTime").getAsString());
+    assertEquals("RUNNING", auction.get("status").getAsString());
+    clock.advance(15);
+    assertEquals(response, app.execute("CREATE_PRODUCT_AUCTION", seller, "start-now-1", p));
+
+    JsonObject update = product(60, 3600);
+    String id =
+        ok("CREATE_PRODUCT_AUCTION", seller, update).getAsJsonObject().get("id").getAsString();
+    update.addProperty("auctionId", id);
+    update.remove("startTime");
+    update.addProperty("startNow", true);
+    JsonObject updated = ok("UPDATE_PRODUCT_AUCTION", seller, update).getAsJsonObject();
+    assertEquals(expected.plusSeconds(15).toString(), updated.get("startTime").getAsString());
+    assertEquals("RUNNING", updated.get("status").getAsString());
+    assertEquals(id, updated.get("id").getAsString());
+  }
+
+  @Test
+  void imageWithReadableHeaderAndTruncatedPixelsDoesNotReplaceSavedImage() throws Exception {
+    var output = new ByteArrayOutputStream();
+    assertTrue(ImageIO.write(new BufferedImage(12, 12, BufferedImage.TYPE_INT_RGB), "png", output));
+    byte[] image = output.toByteArray();
+    String encoded = Base64.getEncoder().encodeToString(image);
+    JsonObject p = product(3600, 3600);
+    p.addProperty("imageBase64", encoded);
+    String id = ok("CREATE_PRODUCT_AUCTION", seller, p).getAsJsonObject().get("id").getAsString();
+    p.addProperty("auctionId", id);
+    p.addProperty("name", "Name should remain unchanged");
+    p.addProperty("imageBase64", Base64.getEncoder().encodeToString(Arrays.copyOf(image, 44)));
+    fail("VALIDATION_ERROR", "UPDATE_PRODUCT_AUCTION", seller, p);
+    JsonObject stored = ok("GET_IMAGE", "", obj("auctionId", id)).getAsJsonObject();
+    assertEquals(encoded, stored.get("imageBase64").getAsString());
+    assertEquals("png", stored.get("imageType").getAsString());
+    assertEquals(
+        "Sản phẩm mới",
+        ok("GET_AUCTION", "", obj("auctionId", id)).getAsJsonObject().get("name").getAsString());
   }
 
   @Test

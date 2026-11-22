@@ -63,7 +63,7 @@
                     <!-- Placeholder ảnh sản phẩm -->
                     <StackPane fx:id="productImageContainer" styleClass="product-image-placeholder" prefHeight="200.0">
                         <ImageView fx:id="productImage" fitWidth="468.0" fitHeight="200.0" preserveRatio="true" visible="false" managed="false"/>
-                        <Label fx:id="lblProductImageIcon" text="Hình ảnh sản phẩm"
+                        <Label fx:id="lblProductImageIcon" text="Chưa có ảnh sản phẩm"
                                styleClass="product-image-icon"/>
                     </StackPane>
 
@@ -107,7 +107,7 @@
                     </HBox>
 
                     <!-- Mức tối thiểu -->
-                    <HBox alignment="CENTER_LEFT" spacing="4.0">
+                    <HBox fx:id="minimumBidRow" alignment="CENTER_LEFT" spacing="4.0">
                         <Label text="Mức đặt tối thiểu:" styleClass="text-secondary, t-small"/>
                         <Label fx:id="lblMinNextBid" text="0 ₫" styleClass="min-bid-hint, t-body"/>
                     </HBox>
@@ -115,11 +115,11 @@
                     <!-- Giải thích trạng thái -->
                     <Label fx:id="lblStatusExplanation" text="Phiên đấu giá đang diễn ra." wrapText="true"
                            styleClass="status-explanation"/>
+                    <Label fx:id="lblBidState" wrapText="true" styleClass="text-secondary" visible="false" managed="false"/>
 
                     <!-- Form đặt giá -->
-                    <VBox spacing="8.0" styleClass="form-controls">
+                    <VBox fx:id="bidForm" spacing="8.0" styleClass="form-controls">
                         <Label fx:id="lblAvailableBalance" text="Số tiền có thể sử dụng: —" wrapText="true" styleClass="text-secondary"/>
-                        <Label fx:id="lblBidState" wrapText="true" styleClass="text-secondary" visible="false" managed="false"/>
                         <Label text="Số tiền đặt giá (₫)" styleClass="form-label"/>
                         <VBox spacing="8.0">
                             <TextField fx:id="txtBidAmount" promptText="Nhập mức giá"
@@ -127,14 +127,14 @@
                             <Button fx:id="btnPlaceBid" text="Đặt giá" onAction="#handlePlaceBid"
                                     styleClass="btn-primary" maxWidth="Infinity"/>
                         </VBox>
-                        <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
-                              styleClass="alert-box, alert-error" visible="false" managed="false">
-                            <Label fx:id="lblAlertMessage" text="Thông báo lỗi" wrapText="true"/>
-                        </HBox>
                     </VBox>
+                    <HBox fx:id="alertBox" alignment="CENTER_LEFT" spacing="8.0"
+                          styleClass="alert-box, alert-error" visible="false" managed="false">
+                        <Label fx:id="lblAlertMessage" text="Thông báo lỗi" wrapText="true"/>
+                    </HBox>
 
                     <!-- Quick bid buttons -->
-                    <VBox spacing="6.0">
+                    <VBox fx:id="quickBidForm" spacing="6.0">
                         <Label text="Tăng nhanh" styleClass="text-secondary"/>
                         <HBox spacing="6.0">
                             <Button fx:id="btnQuickAdd1" text="+ 1.000.000 ₫"
@@ -171,7 +171,7 @@
                     <Label text="Biến động giá" styleClass="section-header, t-h2"/>
                         <Region HBox.hgrow="ALWAYS"/>
                 </HBox>
-                <Label text="Giá cao nhất theo thời gian (triệu đồng)"
+                <Label text="Giá đặt theo thời gian (₫)"
                        styleClass="chart-subtitle, t-small"/>
                 <StackPane fx:id="chartContainer" styleClass="chart-container"
                            prefHeight="320.0" minHeight="240.0" maxHeight="320.0">

@@ -18,7 +18,7 @@ import com.auction.client.model.Bid;
 import com.auction.client.navigation.ViewNavigator;
 import com.auction.client.service.ServiceRegistry;
 import com.auction.client.service.server.ServerServices;
-import com.auction.server.assistant.MockOpenAi;
+import com.auction.server.assistant.MockGemini;
 import com.auction.server.network.Server;
 import com.auction.server.network.TestServers;
 import java.lang.reflect.Field;
@@ -28,6 +28,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
@@ -50,6 +51,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
@@ -183,17 +185,22 @@ class ServerUiIntegrationTest {
   void assistantOpensMinimizesAndSwitchesProductsWhileHttpIsPending() throws Exception {
     var releaseFirst = new CountDownLatch(1);
     var releaseOld = new CountDownLatch(1);
+    var failRetryOnce = new AtomicBoolean(true);
     var wait = java.time.Duration.ofSeconds(8);
-    try (MockOpenAi provider =
-            new MockOpenAi(
+    try (MockGemini provider =
+            new MockGemini(
                 request -> {
                   String question = request.context().get("question").getAsString();
+                  if ("Câu hỏi gửi lại".equals(question)) {
+                    return failRetryOnce.getAndSet(false) ? new MockGemini.Response(429, "{}")
+                        : MockGemini.answer("Đã nhận câu hỏi gửi lại.");
+                  }
                   if ("Câu hỏi của phòng cũ".equals(question)) {
                     releaseOld.await();
-                    return MockOpenAi.answer("Phản hồi của phòng cũ");
+                    return MockGemini.answer("Phản hồi của phòng cũ");
                   }
                   releaseFirst.await();
-                  return MockOpenAi.answer("Hãy kiểm tra tình trạng sản phẩm.");
+                  return MockGemini.answer("Hãy kiểm tra tình trạng sản phẩm.");
                 });
         Server server =
             TestServers.create(
@@ -250,6 +257,22 @@ class ServerUiIntegrationTest {
         releaseFirst.countDown();
         await(() -> hasAssistantMessage("Chưa có dữ liệu giá thị trường đã xác minh."));
         snapshot("server-auction-assistant");
+        fx(() -> {
+          ((TextArea) stage.getScene().lookup("#assistantInput")).setText("Câu hỏi gửi lại");
+          assistantButton("assistantSend").fire();
+          return null;
+        });
+        assertTrue(provider.nextRequest(wait) != null);
+        await(() -> assistantButton("assistantRetry").isVisible());
+        fx(() -> {
+          assistantButton("assistantRetry").fire();
+          return null;
+        });
+        assertTrue(provider.nextRequest(wait) != null);
+        await(() -> hasAssistantMessage("Đã nhận câu hỏi gửi lại."));
+        assertEquals(1L, fx(() -> stage.getScene().getRoot().lookupAll(".assistant-question")
+            .stream().map(Label.class::cast).filter(b -> b.getText().equals("Câu hỏi gửi lại"))
+            .count()));
         fx(
             () -> {
               ((TextArea) stage.getScene().lookup("#assistantInput"))
@@ -279,6 +302,47 @@ class ServerUiIntegrationTest {
               ServiceRegistry.close();
               return null;
             });
+      }
+    }
+  }
+
+  @Test
+  @Tag("live-gemini")
+  @EnabledIfSystemProperty(named = "auction.ai.live", matches = "true")
+  void liveGeminiThroughAuctionRoom() throws Exception {
+    try (Server server = TestServers.create("127.0.0.1", 0, directory.resolve("server"), true);
+        ServerServices adapter =
+            new ServerServices("127.0.0.1", server.port(), directory.resolve("client"))) {
+      server.start();
+      ServiceRegistry.setServices(adapter, adapter, adapter, adapter, adapter, adapter);
+      try {
+        assertTrue(adapter.login("bidder_hieu", "Bidder12345", null));
+        var product = adapter.getAuctions(AuctionStatus.RUNNING).getFirst();
+        AuctionRoomController room = fx(() -> {
+          AuctionRoomController controller = ViewNavigator.loadView(
+              "/com/auction/client/views/auction-room-view.fxml", "Kiểm thử Gemini");
+          controller.loadAuction(product.getId());
+          return controller;
+        });
+        await(room::isReady);
+        fx(() -> {
+          assistantButton("assistantLauncher").fire();
+          ((TextArea) stage.getScene().lookup("#assistantInput")).setText(
+              "Hãy viết đúng tên đầy đủ của sản phẩm đang đấu giá như dữ liệu được cấp.");
+          assistantButton("assistantSend").fire();
+          return null;
+        });
+        await(() -> !stage.getScene().lookup("#assistantLoading").isVisible());
+        var failure = fx(() -> (Label) stage.getScene().lookup(".assistant-error"));
+        assertNull(failure, () -> failure == null ? "" : failure.getText());
+        assertTrue(fx(() -> hasAssistantMessage(product.getItemName())),
+            "Gemini must return the auction product name in the JavaFX chat");
+      } finally {
+        fx(() -> {
+          ViewNavigator.disposeCurrentView();
+          ServiceRegistry.close();
+          return null;
+        });
       }
     }
   }
@@ -322,8 +386,14 @@ class ServerUiIntegrationTest {
           await(room::isReady);
           fx(
               () -> {
-                ((TextField) field(room, "txtBidAmount")).setText("2000000");
-                ((Button) field(room, "btnPlaceBid")).fire();
+                TextField bidAmount = field(room, "txtBidAmount");
+                Button placeBid = field(room, "btnPlaceBid");
+                bidAmount.setText("2000000.5");
+                placeBid.fire();
+                assertEquals("Giá đặt phải là số nguyên dương.",
+                    ((Label) field(room, "lblAlertMessage")).getText());
+                bidAmount.setText("2000000");
+                placeBid.fire();
                 return null;
               });
           await(
@@ -387,6 +457,15 @@ class ServerUiIntegrationTest {
                   stage.getScene().lookup("#auctionTable") instanceof TableView<?> table
                       && !table.getItems().isEmpty());
           snapshot("server-admin");
+          AuctionRoomController adminRoom = fx(() -> {
+            AuctionRoomController r = ViewNavigator.loadView(
+                "/com/auction/client/views/auction-room-view.fxml", "Phòng đấu giá");
+            r.loadAuction(id);
+            return r;
+          });
+          await(adminRoom::isReady);
+          assertTrue(fx(() -> ((Button) field(adminRoom, "btnPlaceBid")).isDisabled()));
+          assertTrue(fx(() -> ((Button) field(adminRoom, "btnAutoBid")).isDisabled()));
         } finally {
           fx(
               () -> {
@@ -497,9 +576,10 @@ class ServerUiIntegrationTest {
           ((ComboBox<?>) form.lookup("#productCategory")).getSelectionModel().selectFirst();
           ((TextField) form.lookup("#productPrice")).setText("500000");
           ((TextField) form.lookup("#productStep")).setText("10000");
-          ((DatePicker) form.lookup("#productStart")).setValue(start.toLocalDate());
-          ((DatePicker) form.lookup("#productEnd")).setValue(end.toLocalDate());
-          var format = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+          var day = java.time.format.DateTimeFormatter.ofPattern("ddMMuuuu");
+          ((DatePicker) form.lookup("#productStart")).getEditor().setText(start.format(day));
+          ((DatePicker) form.lookup("#productEnd")).getEditor().setText(end.format(day));
+          var format = java.time.format.DateTimeFormatter.ofPattern("HHmm");
           ((TextField) form.lookup("#productStartTime")).setText(start.format(format));
           ((TextField) form.lookup("#productEndTime")).setText(end.format(format));
           if (startNow) {

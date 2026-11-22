@@ -16,9 +16,12 @@ public final class AuctionTime {
 
   /** Parses a strict 24-hour time, returning null for invalid input. */
   public static LocalTime parse(String text) {
+    if (text == null || text.length() != 5) {
+      return null;
+    }
     try {
       return LocalTime.parse(text, TIME);
-    } catch (DateTimeParseException | NullPointerException ex) {
+    } catch (DateTimeParseException ex) {
       return null;
     }
   }

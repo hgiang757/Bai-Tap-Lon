@@ -1,11 +1,15 @@
 package com.auction.client.service.server;
 
+import static com.auction.shared.JsonProtocol.isString;
+import static com.auction.shared.JsonProtocol.text;
+
 import com.auction.shared.JsonProtocol;
 import com.google.gson.JsonObject;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
@@ -22,10 +26,13 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /** One reader per connection, correlated responses, independent ordered push dispatch. */
 public final class JsonTransport implements AutoCloseable {
   public static final int MAX_FRAME = JsonProtocol.MAX_FRAME;
+  private static final Logger LOGGER = Logger.getLogger(JsonTransport.class.getName());
   private final String host;
   private final int port;
   private final int timeout;
@@ -64,8 +71,9 @@ public final class JsonTransport implements AutoCloseable {
     void fail(Exception reason) {
       try {
         socket.close();
-      } catch (IOException ignored) {
-        // The connection is already failing or closing; there is no recovery here.
+      } catch (IOException closeError) {
+        reason.addSuppressed(closeError);
+        LOGGER.log(Level.FINE, "Không đóng được kết nối cũ.", closeError);
       }
       pending.forEach((k, f) -> f.completeExceptionally(reason));
       pending.clear();
@@ -99,10 +107,10 @@ public final class JsonTransport implements AutoCloseable {
     } catch (IOException e) {
       try {
         socket.close();
-      } catch (IOException ignored) {
-        // The connection is already failing or closing; there is no recovery here.
+      } catch (IOException closeError) {
+        e.addSuppressed(closeError);
       }
-      throw network(e);
+      throw network(e, true);
     }
   }
 
@@ -155,17 +163,17 @@ public final class JsonTransport implements AutoCloseable {
       return response.get(timeout, TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
       if (replyTimeout != null) {
-        throw new ServerError("AI_TIMEOUT", "");
+        throw new ServerError("AI_TIMEOUT", "", e);
       }
       c.fail(e);
-      throw network(e);
+      throw network(e, false);
     } catch (IOException | ExecutionException | RejectedExecutionException e) {
       c.fail(e);
-      throw network(e);
+      throw network(e, false);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       c.fail(e);
-      throw network(e);
+      throw network(e, false);
     } finally {
       if (deadline != null) {
         deadline.cancel(false);
@@ -178,9 +186,14 @@ public final class JsonTransport implements AutoCloseable {
     try (DataInputStream in = new DataInputStream(c.socket.getInputStream())) {
       while (!c.socket.isClosed()) {
         JsonObject value = JsonProtocol.readFrame(in);
-        if ("event".equals(value.get("type").getAsString())) {
+        if (isString(value.get("type"))
+            && "event".equals(text(value, "type"))
+            && isString(value.get("event"))) {
           dispatch.execute(
               () -> {
+                if (c.socket.isClosed()) {
+                  return;
+                }
                 try {
                   events.accept(value);
                 } catch (RuntimeException e) {
@@ -188,19 +201,43 @@ public final class JsonTransport implements AutoCloseable {
                 }
               });
         } else {
-          CompletableFuture<JsonObject> waiter =
-              c.pending.get(value.get("requestId").getAsString());
+          validateResponse(value);
+          CompletableFuture<JsonObject> waiter = c.pending.get(text(value, "requestId"));
           if (waiter != null) {
             waiter.complete(value);
           }
         }
       }
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | RejectedExecutionException e) {
       c.fail(e);
     }
   }
 
-  private IllegalStateException network(Exception cause) {
+  private static void validateResponse(JsonObject value) throws IOException {
+    var success = value.get("success");
+    if (!isString(value.get("type"))
+        || !"response".equals(text(value, "type"))
+        || !isString(value.get("requestId"))
+        || text(value, "requestId").isBlank()
+        || success == null
+        || !success.isJsonPrimitive()
+        || !success.getAsJsonPrimitive().isBoolean()
+        || (success.getAsBoolean()
+            ? !value.has("result")
+            : !isString(value.get("errorCode")) || !isString(value.get("message")))) {
+      throw new ProtocolException("Malformed response envelope");
+    }
+  }
+
+  private IllegalStateException network(Exception cause, boolean connecting) {
+    Throwable underlying = cause instanceof ExecutionException ? cause.getCause() : cause;
+    if (underlying instanceof SocketTimeoutException || underlying instanceof TimeoutException) {
+      return new IllegalStateException(
+          connecting ? "Hết thời gian kết nối máy chủ." : "Máy chủ phản hồi quá thời gian.", cause);
+    }
+    if (underlying instanceof ProtocolException) {
+      return new IllegalStateException("Phản hồi của máy chủ không đúng định dạng.", cause);
+    }
     return new IllegalStateException(
         "Không thể liên lạc máy chủ " + host + ":" + port + ". Kiểm tra server và kết nối.", cause);
   }

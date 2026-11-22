@@ -8,3 +8,7 @@ nb-configuration.xml
 *.log
 .maven-repository/
 data/
+.env
+.env.*
+!.env.example
+secrets/

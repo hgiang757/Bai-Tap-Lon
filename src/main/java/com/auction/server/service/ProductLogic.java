@@ -5,23 +5,29 @@ import static com.auction.server.service.AuctionContext.money;
 import static com.auction.server.service.AuctionContext.number;
 import static com.auction.server.service.AuctionContext.requireRole;
 import static com.auction.server.service.AuctionContext.required;
+import static com.auction.shared.JsonProtocol.isString;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
 import com.auction.server.dao.AuctionJsonMapper;
+import com.auction.server.exception.ApiException;
 import com.auction.server.model.ItemFactory;
 import com.auction.server.model.Seller;
+import com.auction.shared.ProductImage;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.Set;
 
 /** Quản lý sản phẩm, kiểm tra dữ liệu và xử lý ảnh theo lược đồ đấu giá hiện có. */
 final class ProductLogic {
+  private static final Set<String> CATEGORIES =
+      Set.of("ELECTRONICS", "ART", "VEHICLE", "JEWELRY", "REAL_ESTATE", "OTHER");
   private final AuctionContext context;
 
   ProductLogic(AuctionContext context) {
@@ -61,76 +67,90 @@ final class ProductLogic {
   // Sản phẩm và phiên: kiểm tra danh mục, giá, thời gian, ảnh và quyền sở hữu.
   private JsonObject validateProduct(JsonObject p) {
     String category = required(p, "category", 30);
-    if (!Set.of("ELECTRONICS", "ART", "VEHICLE", "JEWELRY", "REAL_ESTATE", "OTHER")
-        .contains(category)) {
+    if (!CATEGORIES.contains(category)) {
       throw error("VALIDATION_ERROR", "Unknown category");
     }
-    LocalDateTime start;
-    LocalDateTime end;
-    try {
-      start = LocalDateTime.parse(required(p, "startTime", 40));
-      end = LocalDateTime.parse(required(p, "endTime", 40));
-    } catch (java.time.DateTimeException e) {
-      throw error("VALIDATION_ERROR", "Use ISO local time in Asia/Ho_Chi_Minh");
+    JsonObject fields =
+        obj(
+            "name",
+            required(p, "name", 200),
+            "description",
+            required(p, "description", 10_000),
+            "category",
+            category,
+            "startingPrice",
+            money(p, "startingPrice"),
+            "minBidStep",
+            money(p, "minBidStep"));
+    boolean immediate = startNow(p);
+    LocalDateTime end = dateTime(p, "endTime");
+    LocalDateTime scheduled = immediate ? null : dateTime(p, "startTime");
+    validateImage(fields, p);
+
+    LocalDateTime now = context.now();
+    LocalDateTime start = immediate ? now : scheduled;
+    if (!end.isAfter(start)) {
+      throw error("VALIDATION_ERROR", "End must be after start");
     }
-    if (start.isBefore(context.now().minusSeconds(2))
-        || !end.isAfter(start)
-        || Duration.between(start, end).compareTo(Duration.ofDays(365)) > 0) {
-      throw error("VALIDATION_ERROR", "Invalid start/end time (maximum duration 365 days)");
+    if (!immediate && start.isBefore(now)) {
+      throw error("VALIDATION_ERROR", "Start time has passed");
     }
-    return obj(
-        "name",
-        required(p, "name", 200),
-        "description",
-        required(p, "description", 10_000),
-        "category",
-        category,
-        "startingPrice",
-        money(p, "startingPrice"),
-        "minBidStep",
-        money(p, "minBidStep"),
-        "startTime",
-        start,
-        "endTime",
-        end);
+    if (Duration.between(start, end).compareTo(Duration.ofDays(365)) > 0) {
+      throw error("VALIDATION_ERROR", "Auction duration exceeds 365 days");
+    }
+    fields.addProperty("startTime", start.toString());
+    fields.addProperty("endTime", end.toString());
+    fields.addProperty("status", start.isAfter(now) ? "OPEN" : "RUNNING");
+    return fields;
   }
 
-  private void image(JsonObject a, JsonObject p) {
-    if (!p.has("imageBase64")) {
+  private static LocalDateTime dateTime(JsonObject p, String field) {
+    try {
+      LocalDateTime value = LocalDateTime.parse(required(p, field, 40));
+      if (value.getYear() < 1 || value.getYear() > 9999) {
+        throw error("VALIDATION_ERROR", "Invalid " + field);
+      }
+      return value;
+    } catch (DateTimeParseException e) {
+      throw new ApiException("VALIDATION_ERROR", "Invalid " + field, e);
+    }
+  }
+
+  private static boolean startNow(JsonObject p) {
+    var value = p.get("startNow");
+    if (value == null) {
+      return false;
+    }
+    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
+      throw error("VALIDATION_ERROR", "Invalid startNow");
+    }
+    return value.getAsBoolean();
+  }
+
+  private static void validateImage(JsonObject fields, JsonObject p) {
+    var value = p.get("imageBase64");
+    if (value == null) {
       return;
     }
-    String encoded = text(p, "imageBase64");
+    if (!isString(value)) {
+      throw error("VALIDATION_ERROR", "Invalid image encoding");
+    }
+    String encoded = value.getAsString();
+    String format = "";
+    if (encoded.length() > (ProductImage.MAX_BYTES + 2) / 3 * 4) {
+      throw error("VALIDATION_ERROR", "Image must be smaller than 5 MB");
+    }
     if (!encoded.isEmpty()) {
-      byte[] data;
       try {
-        data = Base64.getDecoder().decode(encoded);
+        format = ProductImage.format(Base64.getDecoder().decode(encoded));
       } catch (IllegalArgumentException e) {
-        throw error("VALIDATION_ERROR", "Invalid image encoding");
-      }
-      if (data.length >= 5 * 1024 * 1024) {
-        throw error("VALIDATION_ERROR", "Image must be smaller than 5 MB");
-      }
-      try (var in =
-          javax.imageio.ImageIO.createImageInputStream(new java.io.ByteArrayInputStream(data))) {
-        var readers = javax.imageio.ImageIO.getImageReaders(in);
-        if (!readers.hasNext()) {
-          throw error("VALIDATION_ERROR", "Unsupported image");
-        }
-        var reader = readers.next();
-        try {
-          reader.setInput(in);
-          if ((long) reader.getWidth(0) * reader.getHeight(0) > 40_000_000) {
-            throw error("VALIDATION_ERROR", "Image dimensions too large");
-          }
-          a.addProperty("imageType", reader.getFormatName());
-        } finally {
-          reader.dispose();
-        }
+        throw new ApiException("VALIDATION_ERROR", "Invalid image encoding", e);
       } catch (IOException e) {
-        throw error("VALIDATION_ERROR", "Invalid image");
+        throw new ApiException("VALIDATION_ERROR", "Invalid image", e);
       }
     }
-    a.addProperty("imageBase64", encoded);
+    fields.addProperty("imageBase64", encoded);
+    fields.addProperty("imageType", format);
   }
 
   JsonObject createAuction(JsonObject user, JsonObject p) {
@@ -150,18 +170,16 @@ final class ProductLogic {
     a.addProperty("sellerId", text(user, "id"));
     a.addProperty("sellerUsername", text(user, "username"));
     a.addProperty("currentPrice", number(a, "startingPrice"));
-    a.addProperty(
-        "status",
-        LocalDateTime.parse(text(a, "startTime")).isAfter(context.now()) ? "OPEN" : "RUNNING");
     a.addProperty("highestBidderId", "");
     a.addProperty("highestBidderUsername", "");
     a.addProperty("totalBids", 0);
     a.addProperty("deleted", false);
     a.addProperty("settled", false);
-    a.addProperty("imageBase64", "");
-    a.addProperty("imageType", "");
+    if (!a.has("imageBase64")) {
+      a.addProperty("imageBase64", "");
+      a.addProperty("imageType", "");
+    }
     a.add("bids", new JsonArray());
-    image(a, p);
     context.collection("auctions").add(key, a);
     context.event("AUCTION_CREATED", a, "");
     return context.snapshot(a);
@@ -174,7 +192,6 @@ final class ProductLogic {
     JsonObject fields = validateProduct(p);
     fields.entrySet().forEach(e -> a.add(e.getKey(), e.getValue()));
     a.addProperty("currentPrice", number(a, "startingPrice"));
-    image(a, p);
     context.event("AUCTION_UPDATED", a, "");
     return context.snapshot(a);
   }

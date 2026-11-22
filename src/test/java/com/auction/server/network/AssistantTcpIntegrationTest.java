@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.auction.client.model.AuctionStatus;
 import com.auction.client.service.server.JsonTransport;
 import com.auction.client.service.server.ServerServices;
-import com.auction.server.assistant.MockOpenAi;
+import com.auction.server.assistant.MockGemini;
 import com.auction.shared.AssistantChat;
 import com.google.gson.JsonObject;
 import java.nio.file.Path;
@@ -30,7 +30,7 @@ class AssistantTcpIntegrationTest {
 
   @Test
   void snapshotsUseLatestPriceAndKeepProductAndUserHistoriesSeparate() throws Exception {
-    try (MockOpenAi provider = new MockOpenAi(request -> MockOpenAi.answer("Thông tin sản phẩm."));
+    try (MockGemini provider = new MockGemini(request -> MockGemini.answer("Thông tin sản phẩm."));
         Server server = start(provider);
         ServerServices bidder = adapter(server, "bidder");
         ServerServices rival = adapter(server, "rival")) {
@@ -56,6 +56,13 @@ class AssistantTcpIntegrationTest {
       var followUp = provider.nextRequest(WAIT).context();
       assertEquals(
           2_000_000, followUp.getAsJsonObject("auctionProduct").get("currentPrice").getAsLong());
+      var points = followUp.getAsJsonObject("auctionProduct").getAsJsonArray("recentBids");
+      assertEquals(1, points.size());
+      var point = points.get(0).getAsJsonObject();
+      assertEquals(java.util.Set.of("amount", "timestamp"), point.keySet());
+      assertEquals(2_000_000, point.get("amount").getAsLong());
+      assertFalse(text(point, "timestamp").isBlank());
+      assertFalse(followUp.toString().contains("bidder_vip99"));
       assertEquals(
           "Chi tiết A",
           text(followUp.getAsJsonArray("recentConversation").get(0).getAsJsonObject(), "question"));
@@ -75,11 +82,11 @@ class AssistantTcpIntegrationTest {
   @Test
   void twoClientsCanChatWhileTheSameConnectionPlacesBidAndReadsWallet() throws Exception {
     var release = new CountDownLatch(1);
-    try (MockOpenAi provider =
-            new MockOpenAi(
+    try (MockGemini provider =
+            new MockGemini(
                 request -> {
                   release.await();
-                  return MockOpenAi.answer("Trả lời " + text(request.context(), "question"));
+                  return MockGemini.answer("Trả lời " + text(request.context(), "question"));
                 });
         Server server = start(provider);
         ServerServices bidder = adapter(server, "bidder");
@@ -107,7 +114,7 @@ class AssistantTcpIntegrationTest {
 
   @Test
   void rejectsUnauthorizedArchivedAndInvalidRequestsBeforeHttp() throws Exception {
-    try (MockOpenAi provider = new MockOpenAi(request -> MockOpenAi.answer("Unexpected"));
+    try (MockGemini provider = new MockGemini(request -> MockGemini.answer("Unexpected"));
         Server server = start(provider);
         JsonTransport wire = new JsonTransport("127.0.0.1", server.port(), 5_000, event -> {})) {
       String token = login(wire, "seller_hieu", "Seller12345");
@@ -170,13 +177,13 @@ class AssistantTcpIntegrationTest {
   @Test
   void socketDisconnectCancelsPendingWorkWithoutSavingItsTurn() throws Exception {
     var hold = new CountDownLatch(1);
-    try (MockOpenAi provider =
-            new MockOpenAi(
+    try (MockGemini provider =
+            new MockGemini(
                 request -> {
                   if ("Hỏi trước ngắt kết nối".equals(text(request.context(), "question"))) {
                     hold.await();
                   }
-                  return MockOpenAi.answer("Thông tin sản phẩm.");
+                  return MockGemini.answer("Thông tin sản phẩm.");
                 });
         Server server = start(provider);
         JsonTransport original = new JsonTransport("127.0.0.1", server.port(), 5_000, event -> {});
@@ -218,7 +225,7 @@ class AssistantTcpIntegrationTest {
     }
   }
 
-  private Server start(MockOpenAi provider) throws Exception {
+  private Server start(MockGemini provider) throws Exception {
     Server server =
         TestServers.create(
             "127.0.0.1",

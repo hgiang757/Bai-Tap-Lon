@@ -31,19 +31,23 @@ import com.auction.client.service.WalletService;
 import com.auction.client.service.WalletSnapshot;
 import com.auction.shared.AssistantChat;
 import com.auction.shared.AssistantChat.Reply;
+import com.auction.shared.JsonProtocol;
+import com.auction.shared.ProductImage;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -133,6 +137,9 @@ public final class ServerServices
     // Authentication must also work while the previous server session is expired.
     if (!session.isEmpty() && !action.equals("LOGIN") && !action.equals("REGISTER")) {
       synchronized (subscriptions) {
+        if (!session.equals(token)) {
+          throw new ServerError("UNAUTHENTICATED", "");
+        }
         long generation = transport.generation();
         if (generation != subscribedGeneration) {
           unwrap(transport.call("SUBSCRIBE_FEED", session, "", obj()), session);
@@ -143,10 +150,18 @@ public final class ServerServices
     }
     JsonObject response = transport.call(action, session, command, payload, replyTimeout);
     if (response.has("serverTime")) {
-      clockOffset =
-          Duration.between(
-              LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")),
-              LocalDateTime.parse(text(response, "serverTime")));
+      if (!JsonProtocol.isString(response.get("serverTime"))) {
+        transport.disconnect();
+        throw new IllegalStateException("Phản hồi chứa giờ máy chủ không hợp lệ.");
+      }
+      try {
+        clockOffset = Duration.between(
+            LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")),
+            LocalDateTime.parse(text(response, "serverTime")));
+      } catch (DateTimeParseException e) {
+        transport.disconnect();
+        throw new IllegalStateException("Phản hồi chứa giờ máy chủ không hợp lệ.", e);
+      }
     }
     connected = true;
     return response;
@@ -155,11 +170,19 @@ public final class ServerServices
   private JsonElement unwrap(JsonObject response, String session) {
     if (!response.get("success").getAsBoolean()) {
       String code = text(response, "errorCode");
-      if (code.equals("UNAUTHENTICATED") && session.equals(token)) {
-        token = "";
-        currentUser = null;
-        subscribedGeneration = -1;
-        changed("SESSION_EXPIRED");
+      if (code.equals("UNAUTHENTICATED")) {
+        boolean expired = false;
+        synchronized (subscriptions) {
+          if (!session.isEmpty() && session.equals(token)) {
+            token = "";
+            currentUser = null;
+            subscribedGeneration = -1;
+            expired = true;
+          }
+        }
+        if (expired) {
+          changed("SESSION_EXPIRED");
+        }
       }
       throw new ServerError(code, text(response, "message"));
     }
@@ -168,34 +191,46 @@ public final class ServerServices
 
   private JsonElement read(String action, JsonObject payload) {
     String session = token;
-    return unwrap(response(action, "", payload), session);
+    return unwrap(response(action, "", payload, session, null), session);
   }
 
   @Override
   public Reply askAssistant(User viewer, String auctionId, String question) {
     String session;
-    synchronized (writes) {
+    synchronized (subscriptions) {
       if (viewer == null || viewer != currentUser || token.isEmpty()) {
         throw new ServerError("UNAUTHENTICATED", "");
       }
       session = token;
     }
-    JsonObject result =
+    JsonElement result =
         unwrap(
                 response(
                     AssistantChat.ACTION,
                     "",
                     obj("auctionId", auctionId, "question", question),
                     session,
-                    Duration.ofSeconds(30)),
-                session)
-            .getAsJsonObject();
+                    Duration.ofSeconds(35)),
+                session);
     if (!session.equals(token)) {
       throw new ServerError("UNAUTHENTICATED", "");
     }
-    return new Reply(
-        text(result, "answer"), longValue(result, "currentPrice"),
-        result.get("hasBids").getAsBoolean(), text(result, "marketSummary"));
+    if (result.isJsonObject()) {
+      JsonObject reply = result.getAsJsonObject();
+      var bids = reply.get("hasBids");
+      try {
+        long price = JsonProtocol.number(reply, "currentPrice");
+        if (price > 0 && JsonProtocol.isString(reply.get("answer"))
+            && !text(reply, "answer").isBlank() && JsonProtocol.isString(reply.get("marketSummary"))
+            && bids != null && bids.isJsonPrimitive() && bids.getAsJsonPrimitive().isBoolean()) {
+          return new Reply(text(reply, "answer"), price, bids.getAsBoolean(),
+              text(reply, "marketSummary"));
+        }
+      } catch (IllegalArgumentException e) {
+        throw new ServerError("AI_RESPONSE_INVALID", "", e);
+      }
+    }
+    throw new ServerError("AI_RESPONSE_INVALID", "");
   }
 
   private Path pendingFile() {
@@ -209,10 +244,20 @@ public final class ServerServices
   private JsonObject loadPending() {
     try {
       Path file = pendingFile();
-      return Files.exists(file)
-          ? JsonParser.parseString(Files.readString(file)).getAsJsonObject()
-          : null;
-    } catch (IOException e) {
+      if (Files.notExists(file)) {
+        return null;
+      }
+      JsonObject command = JsonProtocol.parseObject(Files.readString(file));
+      if (!JsonProtocol.isString(command.get("action"))
+          || text(command, "action").isBlank()
+          || !JsonProtocol.isString(command.get("commandId"))
+          || !text(command, "commandId").matches("[a-zA-Z0-9_-]{8,100}")
+          || !command.has("payload")
+          || !command.get("payload").isJsonObject()) {
+        throw new JsonParseException("Incomplete pending command");
+      }
+      return command;
+    } catch (IOException | JsonParseException e) {
       throw new IllegalStateException("Không đọc được lệnh đang chờ đối soát.", e);
     }
   }
@@ -361,9 +406,11 @@ public final class ServerServices
       try {
         JsonObject result =
             read("LOGIN", obj("username", username, "password", password)).getAsJsonObject();
-        token = text(result, "token");
-        currentUser = user(result.getAsJsonObject("user"));
-        subscribedGeneration = -1;
+        synchronized (subscriptions) {
+          token = text(result, "token");
+          currentUser = user(result.getAsJsonObject("user"));
+          subscribedGeneration = -1;
+        }
         read("GET_ME", obj());
         changed("SIGNED_IN");
         return true;
@@ -424,11 +471,13 @@ public final class ServerServices
       } catch (IllegalStateException ignored) {
         /* Local logout must remain available when the server is offline. */
       } finally {
-        token = "";
-        currentUser = null;
-        bidListeners.clear();
-        transport.disconnect();
-        subscribedGeneration = -1;
+        synchronized (subscriptions) {
+          token = "";
+          currentUser = null;
+          bidListeners.clear();
+          transport.disconnect();
+          subscribedGeneration = -1;
+        }
         changed("SIGNED_OUT");
       }
     }
@@ -525,6 +574,20 @@ public final class ServerServices
 
   @Override
   public void saveProduct(Auction a, String imagePath) {
+    if (currentUser == null) {
+      throw new ServerError("UNAUTHENTICATED", "");
+    }
+    requireProduct(a);
+    boolean editing =
+        listProducts(currentUser.getUsername()).stream()
+            .anyMatch(old -> old.getId().equals(a.getId()));
+    saveProduct(a, imagePath, false, editing);
+  }
+
+  @Override
+  public void saveProduct(Auction a, String imagePath, boolean startNow, boolean editing) {
+    requireProduct(a);
+    self(a.getSellerUsername());
     JsonObject p =
         obj(
             "name",
@@ -532,35 +595,46 @@ public final class ServerServices
             "description",
             a.getItem().getDescription(),
             "category",
-            ItemCategory.from(a.getItemCategory()).name(),
+            productCategory(a.getItemCategory()),
             "startingPrice",
             integer(a.getStartingPrice()),
             "minBidStep",
             integer(a.getMinBidStep()),
-            "startTime",
-            a.getStartTime(),
+            "startNow",
+            startNow,
             "endTime",
             a.getEndTime());
-    // A UUID generated by the UI is only a draft ID; check existence in our server-owned
-    // product list.
-    boolean exists =
-        listProducts(currentUser.getUsername()).stream()
-            .anyMatch(old -> old.getId().equals(a.getId()));
-    if (exists) {
+    if (!startNow && a.getStartTime() != null) {
+      p.addProperty("startTime", a.getStartTime().toString());
+    }
+    if (editing) {
       p.addProperty("auctionId", a.getId());
     }
     if (imagePath != null) {
       try {
-        byte[] bytes = imagePath.isBlank() ? new byte[0] : Files.readAllBytes(Path.of(imagePath));
-        if (bytes.length >= 5 * 1024 * 1024) {
-          throw new IOException("Ảnh phải nhỏ hơn 5 MB.");
-        }
+        byte[] bytes =
+            imagePath.isBlank() ? new byte[0] : ProductImage.read(Path.of(imagePath));
         p.addProperty("imageBase64", Base64.getEncoder().encodeToString(bytes));
-      } catch (IOException e) {
-        throw new IllegalStateException("Không đọc được ảnh sản phẩm.", e);
+      } catch (IOException | InvalidPathException | SecurityException e) {
+        throw new IllegalStateException("Không đọc được ảnh sản phẩm dưới 5 MB.", e);
       }
     }
-    write(exists ? "UPDATE_PRODUCT_AUCTION" : "CREATE_PRODUCT_AUCTION", p);
+    write(editing ? "UPDATE_PRODUCT_AUCTION" : "CREATE_PRODUCT_AUCTION", p);
+  }
+
+  private static void requireProduct(Auction auction) {
+    if (auction == null || auction.getItem() == null) {
+      throw new ServerError("VALIDATION_ERROR", "Invalid product");
+    }
+  }
+
+  private static String productCategory(String value) {
+    for (ItemCategory category : ItemCategory.values()) {
+      if (category.name().equalsIgnoreCase(value) || category.getLabel().equalsIgnoreCase(value)) {
+        return category.name();
+      }
+    }
+    throw new ServerError("VALIDATION_ERROR", "Unknown category");
   }
 
   @Override
@@ -600,6 +674,8 @@ public final class ServerServices
         }
       }
       return file.toString();
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("Máy chủ trả về dữ liệu ảnh không hợp lệ.", e);
     } catch (IOException | java.security.NoSuchAlgorithmException e) {
       throw new IllegalStateException("Không lưu được ảnh tải từ server.", e);
     }
@@ -791,8 +867,16 @@ public final class ServerServices
   private void onEvent(JsonObject e) {
     String type = text(e, "event");
     if (type.equals("USER_CHANGED")) {
+      String session = token;
       try {
-        currentUser = user(read("GET_ME", obj()).getAsJsonObject());
+        User refreshed = user(unwrap(response("GET_ME", "", obj(), session, null), session)
+            .getAsJsonObject());
+        synchronized (subscriptions) {
+          if (!session.equals(token)) {
+            return;
+          }
+          currentUser = refreshed;
+        }
       } catch (ServerError ignored) {
         return;
       }

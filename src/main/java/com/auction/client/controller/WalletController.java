@@ -300,13 +300,13 @@ public class WalletController implements DisposableView {
         .addListener(
             (o, a, b) -> {
               try {
-                long n = Long.parseLong(b.replaceAll("[,. ]", ""));
+                long n = FormatUtil.parsePositiveVnd(b);
                 format.setText(FormatUtil.formatCurrency(n));
                 after.setText(
                     "Tổng số dư sau giao dịch: "
                         + FormatUtil.formatCurrency(
                             deposit ? Math.addExact(balance, n) : balance - n));
-              } catch (Exception ex) {
+              } catch (NumberFormatException | ArithmeticException ex) {
                 format.setText("");
                 after.setText("Tổng số dư sau giao dịch: —");
               }
@@ -323,12 +323,8 @@ public class WalletController implements DisposableView {
           e.consume();
           long n;
           try {
-            String text = input.getText().replaceAll("[,. ]", "");
-            if (!text.matches("[0-9]+")) {
-              throw new NumberFormatException();
-            }
-            n = Long.parseLong(text);
-          } catch (Exception ex) {
+            n = FormatUtil.parsePositiveVnd(input.getText());
+          } catch (NumberFormatException ex) {
             error.setText("Số tiền phải là số nguyên dương.");
             return;
           }
@@ -367,7 +363,7 @@ public class WalletController implements DisposableView {
       if (!ViewNavigator.back()) {
         ViewNavigator.navigate(ViewNavigator.Route.DASHBOARD);
       }
-    } catch (Exception e) {
+    } catch (java.io.IOException e) {
       showError("Không thể quay lại.");
     }
   }

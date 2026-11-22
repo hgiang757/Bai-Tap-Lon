@@ -1,5 +1,6 @@
 package com.auction.server.network;
 
+import static com.auction.shared.JsonProtocol.isString;
 import static com.auction.shared.JsonProtocol.number;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
@@ -202,16 +203,18 @@ public final class Server implements AutoCloseable {
           JsonObject response;
           String requestId = "";
           try {
-            requestId = text(request, "requestId");
-            if (number(request, "protocolVersion") != 1
-                || requestId.isBlank()
-                || requestId.length() > 100) {
+            requestId = requestText(request, "requestId");
+            if (!validVersion(request) || requestId.isBlank() || requestId.length() > 100) {
               throw new ApiException("PROTOCOL_ERROR", "protocolVersion=1 and requestId required");
             }
-            String action = text(request, "action");
-            String token = text(request, "token");
+            String action = requestText(request, "action");
+            String token = requestText(request, "token");
+            var data = request.get("payload");
+            if (action.isBlank() || (data != null && !data.isJsonObject())) {
+              throw new ApiException("INVALID_REQUEST", "Action and object payload required");
+            }
             JsonObject payload =
-                request.has("payload") ? request.getAsJsonObject("payload") : new JsonObject();
+                data == null ? new JsonObject() : data.getAsJsonObject();
             if (action.equals(AssistantChat.ACTION)) {
               if (!session.isBlank() && !session.equals(token)) {
                 throw new ApiException("UNAUTHENTICATED", "Assistant session does not match");
@@ -246,7 +249,7 @@ public final class Server implements AutoCloseable {
               subscriptions.remove(text(payload, "auctionId"));
               response = obj("success", true, "result", new JsonObject());
             } else {
-              response = service.execute(action, token, text(request, "commandId"), payload);
+              response = service.execute(action, token, requestText(request, "commandId"), payload);
             }
             if (action.equals("LOGIN") && response.get("success").getAsBoolean()) {
               cancelChat();
@@ -258,20 +261,14 @@ public final class Server implements AutoCloseable {
               feed = false;
               userId = "";
               session = "";
-            } else if (!token.isBlank()) {
+            } else if (!token.isBlank() && !action.equals("LOGIN") && !action.equals("REGISTER")) {
               userId = service.authenticatedUserId(token);
             }
           } catch (ApiException e) {
             response = rejection(e);
           } catch (RuntimeException e) {
-            response =
-                obj(
-                    "success",
-                    false,
-                    "errorCode",
-                    "INVALID_REQUEST",
-                    "message",
-                    "Malformed request");
+            System.err.println("Request failed: " + e.getClass().getSimpleName());
+            response = rejection(new ApiException("SERVER_ERROR", "Unable to process request", e));
           }
           respond(requestId, response);
         }
@@ -371,7 +368,9 @@ public final class Server implements AutoCloseable {
         } catch (ApiException e) {
           response = rejection(e);
         } catch (RuntimeException e) {
-          response = rejection(new ApiException("AI_PROVIDER_ERROR", "Assistant request failed"));
+          System.err.println("Assistant request failed: " + e.getClass().getSimpleName());
+          response =
+              rejection(new ApiException("AI_PROVIDER_ERROR", "Assistant request failed", e));
         }
         finishChat(this, response);
       }
@@ -389,15 +388,34 @@ public final class Server implements AutoCloseable {
       subscriptions.clear();
       try {
         socket.close();
-      } catch (IOException ignored) {
-        // The connection is already failing or closing; there is no recovery here.
+      } catch (IOException e) {
+        System.err.println("Client socket close failed: " + e.getClass().getSimpleName());
       }
+    }
+  }
+
+  private static String requestText(JsonObject request, String field) {
+    var value = request.get(field);
+    if (value == null || value.isJsonNull()) {
+      return "";
+    }
+    if (!isString(value)) {
+      throw new ApiException("INVALID_REQUEST", "Invalid " + field);
+    }
+    return value.getAsString();
+  }
+
+  private static boolean validVersion(JsonObject request) {
+    try {
+      return number(request, "protocolVersion") == JsonProtocol.VERSION;
+    } catch (IllegalArgumentException e) {
+      return false;
     }
   }
 
   private static String validatedQuestion(JsonObject payload) {
     var value = payload.get("question");
-    if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
+    if (!isString(value)) {
       throw new ApiException("VALIDATION_ERROR", "Invalid question");
     }
     String question = value.getAsString().strip();
@@ -447,6 +465,7 @@ public final class Server implements AutoCloseable {
     server.start();
     System.out.println(
         "Auction JSON server listening on " + server.listener.getLocalSocketAddress());
+    System.out.println(server.assistant.providerStatus());
     server.acceptor.join();
   }
 }

@@ -11,6 +11,8 @@ import com.auction.client.ui.SmoothScroll;
 import com.auction.client.util.AppInfo;
 import com.auction.client.util.Validators;
 import java.io.IOException;
+import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
@@ -42,6 +44,8 @@ public class AuthController implements DisposableView {
 
   private static final Logger LOGGER = Logger.getLogger(AuthController.class.getName());
   private static final String REMEMBERED_USERNAME_KEY = "rememberedUsername";
+  private static final Set<String> DEMO_USERNAMES =
+      Set.of("admin_hieu", "bidder_hieu", "seller_hieu");
   @FXML private VBox authContent;
   @FXML private Label lblFormTitle;
   @FXML private Label lblFormSubtitle;
@@ -88,7 +92,6 @@ public class AuthController implements DisposableView {
   public void initialize() {
     SmoothScroll.apply(authScroll, 3.0);
     lblBrandName.setText(AppInfo.NAME);
-    loadRememberedUsername();
     txtPassword.clear();
     rbBidder.setSelected(true);
     updateModeUi();
@@ -116,7 +119,12 @@ public class AuthController implements DisposableView {
     txtConfirm.clear();
     rbBidder.setSelected(true);
     if (!isRegisterMode) {
-      loadRememberedUsername();
+      tasks.submit("remembered-username", AuthController::loadRememberedUsername, username -> {
+        if (!isRegisterMode && !busy && txtUsername.getText().isEmpty()) {
+          txtUsername.setText(username);
+          chkRemember.setSelected(!username.isEmpty());
+        }
+      }, error -> LOGGER.log(Level.FINE, "Chưa thể tải lựa chọn ghi nhớ tên đăng nhập.", error));
     }
     tasks.dispatch(txtUsername::requestFocus);
     touchedUsername = touchedEmail = touchedPassword = touchedConfirm = false;
@@ -211,6 +219,7 @@ public class AuthController implements DisposableView {
 
   private void authenticate(
       java.util.concurrent.Callable<Boolean> operation, String username, boolean register) {
+    final boolean remember = chkRemember.isSelected();
     busy = true;
     btnSubmit.setDisable(true);
     btnSwitchMode.setDisable(true);
@@ -218,13 +227,18 @@ public class AuthController implements DisposableView {
     btnSubmit.setText("Đang xử lý…");
     tasks.submit(
         "auth",
-        operation,
+        () -> {
+          boolean authenticated = operation.call();
+          var user = auctionService.getCurrentUser();
+          if (authenticated && !register) {
+            saveRememberedUsername(username,
+                remember && user != null && user.getRole() != UserRole.ADMIN);
+          }
+          return authenticated;
+        },
         ok -> {
           finishAuthentication(register);
           if (ok) {
-            if (!register) {
-              saveRememberedUsername(username.trim());
-            }
             ViewNavigator.clearHistory();
             navigateToHome();
           } else {
@@ -307,41 +321,28 @@ public class AuthController implements DisposableView {
     if (showConfirm && c) {
       errConfirm.getStyleClass().add("field-success");
     }
-    if (isRegisterMode
-        && touchedUsername
-        && touchedEmail
-        && touchedPassword
-        && touchedConfirm
-        && !(u && e && p && c)) {
-      // Focus is assigned by the submit handler, not while typing.
-    }
     return u && e && p && c;
   }
 
-  private void loadRememberedUsername() {
+  private static String loadRememberedUsername() {
     try {
       Preferences preferences = Preferences.userNodeForPackage(AuthController.class);
       String rememberedUsername = preferences.get(REMEMBERED_USERNAME_KEY, "");
-      if (java.util.Set.of("admin_hieu", "bidder_hieu", "seller_hieu")
-          .contains(rememberedUsername.toLowerCase(java.util.Locale.ROOT))) {
+      if (DEMO_USERNAMES.contains(rememberedUsername.toLowerCase(Locale.ROOT))) {
         preferences.remove(REMEMBERED_USERNAME_KEY);
-        rememberedUsername = "";
+        return "";
       }
-      txtUsername.setText(rememberedUsername);
-      chkRemember.setSelected(!rememberedUsername.isEmpty());
+      return rememberedUsername;
     } catch (SecurityException ex) {
       LOGGER.log(Level.WARNING, "Không thể đọc tên đăng nhập đã ghi nhớ.", ex);
+      return "";
     }
   }
 
-  private void saveRememberedUsername(String username) {
+  private static void saveRememberedUsername(String username, boolean remember) {
     try {
       Preferences preferences = Preferences.userNodeForPackage(AuthController.class);
-      if (chkRemember.isSelected()
-          && auctionService.getCurrentUser() != null
-          && auctionService.getCurrentUser().getRole() != UserRole.ADMIN
-          && !java.util.Set.of("admin_hieu", "bidder_hieu", "seller_hieu")
-              .contains(username.toLowerCase(java.util.Locale.ROOT))) {
+      if (remember && !DEMO_USERNAMES.contains(username.toLowerCase(Locale.ROOT))) {
         preferences.put(REMEMBERED_USERNAME_KEY, username);
       } else {
         preferences.remove(REMEMBERED_USERNAME_KEY);
@@ -353,9 +354,14 @@ public class AuthController implements DisposableView {
   }
 
   private void navigateToHome() {
+    var user = auctionService.getCurrentUser();
+    if (user == null) {
+      showAlert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", true);
+      return;
+    }
     try {
       ViewNavigator.navigate(
-          auctionService.getCurrentUser().getRole() == UserRole.ADMIN
+          user.getRole() == UserRole.ADMIN
               ? ViewNavigator.Route.ADMIN
               : ViewNavigator.Route.DASHBOARD);
     } catch (IOException e) {

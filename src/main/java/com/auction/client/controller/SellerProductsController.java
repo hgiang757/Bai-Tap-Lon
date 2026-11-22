@@ -13,9 +13,7 @@ import com.auction.client.service.ServiceRegistry;
 import com.auction.client.ui.ProductImages;
 import com.auction.client.ui.SellerProductFormView;
 import com.auction.client.util.FormatUtil;
-import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -217,11 +215,9 @@ public class SellerProductsController implements DisposableView {
                               ButtonType.CANCEL);
                       ViewNavigator.prepareDialog(confirm);
                       if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
-                        String imagePath = images.get(id);
                         run(
                             () -> {
                               service.deleteProduct(currentUser.getUsername(), id);
-                              ProductImages.deleteImportedImage(imagePath, id);
                               return null;
                             },
                             ignored -> load());
@@ -279,27 +275,13 @@ public class SellerProductsController implements DisposableView {
   }
 
   private <T> void run(Callable<T> work, Consumer<T> success) {
-    operationBusy = true;
-    progress.setVisible(true);
-    progress.setManaged(true);
-    table.setDisable(true);
-    addButton.setDisable(true);
-    if (activeForm != null) {
-      activeForm.setBusy(true);
-    }
+    showBusy(true);
     message.setText("");
     tasks.submit(
         "seller",
         work,
         value -> {
-          progress.setVisible(false);
-          progress.setManaged(false);
-          table.setDisable(false);
-          addButton.setDisable(false);
-          if (activeForm != null) {
-            activeForm.setBusy(false);
-          }
-          operationBusy = false;
+          showBusy(false);
           success.accept(value);
           if (loadAgain && !operationBusy) {
             loadAgain = false;
@@ -307,20 +289,24 @@ public class SellerProductsController implements DisposableView {
           }
         },
         error -> {
-          progress.setVisible(false);
-          progress.setManaged(false);
-          table.setDisable(false);
-          addButton.setDisable(false);
-          if (activeForm != null) {
-            activeForm.setBusy(false);
-          }
-          operationBusy = false;
+          showBusy(false);
           loadAgain = false;
           message.setText("Không thể thực hiện: " + error.getMessage());
           if (activeForm != null) {
             activeForm.showSaveError(message.getText());
           }
         });
+  }
+
+  private void showBusy(boolean busy) {
+    operationBusy = busy;
+    progress.setVisible(busy);
+    progress.setManaged(busy);
+    table.setDisable(busy);
+    addButton.setDisable(busy);
+    if (activeForm != null) {
+      activeForm.setBusy(busy);
+    }
   }
 
   @FXML
@@ -387,15 +373,6 @@ public class SellerProductsController implements DisposableView {
     String savedPath = original == null ? null : images.get(id);
     run(
         () -> {
-          String imagePath = draft.imagePath();
-          if (imagePath != null && !imagePath.equals(savedPath)) {
-            imagePath = ProductImages.importImage(new File(imagePath), id);
-          }
-          // Refresh immediate start after image I/O and any executor queue delay.
-          LocalDateTime start =
-              draft.schedule().startNow()
-                  ? ServiceRegistry.getService().serverNow()
-                  : draft.schedule().start();
           Item item =
               new Item(
                   itemId,
@@ -412,13 +389,14 @@ public class SellerProductsController implements DisposableView {
                   draft.startingPrice(),
                   null,
                   AuctionStatus.OPEN,
-                  start,
+                  draft.schedule().start(),
                   draft.schedule().end(),
                   draft.minBidStep());
-          service.saveProduct(auction, imagePath == null ? "" : imagePath);
-          if (savedPath != null && !savedPath.equals(imagePath)) {
-            ProductImages.deleteImportedImage(savedPath, id);
+          String imagePath = draft.imagePath() == null ? "" : draft.imagePath();
+          if (savedPath != null && savedPath.equals(imagePath)) {
+            imagePath = null;
           }
+          service.saveProduct(auction, imagePath, draft.schedule().startNow(), original != null);
           return null;
         },
         ignored -> {

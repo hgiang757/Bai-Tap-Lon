@@ -1,6 +1,7 @@
 package com.auction.client.ui;
 
 import com.auction.client.navigation.ViewTasks;
+import com.auction.client.service.server.ServerError;
 import com.auction.client.util.FormatUtil;
 import com.auction.shared.AssistantChat;
 import com.auction.shared.AssistantChat.Reply;
@@ -32,11 +33,13 @@ public final class AuctionAssistantView extends StackPane {
   private final ScrollPane scroll = new ScrollPane(messages);
   private final TextArea input = new TextArea();
   private final Button send = new Button("Gửi");
+  private final Button retry = new Button("Gửi lại");
   private final FlowPane suggestions = new FlowPane(6, 6);
   private final HBox loading = new HBox(7);
   private ViewTasks tasks;
   private Function<String, Reply> ask;
   private boolean busy;
+  private String failedQuestion;
 
   /** Builds the floating launcher and chat panel for use from FXML or Java. */
   public AuctionAssistantView() {
@@ -87,11 +90,11 @@ public final class AuctionAssistantView extends StackPane {
     VBox.setVgrow(scroll, Priority.ALWAYS);
     messages.heightProperty().addListener((obs, oldHeight, height) -> scroll.setVvalue(1));
 
-    addSuggestion("Giới thiệu", "Hãy giới thiệu sản phẩm đang được đấu giá.");
-    addSuggestion("Giá thị trường", "Sản phẩm này có giá thị trường đã xác minh không?");
-    addSuggestion(
-        "Đánh giá giá đấu", "Hãy so sánh giá đấu hiện tại với giá thị trường đã xác minh.");
-    addSuggestion("Lưu ý khi mua", "Tôi cần kiểm tra những gì trước khi đấu giá sản phẩm này?");
+    addSuggestion("Giới thiệu", AssistantChat.INTRO_QUESTION);
+    addSuggestion("Thông tin phiên", AssistantChat.ROOM_QUESTION);
+    addSuggestion("Giá thị trường", AssistantChat.MARKET_QUESTION);
+    addSuggestion("So sánh giá", AssistantChat.COMPARE_QUESTION);
+    addSuggestion("Lưu ý khi mua", AssistantChat.CHECKLIST_QUESTION);
 
     ProgressIndicator spinner = new ProgressIndicator();
     spinner.setMaxSize(16, 16);
@@ -116,19 +119,27 @@ public final class AuctionAssistantView extends StackPane {
         KeyEvent.KEY_PRESSED,
         event -> {
           if (event.getCode() == KeyCode.ENTER && !event.isShiftDown()) {
-            submit(input.getText());
+            submit(input.getText(), true);
             event.consume();
           }
         });
     send.setId("assistantSend");
     send.getStyleClass().addAll("btn-primary", "assistant-send");
-    send.setOnAction(event -> submit(input.getText()));
+    send.setOnAction(event -> submit(input.getText(), true));
     input.textProperty().addListener((obs, oldText, text) -> updateSend());
     HBox composer = new HBox(8, input, send);
     composer.setAlignment(Pos.BOTTOM_RIGHT);
     HBox.setHgrow(input, Priority.ALWAYS);
 
-    panel.getChildren().addAll(header, scroll, suggestions, loading, composer);
+    retry.setId("assistantRetry");
+    retry.getStyleClass().add("assistant-suggestion");
+    retry.setOnAction(event -> {
+      if (!busy && failedQuestion != null) {
+        sendQuestion(failedQuestion);
+      }
+    });
+    show(retry, false);
+    panel.getChildren().addAll(header, scroll, suggestions, loading, retry, composer);
     getChildren().addAll(panel, launcher);
     show(panel, false);
     setBusy(false);
@@ -163,19 +174,27 @@ public final class AuctionAssistantView extends StackPane {
     }
     messages.getChildren().clear();
     input.clear();
+    failedQuestion = null;
     setBusy(false);
     showPanel(false);
   }
 
-  private void submit(String draft) {
+  private void submit(String draft, boolean clearInput) {
     String question = draft.strip();
     if (question.isEmpty() || busy || ask == null || tasks == null) {
       return;
     }
+    addMessage(question, "assistant-question");
+    if (clearInput) {
+      input.clear();
+    }
+    sendQuestion(question);
+  }
+
+  private void sendQuestion(String question) {
     final ViewTasks scope = tasks;
     final var handler = ask;
-    addMessage(question, "assistant-question");
-    input.clear();
+    failedQuestion = null;
     setBusy(true);
     scope.submit(
         "question",
@@ -199,6 +218,9 @@ public final class AuctionAssistantView extends StackPane {
               "assistant-reply");
         },
         error -> {
+          if (isRetryable(error)) {
+            failedQuestion = question;
+          }
           setBusy(false);
           addMessage(
               error instanceof IllegalStateException
@@ -211,8 +233,21 @@ public final class AuctionAssistantView extends StackPane {
   private void setBusy(boolean running) {
     busy = running;
     show(loading, running);
+    show(retry, !running && failedQuestion != null);
     suggestions.setDisable(running);
     updateSend();
+  }
+
+  private static boolean isRetryable(Throwable error) {
+    if (error instanceof ServerError server) {
+      return switch (server.code()) {
+        case "AI_BUSY", "AI_TIMEOUT", "AI_NETWORK_ERROR", "AI_DNS_ERROR", "AI_PROVIDER_BUSY",
+            "AI_RATE_LIMIT", "AI_PROVIDER_ERROR", "AI_RESPONSE_INVALID", "SERVER_BUSY" -> true;
+        default -> false;
+      };
+    }
+    return error instanceof IllegalStateException
+        || error instanceof ViewTasks.NotSubmittedException;
   }
 
   private void updateSend() {
@@ -222,7 +257,7 @@ public final class AuctionAssistantView extends StackPane {
   private void addSuggestion(String label, String question) {
     Button button = new Button(label);
     button.getStyleClass().add("assistant-suggestion");
-    button.setOnAction(event -> submit(question));
+    button.setOnAction(event -> submit(question, false));
     suggestions.getChildren().add(button);
   }
 
