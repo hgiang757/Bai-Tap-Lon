@@ -8,6 +8,8 @@ import static com.auction.shared.JsonProtocol.text;
 import com.auction.server.dao.AuctionJsonMapper;
 import com.auction.server.model.Auction;
 import com.google.gson.JsonObject;
+import java.time.LocalDateTime;
+import java.util.stream.Stream;
 
 /** Server-time transitions, one-time settlement and administrative cancellation. */
 final class SettlementLogic {
@@ -20,21 +22,30 @@ final class SettlementLogic {
   }
 
   // Đồng hồ server quyết định mở/kết thúc; hết giờ thanh toán một lần.
-  void refreshAuctions() {
-    for (JsonObject a : context.values("auctions")) {
+  void refreshAuctions(LocalDateTime now) {
+    dueAuctions(now).forEach(a -> {
       Auction auction = AuctionJsonMapper.auction(a);
-      if (a.get("deleted").getAsBoolean() || !auction.status().isActive()) {
-        continue;
-      }
-      if (auction.hasExpired(context.now())) {
+      if (auction.hasExpired(now)) {
         settle(a);
-        continue;
-      }
-      if (auction.shouldStart(context.now())) {
+      } else {
         a.addProperty("status", "RUNNING");
         context.event("AUCTION_STARTED", a, "");
       }
-    }
+    });
+  }
+
+  boolean hasDueTransition(LocalDateTime now) {
+    return dueAuctions(now).findAny().isPresent();
+  }
+
+  private Stream<JsonObject> dueAuctions(LocalDateTime now) {
+    return context.collection("auctions").entrySet().stream()
+        .map(entry -> entry.getValue().getAsJsonObject())
+        .filter(a -> !a.get("deleted").getAsBoolean())
+        .filter(a -> {
+          Auction auction = AuctionJsonMapper.auction(a);
+          return auction.hasExpired(now) || auction.shouldStart(now);
+        });
   }
 
   private void stopRules(JsonObject a) {

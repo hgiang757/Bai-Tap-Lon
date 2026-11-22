@@ -1,9 +1,11 @@
 package com.auction.client.ui;
 
-import com.auction.client.model.Auction;
 import com.auction.client.model.Bid;
 import com.auction.client.util.FormatUtil;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,6 +22,11 @@ import javafx.util.StringConverter;
 /** Renders one authoritative history into a price curve and a newest-first bid list on FX. */
 public final class AuctionBidHistoryView {
   private static final int MAX_CHART_POINTS = 30;
+  private static final ZoneId AUCTION_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+  private static final DateTimeFormatter WITH_SECONDS = DateTimeFormatter.ofPattern("HH:mm:ss");
+  private static final DateTimeFormatter WITH_DATE = DateTimeFormatter.ofPattern("dd/MM HH:mm");
+  private static final DateTimeFormatter WITH_DATE_SECONDS =
+      DateTimeFormatter.ofPattern("dd/MM HH:mm:ss");
   private final LineChart<Number, Number> priceChart;
   private final NumberAxis timeAxis;
   private final NumberAxis priceAxis;
@@ -44,14 +51,21 @@ public final class AuctionBidHistoryView {
     lvRecentBids.setPlaceholder(placeholder);
     RoundedClip.apply(lvRecentBids, 12);
     setupChart();
+    updateEmptyState(true);
   }
 
   /** Clears the chart and bid list before displaying another auction. */
   public void clear() {
     priceSeries.getData().clear();
     lvRecentBids.getItems().clear();
-    lblNoBids.setVisible(true);
-    lblNoBids.setManaged(true);
+    updateEmptyState(true);
+  }
+
+  private void updateEmptyState(boolean empty) {
+    priceChart.setVisible(!empty);
+    priceChart.setManaged(!empty);
+    lblNoBids.setVisible(empty);
+    lblNoBids.setManaged(empty);
   }
 
   private void setupChart() {
@@ -80,10 +94,13 @@ public final class AuctionBidHistoryView {
             if (value == null || priceSeries == null || priceSeries.getData().isEmpty()) {
               return "";
             }
-            return FormatUtil.formatChartTime(
-                java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(value.longValue()),
-                    java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
+            LocalDateTime time = chartTime(value.longValue());
+            if (!chartTime((long) timeAxis.getLowerBound()).toLocalDate()
+                .equals(chartTime((long) timeAxis.getUpperBound()).toLocalDate())) {
+              return time.format(timeAxis.getTickUnit() < 60_000 ? WITH_DATE_SECONDS : WITH_DATE);
+            }
+            return timeAxis.getTickUnit() < 60_000
+                ? time.format(WITH_SECONDS) : FormatUtil.formatChartTime(time);
           }
 
           @Override
@@ -95,7 +112,7 @@ public final class AuctionBidHistoryView {
         new StringConverter<>() {
           @Override
           public String toString(Number value) {
-            return value == null ? "" : FormatUtil.formatCompactPriceAxis(value.doubleValue());
+            return value == null ? "" : FormatUtil.formatCurrency(value.doubleValue());
           }
 
           @Override
@@ -106,27 +123,22 @@ public final class AuctionBidHistoryView {
   }
 
   /** Replaces the chart and bid list from one authoritative auction history. */
-  public void render(Auction auction, List<Bid> bids, LocalDateTime now) {
+  public void render(List<Bid> bids, LocalDateTime now) {
     priceSeries.getData().clear();
     lvRecentBids.getItems().clear();
-
+    updateEmptyState(bids.isEmpty());
     if (bids.isEmpty()) {
-      LocalDateTime startTime = auction.getStartTime() == null ? now : auction.getStartTime();
-      addPricePoint(startTime, auction.getStartingPrice(), null, false);
-      lblNoBids.setVisible(true);
-      lblNoBids.setManaged(true);
-    } else {
-      List<Bid> chronologicalBids = new ArrayList<>(bids);
-      chronologicalBids.sort(
-          Comparator.comparing(
-              Bid::getTimestamp, Comparator.nullsFirst(Comparator.naturalOrder())));
-      for (Bid bid : chronologicalBids) {
-        LocalDateTime time = bid.getTimestamp() == null ? now : bid.getTimestamp();
-        addPricePoint(time, bid.getAmount(), bid.getBidderUsername(), bid.isAuto());
-        lvRecentBids.getItems().add(0, formatBid(bid));
-      }
-      lblNoBids.setVisible(false);
-      lblNoBids.setManaged(false);
+      return;
+    }
+    List<Bid> chronologicalBids = new ArrayList<>(bids);
+    chronologicalBids.sort(Comparator.comparing(bid -> bid.getTimestamp() == null
+        ? now : bid.getTimestamp()));
+    lvRecentBids.getItems().setAll(chronologicalBids.reversed().stream()
+        .map(this::formatBid).toList());
+    int firstChartBid = Math.max(0, chronologicalBids.size() - MAX_CHART_POINTS);
+    for (Bid bid : chronologicalBids.subList(firstChartBid, chronologicalBids.size())) {
+      LocalDateTime time = bid.getTimestamp() == null ? now : bid.getTimestamp();
+      addPricePoint(time, bid.getAmount(), bid.getBidderUsername(), bid.isAuto());
     }
     updateChartAxes();
   }
@@ -144,14 +156,11 @@ public final class AuctionBidHistoryView {
   private void addPricePoint(LocalDateTime time, double price, String bidder, boolean auto) {
     XYChart.Data<Number, Number> dataPoint =
         new XYChart.Data<>(
-            time.atZone(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).toInstant().toEpochMilli(),
+            time.atZone(AUCTION_ZONE).toInstant().toEpochMilli(),
             price,
             time);
     priceSeries.getData().add(dataPoint);
     attachPointTooltip(dataPoint, time, price, bidder, auto);
-    while (priceSeries.getData().size() > MAX_CHART_POINTS) {
-      priceSeries.getData().remove(0);
-    }
   }
 
   private void attachPointTooltip(
@@ -169,7 +178,7 @@ public final class AuctionBidHistoryView {
           Tooltip.install(
               node,
               new Tooltip(
-                  FormatUtil.formatChartTime(time)
+                  time.format(WITH_DATE_SECONDS)
                       + " · "
                       + FormatUtil.formatCurrency(price)
                       + " · "
@@ -194,19 +203,25 @@ public final class AuctionBidHistoryView {
 
     double first = priceSeries.getData().getFirst().getXValue().doubleValue();
     double last = priceSeries.getData().getLast().getXValue().doubleValue();
-    double span = Math.max(1000, last - first);
-    timeAxis.setLowerBound(first - span * 0.05);
-    timeAxis.setUpperBound(last + span * 0.05);
-    timeAxis.setTickUnit(Math.max(1000, span / 5));
+    double span = last - first;
+    double timePadding = Math.max(2_000, span * 0.05);
+    double timeTick = Math.max(1_000, Math.ceil(span / 4_000) * 1_000);
+    timeAxis.setLowerBound(Math.floor((first - timePadding) / timeTick) * timeTick);
+    timeAxis.setUpperBound(Math.ceil((last + timePadding) / timeTick) * timeTick);
+    timeAxis.setTickUnit(timeTick);
 
     double priceRange = maxPrice - minPrice;
     if (priceRange <= 0) {
       priceRange = Math.max(Math.abs(maxPrice) * 0.1, 1);
     }
-    double lowerBound = Math.max(0, minPrice - priceRange * 0.05);
-    double upperBound = maxPrice + priceRange * 0.1;
+    double lowerBound = Math.floor(Math.max(0, minPrice - priceRange * 0.05));
+    double upperBound = Math.ceil(maxPrice + priceRange * 0.1);
     priceAxis.setLowerBound(lowerBound);
     priceAxis.setUpperBound(upperBound);
-    priceAxis.setTickUnit((upperBound - lowerBound) / 4);
+    priceAxis.setTickUnit(Math.ceil((upperBound - lowerBound) / 4));
+  }
+
+  private static LocalDateTime chartTime(long millis) {
+    return LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), AUCTION_ZONE);
   }
 }

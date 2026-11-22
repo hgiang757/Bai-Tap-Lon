@@ -8,8 +8,11 @@ import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
 import com.auction.server.assistant.AuctionProduct;
+import com.auction.server.assistant.AuctionProduct.BidPoint;
+import com.auction.server.dao.AuctionJsonMapper;
 import com.auction.server.dao.AuctionRepository;
 import com.auction.server.exception.ApiException;
+import com.auction.server.model.AuctionStatus;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -17,6 +20,7 @@ import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +34,7 @@ import java.util.function.Consumer;
 public final class AuctionService implements AutoCloseable {
   public static final ZoneId ZONE = AuctionContext.ZONE;
   public static final long MAX_MONEY = AuctionContext.MAX_MONEY;
+  private static final int ASSISTANT_HISTORY_LIMIT = 12;
   private final AuctionRepository repository;
   private final AuctionContext context;
   private final AuthLogic auth;
@@ -88,7 +93,11 @@ public final class AuctionService implements AutoCloseable {
       AuctionStateValidator.validate(context.state);
       Passwords.warmUp();
     } catch (IOException | RuntimeException e) {
-      repository.close();
+      try {
+        repository.close();
+      } catch (IOException closeError) {
+        e.addSuppressed(closeError);
+      }
       throw e;
     }
   }
@@ -111,6 +120,15 @@ public final class AuctionService implements AutoCloseable {
     String userId = authenticatedUserId(token);
     // Same visibility rule as GET_ROOM_SNAPSHOT: signed-in users can read non-archived rooms.
     JsonObject auction = context.auction(payload);
+    var snapshot = AuctionJsonMapper.auction(auction);
+    var now = context.now();
+    JsonArray bids = auction.getAsJsonArray("bids");
+    List<BidPoint> recentBids = new ArrayList<>();
+    for (int i = Math.max(0, bids.size() - ASSISTANT_HISTORY_LIMIT); i < bids.size(); i++) {
+      JsonObject bid = bids.get(i).getAsJsonObject();
+      recentBids.add(new BidPoint(number(bid, "amount"),
+          LocalDateTime.parse(text(bid, "timestamp"))));
+    }
     return new AssistantContext(
         userId,
         new AuctionProduct(
@@ -124,17 +142,28 @@ public final class AuctionService implements AutoCloseable {
             number(auction, "startingPrice"),
             number(auction, "currentPrice"),
             number(auction, "minBidStep"),
-            number(auction, "totalBids") > 0));
+            snapshot.minimumNextBid(),
+            snapshot.totalBids(),
+            snapshot.status() == AuctionStatus.RUNNING
+                && !now.isBefore(snapshot.startTime()) && now.isBefore(snapshot.endTime()),
+            snapshot.startTime(),
+            snapshot.endTime(),
+            recentBids));
   }
 
   // Khóa chung: xác thực -> commandId -> nghiệp vụ -> lưu -> phát sự kiện.
   /** Runs one action under the shared transaction lock, then commits or rolls it back. */
   public synchronized JsonObject execute(
       String action, String token, String commandId, JsonObject payload) {
+    return execute(action, token, commandId, payload, context.now());
+  }
+
+  private JsonObject execute(String action, String token, String commandId, JsonObject payload,
+      LocalDateTime acceptedAt) {
     JsonObject before = context.state.deepCopy();
     context.events = new ArrayList<>();
     try {
-      settlement.refreshAuctions();
+      settlement.refreshAuctions(acceptedAt);
       JsonObject user = null;
       if (!Set.of(
               "PING",
@@ -186,7 +215,8 @@ public final class AuctionService implements AutoCloseable {
       JsonObject afterRefresh = context.state.deepCopy();
       int refreshEventCount = context.events.size();
       try {
-        response = obj("success", true, "result", handleAction(action, token, user, payload));
+        response = obj("success", true, "result",
+            handleAction(action, token, user, payload, acceptedAt));
       } catch (ApiException e) {
         context.state = afterRefresh;
         context.events = new ArrayList<>(context.events.subList(0, refreshEventCount));
@@ -236,7 +266,7 @@ public final class AuctionService implements AutoCloseable {
       context.state = before;
       context.events.clear();
       System.err.println("State commit failed: " + e.getMessage());
-      throw error("STORAGE_ERROR", "Unable to commit; operation rolled back");
+      throw new ApiException("STORAGE_ERROR", "Unable to commit; operation rolled back", e);
     }
     for (JsonObject event : context.events) {
       try {
@@ -251,11 +281,15 @@ public final class AuctionService implements AutoCloseable {
 
   /** Refreshes scheduled auction states under the same lock as client commands. */
   public synchronized void tick() {
-    execute("PING", "", "", new JsonObject());
+    LocalDateTime now = context.now();
+    if (settlement.hasDueTransition(now)) {
+      execute("PING", "", "", new JsonObject(), now);
+    }
   }
 
   // Action dispatcher: each helper runs under this service's existing monitor.
-  private JsonElement handleAction(String action, String token, JsonObject user, JsonObject p) {
+  private JsonElement handleAction(
+      String action, String token, JsonObject user, JsonObject p, LocalDateTime acceptedAt) {
     return switch (action) {
       case "PING" -> obj("status", "OK");
       case "REGISTER" -> auth.register(p);
@@ -286,8 +320,8 @@ public final class AuctionService implements AutoCloseable {
         context.event("AUCTION_DELETED", a, "");
         yield context.snapshot(a);
       }
-      case "PLACE_BID" -> bidding.placeBid(user, p);
-      case "SET_MY_AUTO_BID" -> bidding.setAuto(user, p);
+      case "PLACE_BID" -> bidding.placeBid(user, p, acceptedAt);
+      case "SET_MY_AUTO_BID" -> bidding.setAuto(user, p, acceptedAt);
       case "CANCEL_MY_AUTO_BID" -> {
         JsonObject a = context.auction(p);
         JsonObject rule = bidding.rule(user, a);
@@ -380,8 +414,8 @@ public final class AuctionService implements AutoCloseable {
               1_000_000,
               "minBidStep",
               100_000,
-              "startTime",
-              context.now(),
+              "startNow",
+              true,
               "endTime",
               context.now().plusHours(2)));
     }

@@ -55,11 +55,11 @@ public final class ProductImages {
         }
         return image;
       }
-    } catch (Exception ex) {
+    } catch (IOException | IllegalArgumentException | SecurityException ex) {
       if (Thread.currentThread().isInterrupted() || ex instanceof InterruptedIOException) {
         return null;
       }
-      LOGGER.log(Level.WARNING, "Không thể nạp ảnh sản phẩm: " + path, ex);
+      LOGGER.log(Level.WARNING, "Không thể nạp ảnh sản phẩm.", ex);
       return null;
     }
   }

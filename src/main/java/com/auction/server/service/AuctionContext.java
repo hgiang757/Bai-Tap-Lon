@@ -1,5 +1,6 @@
 package com.auction.server.service;
 
+import static com.auction.shared.JsonProtocol.isString;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
@@ -35,7 +36,7 @@ final class AuctionContext {
     try {
       return com.auction.shared.JsonProtocol.number(object, field);
     } catch (IllegalArgumentException e) {
-      throw error("VALIDATION_ERROR", "Expected integer: " + field);
+      throw new ApiException("VALIDATION_ERROR", "Expected integer: " + field, e);
     }
   }
 
@@ -44,7 +45,11 @@ final class AuctionContext {
   }
 
   static String required(JsonObject p, String key, int max) {
-    String s = text(p, key).strip();
+    var value = p.get(key);
+    if (!isString(value)) {
+      throw error("VALIDATION_ERROR", "Invalid " + key);
+    }
+    String s = value.getAsString().strip();
     if (s.isEmpty() || s.length() > max) {
       throw error("VALIDATION_ERROR", "Invalid " + key);
     }

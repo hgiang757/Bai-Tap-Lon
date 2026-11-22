@@ -1,6 +1,7 @@
 package com.auction.client;
 
 import com.auction.client.navigation.ViewNavigator;
+import java.io.IOException;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.scene.text.Font;
@@ -52,11 +53,11 @@ public class Main extends Application {
       // Nạp màn hình đầu tiên: AuthView (Login/Register)
       ViewNavigator.loadView("/com/auction/client/views/auth-view.fxml", "Đăng nhập / Đăng ký");
 
-    } catch (Exception e) {
-      System.err.println("Không thể khởi động ứng dụng JavaFX:");
-      e.printStackTrace();
+    } catch (IOException | RuntimeException e) {
+      LOGGER.log(java.util.logging.Level.SEVERE, "Không thể khởi động ứng dụng JavaFX.", e);
       new javafx.scene.control.Alert(
-              javafx.scene.control.Alert.AlertType.ERROR, "Không thể khởi động: " + e.getMessage())
+              javafx.scene.control.Alert.AlertType.ERROR,
+              "Không thể mở ứng dụng đấu giá. Hãy kiểm tra cài đặt và thử lại.")
           .showAndWait();
       javafx.application.Platform.exit();
     }

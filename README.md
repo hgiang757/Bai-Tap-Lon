@@ -1,159 +1,104 @@
-# Hệ thống đấu giá trực tuyến
+# Digital Auction
 
-Đợt UI mới nhất: [tối giản menu và kết quả kiểm thử](docs/FINAL_SIMPLIFICATION_AND_REQUIREMENTS.md).
-Menu dùng pane trong Scene; kiểm thử Windows đã PASS, CI/Linux/LAN còn phải xác minh.
-
-
-Ứng dụng Java 25, JavaFX 26.0.2 và Maven. Client JavaFX kết nối server qua TCP Socket
-JSON. Server là nơi duy nhất quản lý nghiệp vụ và lưu `data/state.json` bền vững.
-Dự án hiện JSON-only, không cần MySQL hoặc biến cấu hình database.
-
-Bộ kiểm kê ngày 12/11/2026 gồm [trách nhiệm từng file](docs/archive/PROJECT_FILE_INVENTORY.md),
-[thống kê code trước/sau](docs/archive/CODE_STATISTICS.md) và
-[thao tác dọn dẹp cùng kết quả kiểm thử mới](docs/archive/CLEANUP_REPORT.md).
-
-Lần refactor OOP/service tiếp theo được ghi tại
-[báo cáo OOP và service](docs/archive/OOP_SERVICE_REFACTOR_REPORT.md), gồm đối chiếu PDF,
-method đã chuyển, LOC, hash dữ liệu và kết quả kiểm thử hiện tại.
-
-Kết quả rà soát Client hiện tại: [ổn định Client và dữ liệu](docs/FINAL_CLIENT_STABILITY_REPORT.md).
-Client và launcher chỉ dùng ServerServices/TCP; `auction.mode=mock` bị từ chối.
-Sáu lớp mô phỏng được chuyển nguyên hành vi sang `src/test/java/com/auction/client/fixture`;
-test GUI tiêm fixture rõ ràng, ứng dụng chính không nạp chúng. Xem
-[báo cáo Seller/Mock](docs/SELLER_UI_MOCK_CLEANUP_REPORT.md).
-
-Đợt tối giản JavaFX trước được ghi trong [báo cáo hoàn thiện cuối](docs/FINAL_SIMPLIFICATION_REPORT.md),
-gồm số liệu mới, kiểm tra mock/legacy và checklist thử nghiệm trên hai máy Windows.
+Ứng dụng đấu giá trực tuyến viết bằng Java 25, JavaFX 26.0.2 và Maven. Người dùng có thể đăng ký, đăng nhập, đặt giá và xem biểu đồ realtime. Seller quản lý sản phẩm và phiên, Admin quản trị hệ thống. Server xử lý ví giả lập, auto-bid và gia hạn phiên qua TCP JSON. Dữ liệu được lưu tập trung trong `data/state.json` bằng Gson.
 
 ## Chạy trên Windows
 
-Cài JDK 25 và Maven, thêm vào PATH. Kiểm tra `java -version`, `mvn -version`.
-Nhấp đúp Start-Server.cmd trong File Explorer, giữ cửa sổ server mở, rồi nhấp đúp
-Start-Client.cmd. Hoặc trong PowerShell tại thư mục có pom.xml:
+Cài JDK 25 và Maven, thêm vào PATH, rồi kiểm tra bằng `java -version` và `mvn -version`. Mở PowerShell hoặc terminal VS Code tại thư mục có `pom.xml`:
 
 ```powershell
+# Cửa sổ 1
 .\Start-Server.cmd
-# Terminal khác hoặc máy client khác
+# Cửa sổ 2 sau khi server hiện Auction JSON server listening
 .\Start-Client.cmd
 ```
 
-Server dùng JSON thật, Demo tắt, bind `0.0.0.0:8888`. Client hỏi IP/hostname:
-Enter dùng `127.0.0.1` trên cùng máy; máy khác nhập IPv4 LAN thực của server từ
-`ipconfig`. Không dùng `0.0.0.0` làm địa chỉ client. Maven lần đầu cần mạng để tải
-thư viện. Khi lỗi, cửa sổ CMD giữ thông báo. Xem [hướng dẫn LAN](MULTI_CLIENT_SETUP.md).
+Nhấn Enter khi client hỏi host để dùng `127.0.0.1` trên cùng máy. Giữ cửa sổ server mở. Maven lần đầu có thể cần mạng để tải dependency.
 
-Dữ liệu hiện có không bị tạo lại, đổi số dư hoặc xóa lịch sử. Với thư mục hoàn toàn
-mới, cần đặt rõ `AUCTION_ADMIN_PASSWORD` (8-128 ký tự, gồm chữ và số) để cấp admin
-ban đầu `admin_hieu`; không có mật khẩu mặc định trong chế độ thật. Không tạo
-bidder/seller hoặc phiên mẫu khi chạy script. Không xóa JSON để vượt qua lỗi khởi động.
-
-## Trợ lý đấu giá AI
-
-Trên máy chạy server, mở PowerShell và nhập khóa API tại lời nhắc, rồi khởi động server
-từ cùng cửa sổ để tiến trình nhận biến môi trường.
+Server mặc định bind `0.0.0.0:8888`. Khi thư mục dữ liệu hoàn toàn mới, cần cấp `AUCTION_ADMIN_PASSWORD` bằng lời nhắc ẩn hoặc môi trường của terminal để tạo `admin_hieu`. Mật khẩu dài 8–128 ký tự, có chữ và số. Nếu đã có `state.json` thì dùng tài khoản hiện có. Production không seed tài khoản hoặc phiên demo.
 
 ```powershell
-$env:OPENAI_API_KEY = [System.Net.NetworkCredential]::new(
-    '', (Read-Host 'Nhập OPENAI_API_KEY' -AsSecureString)
-).Password
-# Tùy chọn. Có thể bỏ dòng này để dùng model mặc định.
-$env:OPENAI_MODEL = 'gpt-4.1-mini'
-.\Start-Server.cmd
+# Chỉ thiết lập khi tạo thư mục data mới
+$env:AUCTION_ADMIN_PASSWORD = [Net.NetworkCredential]::new(
+  '', (Read-Host 'Mat khau admin ban dau' -AsSecureString)).Password
 ```
 
-Đăng nhập client, mở chi tiết sản phẩm trong phòng đấu giá và nhấn biểu tượng chat
-ở góc dưới bên phải. Chọn một câu hỏi gợi ý hoặc nhập câu hỏi. Enter gửi, Shift+Enter
-xuống dòng và Esc thu nhỏ. Các câu hỏi lấy dữ liệu sản phẩm và giá mới nhất đã ghi nhận
-trên server tại thời điểm gửi. Mô tả sản phẩm và nội dung chat được gửi đến OpenAI
-để tạo câu trả lời. Giữ khóa API trên máy server. Khi thiếu khóa, phòng đấu giá và ví
-vẫn hoạt động, còn chat hiển thị lỗi cấu hình.
+## Chạy nhiều client qua LAN
 
-Mặc định chưa có nguồn giá thị trường. Chat hiển thị giá phiên và thông báo thiếu
-dữ liệu đã xác minh. Có thể kết nối một nguồn được phép sử dụng qua `MarketPriceService`.
-Nguồn cung cấp khoảng giá cho đúng hãng, model, phiên bản và tình trạng, kèm tiền tệ,
-URL HTTPS và thời điểm truy xuất. Trợ lý so sánh trực tiếp khi nguồn dùng VND.
-
-Server cho phép tối đa 4 yêu cầu AI đồng thời, 12 yêu cầu mỗi tài khoản mỗi giờ và
-200 yêu cầu toàn server mỗi ngày UTC. Giới hạn áp dụng trong tiến trình hiện tại.
-Mỗi yêu cầu giới hạn 1.000 ký tự và 450 token đầu ra, với thời hạn OpenAI 12 giây.
-Lịch sử giữ tối đa 3 lượt gần nhất theo tài khoản và sản phẩm trong bộ nhớ, hết
-hạn sau 30 phút không hoạt động. Các bài kiểm thử AI dùng HTTP mô phỏng trên máy cục bộ.
-
-## Chức năng và kiến trúc
-
-- Đăng ký/đăng nhập; phân quyền Bidder/Seller/Admin và quản trị tài khoản.
-- CRUD sản phẩm/phiên, tìm kiếm/lọc, ảnh sản phẩm và lịch sử đấu giá.
-- Bid đồng thời, ví/giữ tiền/thanh toán giả lập, tự đóng phiên và xác định người thắng.
-- Server push realtime, biểu đồ giá JavaFX, auto-bid và anti-sniping.
-- CommandId chống xử lý lặp, timeout, thông báo mất kết nối và reconnect.
-
-Client và server chạy riêng. MVC nằm ở controller/FXML/model. Adapter client gọi
-TCP; Server điều phối request, AuctionService giữ transaction và gọi AuthLogic,
-ProductLogic, BiddingLogic, WalletLogic, SettlementLogic; AuctionRepository
-đọc/ghi JSON. Giữ cây kế thừa User/Item, Factory Method và Observer. `Server.getInstance()`
-là Singleton production với constructor private, dùng chung một Server đang hoạt động.
-`TestServers` chỉ nằm trong nguồn test và dùng reflection để tạo Server cô lập cho integration test.
-Đọc [bộ tài liệu bảo vệ và kết quả rà soát](docs/archive/AUDIT_AND_RESULTS.md),
-[OOP](docs/viva/OOP_EXPLANATION.md), [kiến trúc](docs/viva/ARCHITECTURE.md),
-[patterns](docs/viva/DESIGN_PATTERNS.md), [concurrency](docs/viva/CONCURRENCY_EXPLANATION.md),
-[câu hỏi vấn đáp](docs/viva/VIVA_QUESTIONS.md) và [kịch bản demo](docs/viva/PRESENTATION_GUIDE.md).
-
-Chỉ server mở snapshot; client lưu riêng sổ pending và ảnh cache trong thư mục
-người dùng `.digital-auction/server`. Khóa service tuần tự hóa giao dịch, khóa file
-ngăn hai server ghi chung data. Repository ghi file tạm, force(true), atomic move;
-không hỗ trợ thì báo lỗi/từ chối giao dịch, không fallback ghi đè thông thường.
-JSON hỏng/sai cấu trúc không bị reset; lỗi lưu hoàn tác bid/ví/commandId và không
-phát push thành công. Không tự phục hồi từ `.tmp` hoặc snapshot cũ.
-
-Giữ schemaVersion=1. Dừng server trước khi sao lưu/khôi phục; không sửa JSON khi
-server chạy. `data/` chứa dữ liệu và backup, được bỏ qua bởi Git; không đăng backup
-lên Git vì có dữ liệu người dùng. Restart cần đăng nhập lại. Ví dùng tiền giả lập,
-TCP chưa TLS; chỉ dùng trong LAN tin cậy.
-
-## Form Seller và kết quả
-
-Thêm/Sửa nằm ngay trong trang Quản lý sản phẩm, không mở cửa sổ form riêng.
-Form dùng card tối đa 1000 px, hai cột hoặc một cột theo cửa sổ; hỗ trợ 640 px.
-Bắt đầu ngay dùng giờ Server lúc gửi Lưu; lịch gõ tay là dd/MM/yyyy và HH:mm.
-Xem [báo cáo UI/UX hiện tại](docs/FINAL_UI_UX_REVIEW.md) cho ảnh và kết quả kiểm thử.
-Lưu/Hủy/← Danh sách và ESC điều khiển cùng một pane; lỗi lưu giữ lại dữ liệu nhập.
-Chỉ phiên OPEN chưa có bid và đúng chủ sở hữu mới được sửa/xóa; Server kiểm tra lại.
-Trang chủ mặc định hiển thị đang/sắp mở. Chọn **Kết quả / Lịch sử** để xem phiên
-kết thúc, đã thanh toán hoặc hủy; tìm kiếm, danh mục và bộ lọc trạng thái vẫn áp dụng.
-Lịch sử được giữ trong JSON, không tự xóa phiên cũ.
-
-Entry point Server luôn tắt seed, kể cả khi còn cấu hình cũ `auction.demo=true`.
-Constructor private nhận `demo=true` chỉ được fixture `TestServers` gọi bằng reflection trong test;
-không dùng nó để chuẩn bị dữ liệu bảo vệ. Tạo dữ liệu qua UI thật, giữ thư mục data khi restart.
-
-## Build và kiểm thử
+1. Máy server giữ một thư mục dữ liệu. Lấy IPv4 LAN của máy này bằng `ipconfig`, rồi chạy server. Dùng Windows network profile Private trên LAN tin cậy.
+2. Máy client kiểm tra đến IP/cổng thực của server, rồi chạy `Start-Client.cmd` và nhập IPv4 hoặc hostname. Client và server dùng cùng cổng. Một IP `0.0.0.0` chỉ có nghĩa khi bind server.
+3. Đăng nhập bằng hai tài khoản khác nhau và mở cùng một phiên. Đặt giá ở một client để quan sát giá, người dẫn đầu, lịch sử và biểu đồ ở client kia. Kiểm tra hai bid đồng thời, rút phần tiền đang hold, reconnect và restart theo [hướng dẫn diễn tập](docs/PROJECT_CONTEXT.md#diễn-tập-trên-dữ-liệu-riêng).
 
 ```powershell
-mvn -B verify
-# Test desktop JavaFX; Linux dùng Xvfb
-mvn -B verify '-Dauction.ui.tests=true'
-# Chạy server từ JAR, mặc định JSON và không Demo
+# Máy client, thay IP ví dụ bằng IPv4 thực của server
+Test-NetConnection -ComputerName 192.168.1.100 -Port 8888
+.\Start-Client.cmd -ServerHost 192.168.1.100 -Port 8888
+# Máy server, chỉ định IP bind hoặc cổng nếu cần
+.\Start-Server.cmd -ServerHost 192.168.1.100 -Port 8888
+Get-NetTCPConnection -LocalPort 8888 -State Listen
+```
+
+Nếu firewall chặn, quản trị viên trên máy server có thể cho phép TCP trên profile Private với phạm vi LocalSubnet:
+
+```powershell
+New-NetFirewallRule -DisplayName 'Auction LAN TCP 8888' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8888 -Profile Private -RemoteAddress LocalSubnet
+```
+
+Client truy cập qua socket, dữ liệu server ở lại trên máy server. TCP ứng dụng chưa TLS; tránh port-forward ra Internet. Wi-Fi khách có thể chặn kết nối giữa các máy và DHCP có thể đổi IP. Kiểm thử loopback trên một máy khác với kiểm thử hai máy vật lý.
+
+### Chuẩn bị demo, sao lưu và khôi phục
+
+- Dùng thư mục thử riêng và tạo Seller, hai Bidder, ảnh và tiền giả lập qua UI. Chuẩn bị phiên `OPEN` vào đúng giờ demo, có thời gian dự phòng. Phiên **Bắt đầu ngay** dùng giờ server tại lúc lưu. Chỉ sửa/xóa phiên sắp bắt đầu, chưa có bid và đúng chủ sở hữu.
+- Để thử restart, chạy JAR với `-Dauction.data=...` đến cùng thư mục thử mỗi lần. Đóng server trước khi sao lưu. Sao chép `state.json` sang nơi riêng ngoài Git, lưu ngày/giờ và so SHA-256 bằng `Get-FileHash` cho hai file.
+- Để phục hồi, dừng server, sao lưu bản đang có trước, rồi chép bản snapshot đã kiểm hash vào đúng thư mục. Đăng nhập lại các client và kiểm sản phẩm, ảnh, lịch sử, ví và hold. Khi server mở lại, phiên đã hết hạn có thể được tất toán theo giờ thực. Chỉ dùng bản `state.json` đã xác minh; giữ `.tmp`, `server.lock` và journal client đúng vai trò của chúng.
+
+```powershell
 mvn -B package -DskipTests
-java -jar target/digital-auction-1.0.0.jar
-# Client với IP chỉ định
-powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1 Client -ServerHost 192.168.1.100
+java '-Dauction.bind=127.0.0.1' '-Dauction.port=8888' '-Dauction.data=target/data-demo' -jar target/digital-auction-1.0.0.jar
+# Client từ JAR, build trên OS thích hợp với JavaFX native
+java '-Dauction.mode=server' '-Dauction.host=127.0.0.1' '-Dauction.port=8888' -cp target/digital-auction-1.0.0.jar com.auction.client.App
 ```
 
-`verify` tạo JaCoCo tại `target/site/jacoco/index.html` và kiểm tra Checkstyle
-(Google configuration của Checkstyle 14.4.0, có kiểm cả test; warning làm build thất bại).
-Gate JaCoCo yêu cầu LINE coverage toàn production ≥60% theo hướng dẫn giảng viên. Để đo một lượt
-coverage mới không cộng dồn dữ liệu cũ, dùng `mvn -B clean verify` và bật UI tests
-nếu máy có desktop; CI Linux đã dùng Xvfb. Coverage được báo cáo trung thực cho
-toàn dự án; xem kết quả và phạm vi kiểm thử trong `docs/archive/AUDIT_AND_RESULTS.md`.
+## Gemini
 
-Test server dùng dữ liệu tạm, không dùng data/state.json thật. Dữ liệu demo trong
-fixture test không được tạo bởi script chạy chính thức. Không dùng Mock để kiểm
-chứng nhiều client thật. [Báo cáo refactor](docs/archive/JSON_ONLY_REFACTOR.md) ghi backup,
-file thay đổi, số dòng, kết quả thực tế và các kiểm thử còn cần làm thủ công.
+**Khi tải ZIP từ GitHub:** Cấu hình Gemini API key trên máy người gửi không đi kèm ZIP.
 
-Đối chiếu cuối theo đề và thang điểm: [Teacher audit](docs/TEACHER_REQUIREMENTS_FINAL_AUDIT.md);
-[học theo source](docs/viva/TEACHER_REQUIREMENTS_GUIDE.md); [checklist LAN hai máy](docs/viva/WINDOWS_LAN_CHECKLIST.md).
+- **Chạy server và client để đăng nhập, đăng ký hoặc đấu giá:** Không cần Gemini API key. Chạy `Start-Server.cmd` và `Start-Client.cmd` như hướng dẫn ở trên.
+- **Chỉ chạy client và kết nối vào server của người khác:** Không cần nhập key trên máy client. Chatbot Gemini dùng key đã cấu hình trên server.
+- **Tự chạy server và muốn dùng chatbot Gemini:** Chạy `.\Gemini.cmd -ConfigureGemini` trên máy server rồi nhập Gemini API key của bạn khi được hỏi.
 
-Đợt tối giản menu hiện tại: [kết quả và yêu cầu còn cần xác minh](docs/FINAL_SIMPLIFICATION_AND_REQUIREMENTS.md).
-Nút tài khoản mở/đóng pane ngay trong Scene; chọn mục, logout hoặc rời trang đóng menu.
-Menu không tự đóng theo click ngoài/focus/ESC và không có cửa sổ Popup riêng.
+Trên máy server, chạy `.\Gemini.cmd -ConfigureGemini` và dán khóa vào lời nhắc ẩn. Lệnh lưu khóa bằng DPAPI theo tài khoản Windows hiện tại rồi chạy server. Dùng lại cùng lệnh khi cần thay khóa. Thêm `-GeminiFromClipboard` nếu terminal không dán được vào lời nhắc ẩn.
+
+`.\Start-Server.cmd` ưu tiên `GEMINI_API_KEY` trong môi trường tiến trình, rồi dùng khóa DPAPI nếu có. Khi thiếu khóa, server vẫn mở bình thường và các mục **Thông tin phiên** và **Giá thị trường** vẫn dùng dữ liệu server. Chạy `.\Gemini.cmd` để được nhắc nhập và lưu khóa nếu chưa có. Khóa chỉ dùng ở server qua biến môi trường.
+
+Mở phòng đấu giá và bấm biểu tượng chat. Trạng thái `configured` xác nhận cấu hình cục bộ. `.\Gemini.cmd -VerifyGemini` kiểm tra Gemini thật qua JavaFX với cổng và dữ liệu thử riêng rồi thoát. Test Maven mặc định dùng provider giả lập trên loopback. [Luồng chat, mã lỗi và giới hạn](docs/PROJECT_CONTEXT.md#gemini-và-chatbot)
+
+## Build và test
+
+```powershell
+mvn -B test
+mvn -B verify
+mvn -B verify '-Dauction.ui.tests=true'
+# Khi đã có cache .maven-repository và cần chạy offline
+mvn -o -B '-Dmaven.repo.local=.maven-repository' verify
+```
+
+Bật `auction.ui.tests=true` khi có desktop. CI Linux cấu hình Xvfb. `verify` kiểm JUnit, JaCoCo với ngưỡng 60% và Checkstyle. Kết quả nằm dưới `target/surefire-reports` và `target/site/jacoco`. Fixture dùng data tạm. Khi cần số coverage riêng cho lượt chạy, giữ lại output cần thiết trước khi làm mới thư mục build hoặc file JaCoCo.
+
+Nếu Maven cần dùng cache có sẵn trong workspace để chạy các launcher Windows, đặt `$env:MAVEN_ARGS = '-o -Dmaven.repo.local=.maven-repository'` trong terminal trước khi chạy lệnh.
+
+## Lỗi thường gặp
+
+| Dấu hiệu | Cách kiểm tra |
+|---|---|
+| Client báo refused hoặc timeout | Xem server đã listening đúng IP/cổng chưa. Kiểm tra `Test-NetConnection`, firewall, profile mạng và IP sau khi đổi Wi-Fi. |
+| Mất mạng sau khi gửi bid | Đăng nhập lại khi cần, tải snapshot và đối soát journal lệnh. Gửi lại cùng `commandId`; tránh đổi mã lệnh hoặc xóa journal để thử lại. |
+| `STORAGE_ERROR` hoặc JSON lỗi | Kiểm tra log, quyền thư mục, đĩa và hỗ trợ atomic move. Chỉ một server giữ file lock. Giữ JSON để điều tra và phục hồi từ bản snapshot đã xác minh. |
+| Clipboard rỗng hoặc terminal chuyển Ctrl+V thành ký tự điều khiển | Sao chép lại khóa dưới dạng văn bản rồi dùng `.\Gemini.cmd -ConfigureGemini -GeminiFromClipboard`. Dấu sao ở lời nhắc chỉ che phần nhập. |
+| Gemini báo `AI_KEY_FORMAT`, `AI_AUTH_FAILED` hoặc timeout | Phân biệt Java chặn trước HTTP, Google từ chối và lỗi kết nối. Ưu tiên mã lỗi đã lọc; không chép khóa hoặc phản hồi thô vào chat. |
+
+## Tài liệu
+
+- [Kiến trúc, source code và ngữ cảnh cho Codex](docs/PROJECT_CONTEXT.md)
+- [Luyện vấn đáp và diễn tập](docs/PROJECT_CONTEXT.md#luyện-vấn-đáp-và-diễn-tập)
+- [Đề bài](docs/2026-BTL.pdf) và [hướng dẫn giảng viên](docs/H%C6%B0%E1%BB%9Bng%20d%E1%BA%ABn%20BTL%20LTNC-2026.pdf)

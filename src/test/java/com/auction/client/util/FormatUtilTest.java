@@ -1,10 +1,22 @@
 package com.auction.client.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
 class FormatUtilTest {
+  @Test
+  void parsesWholeVndAndRejectsMalformedAmountsBeforeSubmission() {
+    assertEquals(1_234_567, FormatUtil.parsePositiveVnd(" 1.234.567 "));
+    assertEquals(1_234_567, FormatUtil.parsePositiveVnd("1,234,567"));
+    assertEquals(1_234_567, FormatUtil.parsePositiveVnd("1 234 567"));
+    assertEquals(1_234_567, FormatUtil.parsePositiveVnd("1234567"));
+    for (String input : new String[] {"1.5", "12,34", "1,234.567", "-50", "0", "", "1 34"}) {
+      assertThrows(NumberFormatException.class, () -> FormatUtil.parsePositiveVnd(input));
+    }
+  }
+
   @Test
   void walletLongAmountsKeepEveryDigit() {
     assertEquals("9.123.456.789.012.345 ₫", FormatUtil.formatCurrency(9_123_456_789_012_345L));

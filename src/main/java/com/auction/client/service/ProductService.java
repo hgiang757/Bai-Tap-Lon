@@ -12,6 +12,11 @@ public interface ProductService {
   /** Lưu sản phẩm và phiên tương ứng. */
   void saveProduct(Auction auction, String imagePath);
 
+  /** Saves a form draft, with a server-clock start when requested. */
+  default void saveProduct(Auction auction, String imagePath, boolean startNow, boolean editing) {
+    saveProduct(auction, imagePath);
+  }
+
   /** Xóa sản phẩm đủ điều kiện. */
   void deleteProduct(String seller, String auctionId);
 

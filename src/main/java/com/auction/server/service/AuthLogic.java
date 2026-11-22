@@ -3,6 +3,7 @@ package com.auction.server.service;
 import static com.auction.server.service.AuctionContext.error;
 import static com.auction.server.service.AuctionContext.requireRole;
 import static com.auction.server.service.AuctionContext.required;
+import static com.auction.shared.JsonProtocol.isString;
 import static com.auction.shared.JsonProtocol.obj;
 import static com.auction.shared.JsonProtocol.text;
 
@@ -36,7 +37,8 @@ final class AuthLogic {
   }
 
   static void validatePassword(String password) {
-    if (password.length() < 8
+    if (password == null
+        || password.length() < 8
         || password.length() > 128
         || !password.matches("(?s).*[A-Za-z].*")
         || !password.matches("(?s).*[0-9].*")) {
@@ -101,6 +103,7 @@ final class AuthLogic {
 
   JsonObject login(JsonObject p) {
     String name = required(p, "username", 254);
+    String password = isString(p.get("password")) ? p.get("password").getAsString() : "";
     JsonObject u =
         context.values("users").stream()
             .filter(
@@ -112,7 +115,9 @@ final class AuthLogic {
     if (u == null
         || u.get("locked").getAsBoolean()
         || u.get("deleted").getAsBoolean()
-        || !Passwords.verify(text(p, "password"), text(u, "passwordHash"))) {
+        || password.isEmpty()
+        || password.length() > 128
+        || !Passwords.verify(password, text(u, "passwordHash"))) {
       throw new AuthenticationException("Invalid credentials or account locked");
     }
     if (sessions.size() >= 10_000) {
@@ -130,7 +135,7 @@ final class AuthLogic {
   JsonObject register(JsonObject p) {
     String username = required(p, "username", 30);
     String email = required(p, "email", 254);
-    String password = text(p, "password");
+    String password = isString(p.get("password")) ? p.get("password").getAsString() : "";
     String r = required(p, "role", 10);
     if (!Set.of("BIDDER", "SELLER").contains(r)) {
       throw error("FORBIDDEN", "Public registration cannot create admin");

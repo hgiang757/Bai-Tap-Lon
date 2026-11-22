@@ -14,6 +14,9 @@
     <main.class>com.auction.client.Main</main.class>
     <argLine></argLine>
     <jacocoArgLine></jacocoArgLine>
+    <jacoco.destFile>${project.build.directory}/jacoco.exec</jacoco.destFile>
+    <jacoco.dataFile>${jacoco.destFile}</jacoco.dataFile>
+    <auction.tests.excludedGroups>live-gemini</auction.tests.excludedGroups>
   </properties>
   <dependencies>
     <dependency>
@@ -58,6 +61,7 @@
           <useModulePath>false</useModulePath>
           <reuseForks>false</reuseForks>
           <argLine>@{jacocoArgLine} ${argLine}</argLine>
+          <excludedGroups>${auction.tests.excludedGroups}</excludedGroups>
         </configuration>
       </plugin>
       <plugin>
@@ -81,6 +85,7 @@
             <phase>verify</phase>
             <goals><goal>check</goal></goals>
             <configuration>
+              <dataFile>${jacoco.dataFile}</dataFile>
               <rules>
                 <rule>
                   <element>BUNDLE</element>
@@ -169,4 +174,12 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>live-gemini</id>
+      <properties>
+        <auction.tests.excludedGroups>!live-gemini</auction.tests.excludedGroups>
+      </properties>
+    </profile>
+  </profiles>
 </project>

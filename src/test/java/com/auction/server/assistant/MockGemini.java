@@ -13,24 +13,27 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/** Loopback HTTP server that implements the relevant parts of the Responses API for tests. */
-public final class MockOpenAi implements AutoCloseable {
+/** Loopback HTTP server that implements the relevant parts of GenerateContent for tests. */
+public final class MockGemini implements AutoCloseable {
   private final HttpServer server;
   private final java.util.concurrent.ExecutorService workers =
       Executors.newVirtualThreadPerTaskExecutor();
   private final BlockingQueue<Request> requests = new LinkedBlockingQueue<>();
+  private final String testHeader = UUID.randomUUID().toString();
 
   /** Captured HTTP metadata and API body. */
-  public record Request(String authorization, JsonObject body) {
+  public record Request(String apiKey, JsonObject body) {
     /** Untrusted facts and question supplied to the model as a user message. */
     public JsonObject context() {
       return JsonParser.parseString(
-              body.getAsJsonArray("input").get(0).getAsJsonObject().get("content").getAsString())
+              body.getAsJsonArray("contents").get(0).getAsJsonObject()
+                  .getAsJsonArray("parts").get(0).getAsJsonObject().get("text").getAsString())
           .getAsJsonObject();
     }
   }
@@ -46,18 +49,18 @@ public final class MockOpenAi implements AutoCloseable {
   }
 
   /** Starts the deterministic mock API on a random local port. */
-  public MockOpenAi(Handler handler) throws IOException {
+  public MockGemini(Handler handler) throws IOException {
     server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
     server.setExecutor(workers);
     server.createContext(
-        "/v1/responses",
+        "/v1beta/models/mock-model:generateContent",
         exchange -> {
           try (exchange) {
             String body =
                 new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             var request =
                 new Request(
-                    exchange.getRequestHeaders().getFirst("Authorization"),
+                    exchange.getRequestHeaders().getFirst("x-goog-api-key"),
                     JsonParser.parseString(body).getAsJsonObject());
             requests.add(request);
             Response response = handler.respond(request);
@@ -74,16 +77,20 @@ public final class MockOpenAi implements AutoCloseable {
 
   /** Creates an assistant backed by this local server. */
   public AuctionAssistant assistant(Duration timeout) {
-    return assistant("mock-key", timeout, product -> Optional.empty(), Clock.systemUTC());
+    return assistant(testHeader, timeout, product -> Optional.empty(), Clock.systemUTC());
   }
 
   /** Creates an assistant using local HTTP and the supplied environment equivalents. */
   public AuctionAssistant assistant(
       String key, Duration timeout, MarketPriceService market, Clock clock) {
     URI endpoint =
-        URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1/responses");
-    return new AuctionAssistant(
-        new OpenAiClient(key, "mock-model", endpoint, timeout), market, clock);
+        URI.create("http://127.0.0.1:" + server.getAddress().getPort()
+            + "/v1beta/models/mock-model:generateContent");
+    return new AuctionAssistant(new GeminiClient(key, endpoint, timeout), market, clock);
+  }
+
+  String testHeader() {
+    return testHeader;
   }
 
   /** Returns the next captured request, or null if the wait expires. */
@@ -91,13 +98,14 @@ public final class MockOpenAi implements AutoCloseable {
     return requests.poll(wait.toMillis(), TimeUnit.MILLISECONDS);
   }
 
-  /** Encodes a completed Responses API message. */
+  /** Encodes a completed Gemini candidate. */
   public static Response answer(String answer) {
     JsonArray content = new JsonArray();
-    content.add(obj("type", "output_text", "text", answer));
+    content.add(obj("thought", true, "text", "Internal thought"));
+    content.add(obj("text", answer));
     JsonArray output = new JsonArray();
-    output.add(obj("type", "message", "content", content));
-    return new Response(200, obj("status", "completed", "output", output).toString());
+    output.add(obj("finishReason", "STOP", "content", obj("parts", content)));
+    return new Response(200, obj("candidates", output).toString());
   }
 
   @Override

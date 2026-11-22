@@ -1,12 +1,15 @@
 package com.auction.client.ui;
 
 import com.auction.client.navigation.ViewTasks;
+import com.auction.shared.ProductImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
@@ -103,6 +106,9 @@ public final class ProductImagePicker extends VBox implements AutoCloseable {
 
   /** Cũng cho phép test chọn file tạm qua cùng đường kiểm tra với native FileChooser. */
   public void select(File file) {
+    if (file == null) {
+      return;
+    }
     loadPreview(file, false);
   }
 
@@ -116,20 +122,29 @@ public final class ProductImagePicker extends VBox implements AutoCloseable {
     tasks.submit(
         "preview",
         () -> {
-          String lower = file.getName().toLowerCase(Locale.ROOT);
-          if (!file.isFile()
-              || file.length() >= 5 * 1024 * 1024
-              || (!existing
-                  && !(lower.endsWith(".png")
-                      || lower.endsWith(".jpg")
-                      || lower.endsWith(".jpeg")
-                      || lower.endsWith(".gif")
-                      || lower.endsWith(".bmp")))) {
-            throw new IOException("Ảnh phải là PNG/JPG/GIF/BMP và nhỏ hơn 5 MB.");
+          if (existing) {
+            Image stored = ProductImages.load(file.getAbsolutePath(), 140, 84);
+            if (stored == null) {
+              throw new IOException("Không đọc được ảnh đã lưu. Chọn lại hoặc bỏ ảnh.");
+            }
+            return stored;
           }
-          var candidate = ProductImages.load(file.getAbsolutePath(), 140, 84);
-          if (candidate == null) {
-            throw new IOException("Không đọc được ảnh. Chọn lại hoặc bỏ ảnh.");
+          byte[] bytes;
+          String format;
+          try {
+            bytes = ProductImage.read(file.toPath());
+            format = ProductImage.format(bytes);
+          } catch (IOException | IllegalArgumentException | SecurityException failure) {
+            throw new IOException(
+                "Không đọc được ảnh. Chọn tệp PNG/JPG/GIF/BMP dưới 5 MB.", failure);
+          }
+          String lower = file.getName().toLowerCase(Locale.ROOT);
+          if (!lower.endsWith("." + format) && !(format.equals("jpeg") && lower.endsWith(".jpg"))) {
+            throw new IOException("Phần mở rộng phải khớp với định dạng ảnh.");
+          }
+          Image candidate = new Image(new ByteArrayInputStream(bytes), 140, 84, true, true);
+          if (candidate.isError()) {
+            throw new IOException("Không thể xem trước ảnh.", candidate.getException());
           }
           return candidate;
         },
