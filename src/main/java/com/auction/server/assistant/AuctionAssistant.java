@@ -27,7 +27,7 @@ import java.util.Set;
 public final class AuctionAssistant implements AutoCloseable {
   private static final String NO_QUOTE = "Chưa có dữ liệu giá thị trường đã xác minh.";
   private static final String GEMINI_ENDPOINT =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
+          "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent";
   private static final int MAX_TURNS = 3;
   private static final int MAX_CONVERSATIONS = 256;
   private static final int PER_USER_HOUR = 12;
@@ -38,7 +38,7 @@ public final class AuctionAssistant implements AutoCloseable {
           DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm 'UTC'XXX", VIETNAMESE)
                   .withZone(ZoneOffset.ofHours(7));
   private static final DateTimeFormatter ROOM_TIME =
-      DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", VIETNAMESE);
+          DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", VIETNAMESE);
 
   private final AiProvider provider;
   private final MarketPriceService marketPrices;
@@ -68,9 +68,9 @@ public final class AuctionAssistant implements AutoCloseable {
     String selected = System.getenv().getOrDefault("AUCTION_AI_PROVIDER", "");
     AiProvider provider = switch (selected.strip().toLowerCase(Locale.ROOT)) {
       case "", "gemini" -> new GeminiClient(System.getenv("GEMINI_API_KEY"),
-          URI.create(GEMINI_ENDPOINT), Duration.ofSeconds(12));
+              URI.create(GEMINI_ENDPOINT), Duration.ofSeconds(15));
       case "ollama" -> new OllamaClient(System.getenv("OLLAMA_MODEL"),
-          URI.create("http://127.0.0.1:11434/api/chat"), Duration.ofSeconds(30));
+              URI.create("http://127.0.0.1:11434/api/chat"), Duration.ofSeconds(30));
       default -> null;
     };
     return new AuctionAssistant(provider, product -> Optional.empty(), Clock.systemUTC());
@@ -79,7 +79,7 @@ public final class AuctionAssistant implements AutoCloseable {
   /** Reports availability without exposing configured values or implying a successful API call. */
   public String providerStatus() {
     return provider == null ? "Unsupported AUCTION_AI_PROVIDER; use gemini or ollama"
-        : provider.status();
+            : provider.status();
   }
 
   /** Answers a question on an AI worker and rechecks access before retaining the turn. */
@@ -87,16 +87,20 @@ public final class AuctionAssistant implements AutoCloseable {
           throws InterruptedException {
     String normalized = question.toLowerCase(VIETNAMESE);
     boolean marketQuestion = normalized.contains("giá thị trường")
-        || normalized.contains("giá ngoài thị trường");
-    if (marketQuestion || AssistantChat.ROOM_QUESTION.equals(question)) {
-      Optional<MarketPriceService.Quote> quote = marketPrices.findComparablePrices(product);
-      String answer = marketQuestion ? marketAnswer(quote.isPresent()) : roomSummary(product);
+            || normalized.contains("giá ngoài thị trường");
+    Optional<MarketPriceService.Quote> existingQuote = marketPrices.findComparablePrices(product);
+    if ((marketQuestion && existingQuote.isPresent())
+            || AssistantChat.ROOM_QUESTION.equals(question)) {
+      String answer = marketQuestion ? marketAnswer(true) : roomSummary(product);
       verifyAccess.run();
       if (Thread.currentThread().isInterrupted()) {
         throw new InterruptedException();
       }
       return new Reply(
-          answer, product.currentPrice(), product.hasBids(), marketSummary(product, quote));
+              answer,
+              product.currentPrice(),
+              product.hasBids(),
+              marketSummary(product, existingQuote));
     }
     if (provider == null) {
       throw new ApiException("AI_PROVIDER_CONFIGURATION", "Unsupported AI provider");
@@ -104,13 +108,12 @@ public final class AuctionAssistant implements AutoCloseable {
     Conversation conversation = new Conversation(userId, product.auctionId(), product.productId());
     JsonArray history = admit(conversation);
     try {
-      Optional<MarketPriceService.Quote> quote = marketPrices.findComparablePrices(product);
-      String marketSummary = marketSummary(product, quote);
+      String marketSummary = marketSummary(product, existingQuote);
       String answer = provider.answer(obj(
-          "auctionProduct", productFacts(product),
-          "verifiedMarketSummary", marketSummary,
-          "recentConversation", history,
-          "question", question));
+              "auctionProduct", productFacts(product),
+              "verifiedMarketSummary", marketSummary,
+              "recentConversation", history,
+              "question", question));
       verifyAccess.run();
       if (Thread.currentThread().isInterrupted()) {
         throw new InterruptedException();
@@ -126,8 +129,8 @@ public final class AuctionAssistant implements AutoCloseable {
 
   private static String marketAnswer(boolean hasQuote) {
     return hasQuote ? "Khoảng giá đã xác minh và nguồn được hiển thị bên dưới."
-        : "Chưa thể so sánh giá phiên với thị trường. Hãy đối chiếu sản phẩm cùng mẫu,"
-            + " phiên bản và tình trạng từ các nguồn đáng tin cậy.";
+            : "Chưa thể so sánh giá phiên với thị trường. Hãy đối chiếu sản phẩm cùng mẫu,"
+              + " phiên bản và tình trạng từ các nguồn đáng tin cậy.";
   }
 
   private static String roomSummary(AuctionProduct product) {
@@ -140,15 +143,15 @@ public final class AuctionAssistant implements AutoCloseable {
       default -> "Chưa xác định";
     };
     String nextBid = product.acceptsBids()
-        ? "Mức đặt tối thiểu: " + formatAmount(product.minNextBid()) + " ₫."
-        : "Phiên hiện không nhận giá mới.";
+            ? "Mức đặt tối thiểu: " + formatAmount(product.minNextBid()) + " ₫."
+            : "Phiên hiện không nhận giá mới.";
     String leader = product.hasBids() ? "Đã ghi nhận người trả giá cao nhất."
-        : "Chưa có người trả giá.";
+            : "Chưa có người trả giá.";
     return ("%s · %s\nBắt đầu: %s\nKết thúc: %s (giờ Việt Nam)"
-        + "\nGiá khởi điểm: %s ₫\nSố lượt đặt: %d\n%s\n%s")
-        .formatted(product.name(), status, ROOM_TIME.format(product.startTime()),
-            ROOM_TIME.format(product.endTime()), formatAmount(product.startingPrice()),
-            product.totalBids(), leader, nextBid);
+            + "\nGiá khởi điểm: %s ₫\nSố lượt đặt: %d\n%s\n%s")
+            .formatted(product.name(), status, ROOM_TIME.format(product.startTime()),
+                    ROOM_TIME.format(product.endTime()), formatAmount(product.startingPrice()),
+                    product.totalBids(), leader, nextBid);
   }
 
   private synchronized JsonArray admit(Conversation conversation) {
@@ -185,7 +188,7 @@ public final class AuctionAssistant implements AutoCloseable {
       history
               .turns()
               .forEach(turn -> result.add(obj("question", turn.question(), "answer",
-                  turn.answer())));
+                      turn.answer())));
     }
     return result;
   }
@@ -206,7 +209,7 @@ public final class AuctionAssistant implements AutoCloseable {
   private static JsonObject productFacts(AuctionProduct product) {
     JsonArray recentBids = new JsonArray();
     product.recentBids().forEach(
-        bid -> recentBids.add(obj("amount", bid.amount(), "timestamp", bid.timestamp())));
+            bid -> recentBids.add(obj("amount", bid.amount(), "timestamp", bid.timestamp())));
     return obj(
             "name", product.name(),
             "category", product.category(),
