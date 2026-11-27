@@ -4,8 +4,11 @@ import java.text.Normalizer;
 import java.util.Locale;
 import java.util.Set;
 
-/** Validates account input before the client submits it to the server. */
+/** Validates account and wallet input before the client submits it to the server. */
 public final class Validators {
+  public static final long MAX_MONEY = 9_000_000_000_000L;
+  public static final long MIN_DEPOSIT = 10_000L;
+
   private static final Set<String> GENERIC_TLDS =
       Set.of(
           "com", "net", "org", "edu", "gov", "mil", "int", "info", "biz", "name", "pro", "io",
@@ -99,5 +102,10 @@ public final class Validators {
   /** Checks that password and confirmation have equal values. */
   public static boolean matches(String password, String confirmation) {
     return password != null && password.equals(confirmation);
+  }
+
+  /** Checks whether depositing {@code amount} onto {@code balance} exceeds {@code MAX_MONEY}. */
+  public static boolean exceedsWalletLimit(long balance, long amount) {
+    return amount > MAX_MONEY || balance > MAX_MONEY - amount;
   }
 }

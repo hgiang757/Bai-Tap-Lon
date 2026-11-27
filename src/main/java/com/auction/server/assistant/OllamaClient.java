@@ -25,6 +25,11 @@ final class OllamaClient implements AiProvider {
   }
 
   @Override
+  public boolean isReady() {
+    return http != null;
+  }
+
+  @Override
   public String status() {
     return http == null ? "Ollama: missing OLLAMA_MODEL"
         : "Ollama: configured on loopback; connection checked on request";

@@ -101,7 +101,7 @@ final class WalletLogic {
       throw error("INSUFFICIENT_FUNDS", "Insufficient available funds");
     }
     if (deposit && balance > MAX_MONEY - amount) {
-      throw error("VALIDATION_ERROR", "Wallet limit exceeded");
+      throw error("WALLET_LIMIT_EXCEEDED", "Wallet limit exceeded");
     }
     user.addProperty("balance", deposit ? balance + amount : balance - amount);
     log(user, deposit ? "DEPOSIT" : "WITHDRAW", amount, "");

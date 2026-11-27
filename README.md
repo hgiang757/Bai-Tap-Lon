@@ -69,7 +69,7 @@ java '-Dauction.mode=server' '-Dauction.host=127.0.0.1' '-Dauction.port=8888' -c
 
 Trên máy server, chạy `.\Gemini.cmd -ConfigureGemini` và dán khóa vào lời nhắc ẩn. Lệnh lưu khóa bằng DPAPI theo tài khoản Windows hiện tại rồi chạy server. Dùng lại cùng lệnh khi cần thay khóa. Thêm `-GeminiFromClipboard` nếu terminal không dán được vào lời nhắc ẩn.
 
-`.\Start-Server.cmd` ưu tiên `GEMINI_API_KEY` trong môi trường tiến trình, rồi dùng khóa DPAPI nếu có. Khi thiếu khóa, server vẫn mở bình thường và các mục **Thông tin phiên** và **Giá thị trường** vẫn dùng dữ liệu server. Chạy `.\Gemini.cmd` để được nhắc nhập và lưu khóa nếu chưa có. Khóa chỉ dùng ở server qua biến môi trường.
+`.\Start-Server.cmd` ưu tiên `GEMINI_API_KEY` trong môi trường tiến trình, rồi dùng khóa DPAPI nếu có (có thể đặt thêm `GEMINI_MODEL` nếu muốn đổi mô hình mặc định). Khi thiếu khóa, server vẫn mở bình thường và các mục **Thông tin phiên** và **Giá thị trường** vẫn trả lời từ dữ liệu server. Khi đã có khóa và chưa có nguồn giá xác minh nội bộ, mục **Giá thị trường** gọi AI để đưa ra khoảng giá tham khảo chưa xác minh bằng VND. Chạy `.\Gemini.cmd` để được nhắc nhập và lưu khóa nếu chưa có. Khóa chỉ dùng ở server qua biến môi trường.
 
 Mở phòng đấu giá và bấm biểu tượng chat. Trạng thái `configured` xác nhận cấu hình cục bộ. `.\Gemini.cmd -VerifyGemini` kiểm tra Gemini thật qua JavaFX với cổng và dữ liệu thử riêng rồi thoát. Test Maven mặc định dùng provider giả lập trên loopback. [Luồng chat, mã lỗi và giới hạn](docs/PROJECT_CONTEXT.md#gemini-và-chatbot)
 

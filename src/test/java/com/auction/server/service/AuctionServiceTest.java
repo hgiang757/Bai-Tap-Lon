@@ -407,6 +407,16 @@ class AuctionServiceTest {
   }
 
   @Test
+  void depositExceedingWalletLimitIsRejectedWithDedicatedCode() {
+    fail("VALIDATION_ERROR", "DEPOSIT_SIMULATED", buyer, obj("amount", 5_000));
+    long remaining = AuctionService.MAX_MONEY - available(buyer);
+    ok("DEPOSIT_SIMULATED", buyer, obj("amount", remaining));
+    assertEquals(AuctionService.MAX_MONEY, available(buyer));
+    fail("WALLET_LIMIT_EXCEEDED", "DEPOSIT_SIMULATED", buyer, obj("amount", 10_000));
+    assertEquals(AuctionService.MAX_MONEY, available(buyer));
+  }
+
+  @Test
   void productCrudChecksOwnerAndPreservesAuctionHistory() {
     JsonObject p = product(3600, 3600);
     String id = ok("CREATE_PRODUCT_AUCTION", seller, p).getAsJsonObject().get("id").getAsString();

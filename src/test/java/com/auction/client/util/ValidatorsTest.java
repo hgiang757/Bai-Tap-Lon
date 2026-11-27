@@ -3,6 +3,7 @@ package com.auction.client.util;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.auction.client.service.server.ServerError;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -105,5 +106,28 @@ class ValidatorsTest {
   @ValueSource(strings = {"password1", "another2"})
   void rejectsMismatchedPasswords(String password) {
     assertFalse(Validators.matches(password, password + "x"));
+  }
+
+  @org.junit.jupiter.api.Test
+  void walletLimitCheckAndServerErrorMessagesMatchWalletContext() {
+    assertFalse(Validators.exceedsWalletLimit(0, Validators.MAX_MONEY));
+    assertFalse(Validators.exceedsWalletLimit(Validators.MAX_MONEY - 10_000, 10_000));
+    assertTrue(Validators.exceedsWalletLimit(Validators.MAX_MONEY - 10_000, 10_001));
+    assertTrue(Validators.exceedsWalletLimit(0, Validators.MAX_MONEY + 1));
+
+    String limitMessage = new ServerError("WALLET_LIMIT_EXCEEDED", "Wallet limit exceeded")
+        .getMessage();
+    assertTrue(limitMessage.contains("9.000.000.000.000"));
+    assertFalse(limitMessage.contains("bước giá"));
+
+    String minMessage = new ServerError("VALIDATION_ERROR", "Minimum deposit is 10000 VND")
+        .getMessage();
+    assertTrue(minMessage.contains("10.000"));
+    assertFalse(minMessage.contains("bước giá"));
+
+    String invalidMoney = new ServerError("VALIDATION_ERROR", "Invalid money: amount")
+        .getMessage();
+    assertTrue(invalidMoney.contains("Số tiền giao dịch"));
+    assertFalse(invalidMoney.contains("bước giá"));
   }
 }

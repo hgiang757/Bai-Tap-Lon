@@ -225,19 +225,52 @@ class AuctionAssistantTest {
   }
 
   @Test
-  void marketSuggestionUsesVerifiedDataWithoutCallingGemini() throws Exception {
+  void marketQuestionUsesVerifiedQuoteWithoutCallingGemini() throws Exception {
+    URI source = URI.create("https://market.example.com/camera");
+    var quote =
+        new MarketPriceService.Quote(
+            1_700_000, 2_000_000, Currency.getInstance("VND"), source, TIME);
     try (MockGemini provider =
             new MockGemini(
                 request -> MockGemini.answer("Giá khoảng 5 triệu: https://example.com"));
-        AuctionAssistant assistant = provider.assistant(REQUEST_TIMEOUT)) {
+        AuctionAssistant assistant =
+            provider.assistant(provider.testHeader(), REQUEST_TIMEOUT,
+                product -> Optional.of(quote), CLOCK)) {
       var reply = assistant.ask("bidder", PRODUCT, AssistantChat.MARKET_QUESTION, () -> {});
       assertEquals(reply,
           assistant.ask("bidder", PRODUCT, "Giá thị trường là bao nhiêu?", () -> {}));
       assertFalse(reply.answer().contains("5 triệu"));
       assertFalse(reply.answer().contains("example.com"));
-      assertEquals("Chưa có dữ liệu giá thị trường đã xác minh.", reply.marketSummary());
+      assertTrue(reply.marketSummary().contains("1.700.000 VND"));
       assertNull(provider.nextRequest(Duration.ofMillis(100)));
     }
+  }
+
+  @Test
+  void marketQuestionUsesAiWhenUnverifiedAndProviderIsReady() throws Exception {
+    try (MockGemini provider =
+            new MockGemini(
+                request -> MockGemini.answer("Ước lượng tham khảo chưa xác minh: 2–3 triệu VND."));
+        AuctionAssistant assistant = provider.assistant(REQUEST_TIMEOUT)) {
+      var reply = assistant.ask("bidder", PRODUCT, AssistantChat.MARKET_QUESTION, () -> {});
+      assertTrue(reply.answer().contains("2–3 triệu VND"));
+      assertEquals("Chưa có dữ liệu giá thị trường đã xác minh.", reply.marketSummary());
+      var captured = provider.nextRequest(REQUEST_TIMEOUT);
+      assertEquals(provider.testHeader(), captured.apiKey());
+      assertEquals(
+          AssistantChat.MARKET_QUESTION,
+          captured.context().get("question").getAsString());
+    }
+  }
+
+  @Test
+  void geminiEndpointUsesConfiguredModelOrSafeDefault() {
+    assertTrue(AuctionAssistant.geminiEndpoint(null).toString()
+        .endsWith("/models/gemini-3.5-flash-lite:generateContent"));
+    assertTrue(AuctionAssistant.geminiEndpoint("  gemini-2.5-flash  ").toString()
+        .endsWith("/models/gemini-2.5-flash:generateContent"));
+    assertTrue(AuctionAssistant.geminiEndpoint("bad/model?x=1").toString()
+        .endsWith("/models/gemini-3.5-flash-lite:generateContent"));
   }
 
   @Test

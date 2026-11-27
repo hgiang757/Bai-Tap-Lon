@@ -222,9 +222,10 @@ public final class AuctionAssistantView extends StackPane {
             failedQuestion = question;
           }
           setBusy(false);
+          String detail = error instanceof IllegalStateException ? error.getMessage() : null;
           addMessage(
-              error instanceof IllegalStateException
-                  ? error.getMessage()
+              detail != null && !detail.isBlank()
+                  ? detail
                   : "Trợ lý chưa trả lời được. Vui lòng thử lại.",
               "assistant-error");
         });

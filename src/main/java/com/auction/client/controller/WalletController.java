@@ -10,6 +10,7 @@ import com.auction.client.service.WalletService;
 import com.auction.client.ui.AppFooter;
 import com.auction.client.ui.SmoothScroll;
 import com.auction.client.util.FormatUtil;
+import com.auction.client.util.Validators;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -326,6 +327,19 @@ public class WalletController implements DisposableView {
             n = FormatUtil.parsePositiveVnd(input.getText());
           } catch (NumberFormatException ex) {
             error.setText("Số tiền phải là số nguyên dương.");
+            return;
+          }
+          if (n > Validators.MAX_MONEY) {
+            error.setText("Số tiền giao dịch không hợp lệ (tối đa 9.000.000.000.000 ₫).");
+            return;
+          }
+          if (deposit && n < Validators.MIN_DEPOSIT) {
+            error.setText("Số tiền nạp tối thiểu là 10.000 ₫.");
+            return;
+          }
+          if (deposit && Validators.exceedsWalletLimit(balance, n)) {
+            error.setText(
+                "Tổng số dư sau giao dịch vượt quá hạn mức tối đa 9.000.000.000.000 ₫.");
             return;
           }
           submit.setDisable(true);

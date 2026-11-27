@@ -20,7 +20,7 @@ import java.util.Set;
 final class GeminiClient implements AiProvider {
   private static final String KEY_HEADER = "x-goog-api-key";
   private static final Set<String> BLOCKED =
-          Set.of("SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII");
+      Set.of("SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII");
 
   private final String key;
   private final URI endpoint;
@@ -35,7 +35,7 @@ final class GeminiClient implements AiProvider {
     this.timeout = timeout;
     keyProblem = keyProblem(this.key);
     configurationError = this.key.isEmpty() ? "AI_UNAVAILABLE"
-            : keyProblem.isEmpty() ? "" : "AI_KEY_FORMAT";
+        : keyProblem.isEmpty() ? "" : "AI_KEY_FORMAT";
     http = configurationError.isEmpty() ? new AiHttp(timeout) : null;
   }
 
@@ -57,7 +57,7 @@ final class GeminiClient implements AiProvider {
 
   private static boolean isWhitespace(int character) {
     return character == ' ' || (character >= '\t' && character <= '\r')
-            || character == 0x85 || Character.isSpaceChar(character);
+        || character == 0x85 || Character.isSpaceChar(character);
   }
 
   private static String keyProblem(String key) {
@@ -70,8 +70,8 @@ final class GeminiClient implements AiProvider {
     for (int offset = 0; offset < key.length(); ) {
       int character = key.codePointAt(offset);
       if (isWhitespace(character)
-              || Character.isISOControl(character)
-              || Character.getType(character) == Character.FORMAT) {
+          || Character.isISOControl(character)
+          || Character.getType(character) == Character.FORMAT) {
         return String.format(Locale.ROOT, "forbidden whitespace/control/format U+%04X", character);
       }
       offset += Character.charCount(character);
@@ -86,11 +86,16 @@ final class GeminiClient implements AiProvider {
   }
 
   @Override
+  public boolean isReady() {
+    return http != null;
+  }
+
+  @Override
   public String status() {
     return switch (configurationError) {
       case "AI_UNAVAILABLE" -> "Gemini: missing GEMINI_API_KEY";
       case "AI_KEY_FORMAT" ->
-              "Gemini: GEMINI_API_KEY rejected locally at Java HTTP preflight (" + keyProblem + ")";
+          "Gemini: GEMINI_API_KEY rejected locally at Java HTTP preflight (" + keyProblem + ")";
       default -> "Gemini: configured; authentication checked on request";
     };
   }
@@ -101,23 +106,18 @@ final class GeminiClient implements AiProvider {
       reportVerification("Gemini preflight: " + configurationError + " (" + keyProblem + ")");
       throw new ApiException(configurationError, "Gemini preflight: " + keyProblem);
     }
-    String systemPrompt =
-            INSTRUCTIONS
-                    + "\nKhi người dùng hỏi về giá thị trường bên ngoài hoặc so sánh giá mà chưa có"
-                    + " dữ liệu xác minh nội bộ, hãy dựa vào kiến thức thị trường thực tế"
-                    + " để cung cấp khoảng giá tham khảo (tính theo VND) và nhận xét ngắn gọn.";
     JsonObject body =
-            obj(
-                    "systemInstruction", obj("parts", array(obj("text", systemPrompt))),
-                    "contents", array(obj("role", "user", "parts", array(obj("text", context.toString())))),
-                    "generationConfig", obj("maxOutputTokens", 1024));
+        obj(
+            "systemInstruction", obj("parts", array(obj("text", INSTRUCTIONS))),
+            "contents", array(obj("role", "user", "parts", array(obj("text", context.toString())))),
+            "generationConfig", obj("maxOutputTokens", 1024));
     HttpRequest request =
-            HttpRequest.newBuilder(endpoint)
-                    .timeout(timeout)
-                    .header("Content-Type", "application/json")
-                    .header(KEY_HEADER, key)
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
+        HttpRequest.newBuilder(endpoint)
+            .timeout(timeout)
+            .header("Content-Type", "application/json")
+            .header(KEY_HEADER, key)
+            .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+            .build();
     HttpResponse<String> response;
     try {
       response = http.post(request, true);
@@ -159,9 +159,9 @@ final class GeminiClient implements AiProvider {
       }
       JsonArray details = error.getAsJsonArray("details");
       return details != null && details.asList().stream()
-              .filter(detail -> detail.isJsonObject())
-              .map(detail -> text(detail.getAsJsonObject(), "reason"))
-              .anyMatch(reason -> reason.equals("API_KEY_INVALID") || reason.equals("API_KEY_EXPIRED"));
+          .filter(detail -> detail.isJsonObject())
+          .map(detail -> text(detail.getAsJsonObject(), "reason"))
+          .anyMatch(reason -> reason.equals("API_KEY_INVALID") || reason.equals("API_KEY_EXPIRED"));
     } catch (JsonParseException | ClassCastException | IllegalStateException e) {
       return false;
     }
@@ -198,7 +198,7 @@ final class GeminiClient implements AiProvider {
         }
       }
     } catch (JsonParseException | ClassCastException | IllegalStateException
-             | UnsupportedOperationException e) {
+        | UnsupportedOperationException e) {
       throw new ApiException("AI_PROVIDER_ERROR", "Invalid Gemini response");
     }
     throw new ApiException("AI_PROVIDER_ERROR", "Gemini returned no visible answer");

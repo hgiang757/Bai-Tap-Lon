@@ -27,6 +27,8 @@ public final class ServerError extends IllegalStateException {
       case "AUTHENTICATION_FAILED" -> "Sai thông tin đăng nhập hoặc tài khoản bị khóa.";
       case "FORBIDDEN" -> "Tài khoản không có quyền thực hiện thao tác này.";
       case "INSUFFICIENT_FUNDS" -> "Số tiền có thể sử dụng không đủ.";
+      case "WALLET_LIMIT_EXCEEDED" ->
+          "Tổng số dư sau giao dịch vượt quá hạn mức tối đa 9.000.000.000.000 ₫.";
       case "BID_TOO_LOW" -> "Giá đặt phải từ giá hiện tại cộng bước giá tối thiểu trở lên.";
       case "AUCTION_NOT_STARTED" -> "Phiên đấu giá chưa bắt đầu.";
       case "AUCTION_CLOSED" -> "Phiên đã kết thúc hoặc bị hủy.";
@@ -107,6 +109,11 @@ public final class ServerError extends IllegalStateException {
           "Giá khởi điểm phải là số nguyên dương, tối đa 9.000 tỷ đồng.";
       case "Expected integer: minBidStep", "Invalid money: minBidStep" ->
           "Bước giá phải là số nguyên dương, tối đa 9.000 tỷ đồng.";
+      case "Expected integer: amount", "Invalid money: amount" ->
+          "Số tiền giao dịch không hợp lệ (tối đa 9.000.000.000.000 ₫).";
+      case "Minimum deposit is 10000 VND" -> "Số tiền nạp tối thiểu là 10.000 ₫.";
+      case "Wallet limit exceeded" ->
+          "Tổng số dư sau giao dịch vượt quá hạn mức tối đa 9.000.000.000.000 ₫.";
       case "Image must be smaller than 5 MB" -> "Ảnh sản phẩm phải nhỏ hơn 5 MB.";
       case "Invalid image encoding", "Unsupported image", "Invalid image" ->
           "Không đọc được ảnh sản phẩm. Hãy chọn ảnh PNG/JPG/GIF/BMP hợp lệ.";
